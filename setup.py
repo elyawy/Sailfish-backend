@@ -19,7 +19,6 @@ __version__ = f"{today.year}.{today.month}.{today.day}"
 #   Sort input source files if you glob sources to ensure bit-for-bit
 #   reproducible builds (https://github.com/pybind/python_example/pull/53)
 
-LIBS_DIR = Path("libs").resolve()
 # SRC_DIR = Path("src").resolve()
 
 
@@ -27,7 +26,7 @@ ext_modules = [
     Pybind11Extension("_Sailfish",
         sorted(glob("src/*.cpp")),
         cxx_std = "14",
-        extra_objects=[x for x in LIBS_DIR.glob("*") if x.is_file()],
+        extra_objects=[x for x in Path(".").glob("libs/*") if x.is_file()],
         extra_compile_args=["-g"],
         # Example: passing in the version to the compiled code
         define_macros = [('VERSION_INFO', __version__)],
