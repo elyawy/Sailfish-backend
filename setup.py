@@ -26,7 +26,7 @@ ext_modules = [
     Pybind11Extension("_Sailfish",
         sorted(glob("src/*.cpp")),
         cxx_std = "14",
-        extra_objects=[str(x) for x in Path(".").glob("libs/*") if x.is_file()],
+        extra_objects=[str(x) for x in Path(".").resolve().glob("libs/*") if x.is_file()],
         extra_compile_args=["-g"],
         # Example: passing in the version to the compiled code
         define_macros = [('VERSION_INFO', __version__)],
