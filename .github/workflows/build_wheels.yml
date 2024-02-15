@@ -4,30 +4,32 @@ on: [push, pull_request]
 
 jobs:
   build_wheels:
-    name: Build wheels on ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
+    name: Build wheels on ${{ matrix.config.os }}
+    runs-on: ${{ matrix.config.os }}
     strategy:
       matrix:
+        config:
+          - {
+              os: "ubuntu-latest",
+              lib: "Phylolib-24.2-Linux",
+            }
         # macos-13 is an intel runner, macos-14 is apple silicon
-        os: [ubuntu-latest] #, windows-2019, macos-13, macos-14]
 
     steps:
       - uses: actions/checkout@v4
-
-      - uses: kenchan0130/actions-system-info@master
-        id: system-info
 
       - uses: robinraju/release-downloader@v1.9
         id: lib-download
         with:
           repository: "elyawy/Phylolib"
-          fileName: "*${{ steps.system-info.outputs.platform }}.zip"
+          fileName: ${{ matrix.config.lib }}.zip
           latest: true
           extract: true
 
-      - name: check download
-        run: ls .
-
+      -  shell: bash
+         run: |
+            mv -r matrix.config.lib/build/* libs/
+            tree .
 
       # - name: Build wheels
       #   uses: pypa/cibuildwheel@v2.16.5
