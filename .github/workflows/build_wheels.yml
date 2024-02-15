@@ -37,6 +37,7 @@ jobs:
         env:
           CIBW_BUILD: 'cp310-*'
           CIBW_ARCHS: 'auto64'
+          CIBW_BUILD_VERBOSITY: 1
         #   CIBW_SOME_OPTION: value
         #    ...
         with:
