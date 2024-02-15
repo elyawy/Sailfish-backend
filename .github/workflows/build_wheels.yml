@@ -18,11 +18,16 @@ jobs:
         id: system-info
 
       - uses: robinraju/release-downloader@v1.9
+        id: lib-download
         with:
           repository: "elyawy/Phylolib"
           fileName: "*${{ steps.system-info.outputs.platform }}.zip"
           latest: true
           extract: true
+
+      - name: check download
+        uses: echo ${{ fromJson(steps.<step-id>.outputs.downloaded_files)[0] }}
+
 
       # - name: Build wheels
       #   uses: pypa/cibuildwheel@v2.16.5
