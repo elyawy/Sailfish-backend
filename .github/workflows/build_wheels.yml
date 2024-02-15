@@ -32,17 +32,17 @@ jobs:
             mv ./${{ matrix.config.lib }}/build/* ./libs/
             tree .
 
-      # - name: Build wheels
-      #   uses: pypa/cibuildwheel@v2.16.5
-      #   # env:
-      #   #   CIBW_SOME_OPTION: value
-      #   #    ...
-      #   # with:
-      #   #   package-dir: .
-      #   #   output-dir: wheelhouse
-      #   #   config-file: "{package}/pyproject.toml"
+      - name: Build wheels
+        uses: pypa/cibuildwheel@v2.16.5
+        # env:
+        #   CIBW_SOME_OPTION: value
+        #    ...
+        # with:
+        #   package-dir: .
+        #   output-dir: wheelhouse
+        #   config-file: "{package}/pyproject.toml"
 
-      # - uses: actions/upload-artifact@v4
-      #   with:
-      #     name: cibw-wheels-${{ matrix.os }}-${{ strategy.job-index }}
-      #     path: ./wheelhouse/*.whl
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cibw-wheels-${{ matrix.config.os }}-${{ strategy.job-index }}
+          path: ./wheelhouse/*.whl
