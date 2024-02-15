@@ -1,0 +1,52 @@
+# Available at setup time due to pyproject.toml
+from glob import glob
+from pathlib import Path
+from pybind11.setup_helpers import Pybind11Extension, build_ext
+from setuptools import setup, find_packages
+
+from datetime import datetime
+
+today = datetime.today()
+
+__version__ = f"{today.year}.{today.month}.{today.day}"
+
+# The main interface is through Pybind11Extension.
+# * You can add cxx_std=11/14/17, and then build_ext can be removed.
+# * You can set include_pybind11=false to add the include directory yourself,
+#   say from a submodule.
+#
+# Note:
+#   Sort input source files if you glob sources to ensure bit-for-bit
+#   reproducible builds (https://github.com/pybind/python_example/pull/53)
+
+LIBS_DIR = Path("libs").resolve()
+# SRC_DIR = Path("src").resolve()
+
+
+ext_modules = [
+    Pybind11Extension("_Sailfish",
+        sorted(glob("src/*.cpp")),
+        cxx_std = "14",
+        extra_objects=[x for x in LIBS_DIR.glob("*") if x.is_file()],
+        extra_compile_args=["-g"],
+        # Example: passing in the version to the compiled code
+        define_macros = [('VERSION_INFO', __version__)],
+        ),
+]
+
+
+setup(
+    name="Sailfish",
+    version=__version__,
+    author="Elya Wygoda",
+    author_email="elya.wygoda@gmail.com",
+    url="https://github.com/pybind/python_example",
+    description="A fast MSA simulator",
+    long_description="",
+    ext_modules=ext_modules,
+    extras_require={"test": "pytest"},
+    cmdclass={"build_ext": build_ext},
+    zip_safe=False,
+    python_requires=">=3.6",
+    packages=find_packages(include=['test', 'test.*'])
+)
