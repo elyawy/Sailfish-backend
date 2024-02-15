@@ -28,7 +28,8 @@ jobs:
 
       -  shell: bash
          run: |
-            mv ${{ matrix.config.lib }}/build/* libs/
+            ls .
+            mv ./${{ matrix.config.lib }}/build/* ./libs/
             tree .
 
       # - name: Build wheels
