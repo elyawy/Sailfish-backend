@@ -28,7 +28,7 @@ jobs:
 
       -  shell: bash
          run: |
-            ls .
+            mkdir libs
             mv ./${{ matrix.config.lib }}/build/* ./libs/
             tree .
 
