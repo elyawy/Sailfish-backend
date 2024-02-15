@@ -34,7 +34,8 @@ jobs:
 
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.16.5
-        # env:
+        env:
+          CIBW_BUILD='cp39-*'
         #   CIBW_SOME_OPTION: value
         #    ...
         with:
