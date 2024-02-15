@@ -26,7 +26,7 @@ jobs:
           extract: true
 
       - name: check download
-        run: echo ${{ fromJson(steps.<step-id>.outputs.downloaded_files)[0] }}
+        run: echo ${{ fromJson(steps.lib-download.outputs.downloaded_files)[0] }}
 
 
       # - name: Build wheels
