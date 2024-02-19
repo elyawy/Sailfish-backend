@@ -18,19 +18,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: robinraju/release-downloader@v1.9
-        id: lib-download
-        with:
-          repository: "elyawy/Phylolib"
-          fileName: ${{ matrix.config.lib }}.zip
-          latest: true
-          extract: true
+      # - uses: robinraju/release-downloader@v1.9
+      #   id: lib-download
+      #   with:
+      #     repository: "elyawy/Phylolib"
+      #     fileName: ${{ matrix.config.lib }}.zip
+      #     latest: true
+      #     extract: true
 
-      -  shell: bash
-         run: |
-            mkdir libs
-            mv ./${{ matrix.config.lib }}/build/* ./libs/
-            tree .
+      # -  shell: bash
+      #    run: |
+      #       mkdir libs
+      #       mv ./${{ matrix.config.lib }}/build/* ./libs/
+      #       tree .
 
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.16.5
