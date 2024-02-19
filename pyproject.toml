@@ -8,18 +8,16 @@ build-backend = "setuptools.build_meta"
 
 # Normal options, etc.
 [tool.cibuildwheel]
-before-all = [
-    "cd libs/Phylolib",
-    "cmake .",
-    "ls ."
-]
-
 skip =  ["pp*", "*-win32", "*-manylinux_i686", "*-musllinux_i686"]
 # build = "cp310-manylinux*"
 build-verbosity = 1
 
 [tool.cibuildwheel.linux]
 before-all = [
+    "ls .",
+    "cd libs/Phylolib",
+    "cmake .",
+    "ls .",
     "make",
     "cp libPhylolib.* ../",
     "cp -r includes ../"
@@ -27,8 +25,11 @@ before-all = [
 
 [tool.cibuildwheel.windows]
 before-all = [
+    "cd libs/Phylolib",
+    "cmake .",
     "dir",
-    "nmake",
+    "ls .",
+    "make",
     "cp libPhylolib.* ../",
     "cp -r includes ../"
 ]
