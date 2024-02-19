@@ -7,7 +7,19 @@ build-backend = "setuptools.build_meta"
 
 
 # Normal options, etc.
-# [tool.cibuildwheel]
+[tool.cibuildwheel]
+before-all = [
+    "curl -L https://github.com/elyawy/Phylolib/archive/refs/tags/v20240214.1.zip --output Phylolib.zip",
+    "unzip Phylolib.zip",
+    "cd Phylolib-20240214.1",
+    "cmake .",
+    "make",
+    "cp libPhylolib.a ../libs/",
+    "cp -r includes ../libs/"
+]
+skip = "pp*"
+# build = "cp310-manylinux*"
+build-verbosity = 1
 # test-command = "python {project}/tests/test.py"
 # test-skip = "*universal2:arm64"
 
@@ -19,7 +31,7 @@ build-backend = "setuptools.build_meta"
 #   "RUF", # Ruff-specific
 #   "UP",  # pyupgrade
 # ]
-extend-ignore = [
-  "E501",   # Line too long
-]
+# extend-ignore = [
+#   "E501",   # Line too long
+# ]
 # target-version = "py37"
