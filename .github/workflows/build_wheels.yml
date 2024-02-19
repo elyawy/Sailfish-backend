@@ -9,9 +9,11 @@ jobs:
     strategy:
       matrix:
         config:
+          # - {
+          #     os: "ubuntu-latest",
+          #   }
           - {
-              os: "ubuntu-latest",
-              lib: "Phylolib-24.2-Linux",
+              os: "windows-latest",
             }
         # macos-13 is an intel runner, macos-14 is apple silicon
 
