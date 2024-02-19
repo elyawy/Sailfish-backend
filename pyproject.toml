@@ -27,9 +27,8 @@ before-all = [
 before-all = [
     "cd libs/Phylolib",
     "cmake .",
-    "dir",
+    "msbuild Phylolib.sln",
     "ls .",
-    "make",
     "cp libPhylolib.* ../",
     "cp -r includes ../"
 ]
