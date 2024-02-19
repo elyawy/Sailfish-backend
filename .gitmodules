@@ -1,0 +1,3 @@
+[submodule "libs/Phylolib"]
+	path = libs/Phylolib
+	url = https://github.com/elyawy/Phylolib.git
