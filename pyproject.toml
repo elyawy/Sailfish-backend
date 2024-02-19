@@ -15,7 +15,7 @@ build-verbosity = 1
 [tool.cibuildwheel.linux]
 before-all = [
     "cd libs/Phylolib",
-    "cmake .",
+    "cmake . -DCMAKE_BUILD_TYPE=Release",
     "ls .",
     "make",
     "cp libPhylolib.* ../",
@@ -25,10 +25,10 @@ before-all = [
 [tool.cibuildwheel.windows]
 before-all = [
     "cd libs/Phylolib",
-    "cmake .",
+    "cmake . -DCMAKE_BUILD_TYPE=Release",
     "cmake --build .",
     "ls .",
-    "cp libPhylolib.* ../",
+    "cp Release/Phylolib.lib ../",
     "cp -r includes ../"
 ]
 # test-command = "python {project}/tests/test.py"
