@@ -11,14 +11,27 @@ build-backend = "setuptools.build_meta"
 before-all = [
     "cd libs/Phylolib",
     "cmake .",
-    "make",
-    "cp libPhylolib.* ../",
-    "cp -r includes ../"
+    "ls ."
 ]
 
 skip =  ["pp*", "*-win32", "*-manylinux_i686", "*-musllinux_i686"]
 # build = "cp310-manylinux*"
 build-verbosity = 1
+
+[tool.cibuildwheel.linux]
+before-all = [
+    "make",
+    "cp libPhylolib.* ../",
+    "cp -r includes ../"
+]
+
+[tool.cibuildwheel.windows]
+before-all = [
+    "dir",
+    "nmake",
+    "cp libPhylolib.* ../",
+    "cp -r includes ../"
+]
 # test-command = "python {project}/tests/test.py"
 # test-skip = "*universal2:arm64"
 
