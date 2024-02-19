@@ -25,8 +25,8 @@ before-all = [
 [tool.cibuildwheel.windows]
 before-all = [
     "cd libs/Phylolib",
-    "cmake . -G 'Unix Makefiles'",
-    "make",
+    "cmake .",
+    "cmake --install",
     "ls .",
     "cp libPhylolib.* ../",
     "cp -r includes ../"
