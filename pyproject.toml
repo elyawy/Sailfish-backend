@@ -14,7 +14,6 @@ build-verbosity = 1
 
 [tool.cibuildwheel.linux]
 before-all = [
-    "ls .",
     "cd libs/Phylolib",
     "cmake .",
     "ls .",
@@ -27,7 +26,7 @@ before-all = [
 before-all = [
     "cd libs/Phylolib",
     "cmake .",
-    "msbuild Phylolib.sln",
+    "msbuild.exe Phylolib.sln",
     "ls .",
     "cp libPhylolib.* ../",
     "cp -r includes ../"
