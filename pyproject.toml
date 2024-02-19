@@ -14,6 +14,7 @@ before-all = [
     "cd Phylolib-20240214.1",
     "cmake .",
     "make",
+    "ls .",
     "cp libPhylolib.a ../libs/",
     "cp -r includes ../libs/"
 ]
