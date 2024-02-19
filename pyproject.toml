@@ -15,6 +15,7 @@ before-all = [
     "cmake .",
     "make",
     "ls .",
+    "ls ..",
     "cp libPhylolib.a ../libs/",
     "cp -r includes ../libs/"
 ]
