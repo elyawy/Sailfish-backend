@@ -1,5 +1,4 @@
 build
 dist
 Sailfish.egg-info
-libs/*
 wheelhouse
