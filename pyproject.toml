@@ -9,6 +9,7 @@ build-backend = "setuptools.build_meta"
 # Normal options, etc.
 [tool.cibuildwheel]
 before-all = [
+    "tree .",
     "cd libs/Phylolib",
     "cmake .",
     "make",
