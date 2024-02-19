@@ -26,7 +26,7 @@ before-all = [
 before-all = [
     "cd libs/Phylolib",
     "cmake -DCMAKE_BUILD_TYPE=Release .",
-    "cmake --build .",
+    "cmake --build . --config Release",
     "ls .",
     "cp Release/Phylolib.lib ../",
     "cp -r includes ../"
