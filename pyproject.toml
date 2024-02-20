@@ -35,13 +35,12 @@ before-all = [
 [tool.cibuildwheel.macos]
 before-all = [
     "cd libs/Phylolib",
-    "cmake -DCMAKE_BUILD_TYPE=Release -D'CMAKE_OSX_ARCHITECTURES=arm64;x86_64' .",
+    "cmake -DCMAKE_BUILD_TYPE=Release .",
     "ls .",
     "make",
     "cp libPhylolib.* ../",
     "cp -r includes ../"
 ]
-archs = ["x86_64", "arm64"]
 # test-command = "python {project}/tests/test.py"
 # test-skip = "*universal2:arm64"
 
