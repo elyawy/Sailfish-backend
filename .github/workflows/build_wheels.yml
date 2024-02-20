@@ -9,9 +9,12 @@ jobs:
     strategy:
       matrix:
         config:
-          # - {
-          #     os: "ubuntu-latest",
-          #   }
+          - {
+              os: "ubuntu-latest",
+            }
+          - {
+              os: "windows-latest",
+            }
           - {
               os: "macos-14",
             }
