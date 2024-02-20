@@ -35,7 +35,7 @@ before-all = [
 [tool.cibuildwheel.macos]
 before-all = [
     "cd libs/Phylolib",
-    "cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=arm64;x86_64 .",
+    "cmake -DCMAKE_BUILD_TYPE=Release -D'CMAKE_OSX_ARCHITECTURES=arm64;x86_64' .",
     "ls .",
     "make",
     "cp libPhylolib.* ../",
