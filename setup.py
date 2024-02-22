@@ -27,7 +27,7 @@ ext_modules = [
         sorted(glob("src/*.cpp")),
         cxx_std = "14",
         extra_objects=[str(x) for x in Path(".").resolve().glob("libs/*") if x.is_file()],
-        extra_compile_args=["-g"],
+        # extra_compile_args=["-g"],
         # Example: passing in the version to the compiled code
         define_macros = [('VERSION_INFO', __version__)],
         ),

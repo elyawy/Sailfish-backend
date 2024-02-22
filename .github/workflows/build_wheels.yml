@@ -3,7 +3,19 @@ name: Build
 on: [push, pull_request]
 
 jobs:
+  release_tag:
+    runs-on: [ubuntu-latest]
+    steps:
+    - name: Generate release tag
+      id: generate_release_tag
+      uses: alexvingg/next-release-tag@v1.0.4
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+    outputs:
+      date_tag: ${{ steps.generate_release_tag.outputs.release_tag }}
+
   build_wheels:
+    needs: release_tag
     name: Build wheels on ${{ matrix.config.os }}
     runs-on: ${{ matrix.config.os }}
     strategy:
@@ -50,3 +62,10 @@ jobs:
         with:
           name: cibw-wheels-${{ matrix.config.os }}-${{ strategy.job-index }}
           path: ./wheelhouse/*.whl
+
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ needs.release_tag.outputs.date_tag }}
+          name: Release ${{ needs.release_tag.outputs.date_tag }}
+          files: wheelhouse/*.whl
