@@ -63,9 +63,10 @@ jobs:
           name: cibw-wheels-${{ matrix.config.os }}-${{ strategy.job-index }}
           path: ./wheelhouse/*.whl
 
+
       - name: Release
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ needs.release_tag.outputs.date_tag }}
-          name: Release ${{ needs.release_tag.outputs.date_tag }}
-          files: wheelhouse/*.whl
+          name: cibw-wheels-${{ matrix.config.os }}-${{ strategy.job-index }}
+          files: ./wheelhouse/*.whl
