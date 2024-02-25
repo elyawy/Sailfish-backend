@@ -39,7 +39,7 @@ setup(
     version=__version__,
     author="Elya Wygoda",
     author_email="elya.wygoda@gmail.com",
-    url="https://github.com/pybind/python_example",
+    url="https://github.com/elyawy/Sailfish",
     description="A fast MSA simulator",
     long_description="",
     ext_modules=ext_modules,
@@ -47,5 +47,5 @@ setup(
     cmdclass={"build_ext": build_ext},
     zip_safe=False,
     python_requires=">=3.6",
-    packages=find_packages(include=['test', 'test.*'])
+    packages=find_packages(include=['Sailfish','tests'])
 )
