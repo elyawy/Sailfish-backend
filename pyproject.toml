@@ -19,7 +19,6 @@ before-all = [
     "ls .",
     "make",
     "cp libPhylolib.* ../",
-    "cp -r includes ../"
 ]
 
 [tool.cibuildwheel.windows]
@@ -29,7 +28,6 @@ before-all = [
     "cmake --build . --config Release",
     "ls .",
     "cp Release/Phylolib.lib ../",
-    "cp -r includes ../"
 ]
 
 [tool.cibuildwheel.macos]
@@ -39,7 +37,6 @@ before-all = [
     "ls .",
     "make",
     "cp libPhylolib.* ../",
-    "cp -r includes ../"
 ]
 # test-command = "python {project}/tests/test.py"
 # test-skip = "*universal2:arm64"

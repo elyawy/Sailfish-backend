@@ -3,10 +3,10 @@
 #ifndef ___RATE_MATRIX_SIM
 #define ___RATE_MATRIX_SIM
 
-#include "../libs/includes/definitions.h"
-#include "../libs/includes/tree.h"
-#include "../libs/includes/stochasticProcess.h"
-#include "../libs/includes/sequenceContainer.h"
+#include "../libs/Phylolib/includes/definitions.h"
+#include "../libs/Phylolib/includes/tree.h"
+#include "../libs/Phylolib/includes/stochasticProcess.h"
+#include "../libs/Phylolib/includes/sequenceContainer.h"
 
 #include "modelFactory.h"
 

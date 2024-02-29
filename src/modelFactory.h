@@ -5,9 +5,9 @@
 #include <vector>
 #include <memory>
 
-#include "../libs/includes/stochasticProcess.h"
-#include "../libs/includes/alphabet.h"
-#include "../libs/includes/tree.h"
+#include "../libs/Phylolib/includes/stochasticProcess.h"
+#include "../libs/Phylolib/includes/alphabet.h"
+#include "../libs/Phylolib/includes/tree.h"
 
 // wrapper for all the information about the substitution model:
 // alphabet = aa/nc

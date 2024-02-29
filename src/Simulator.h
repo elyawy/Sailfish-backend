@@ -2,7 +2,7 @@
 #include <stack>
 #include <random>
 
-#include "../libs/includes/stochasticProcess.h"
+#include "../libs/Phylolib/includes/stochasticProcess.h"
 
 #include "SimulationProtocol.h"
 #include "BlockTree.h"

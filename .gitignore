@@ -2,3 +2,5 @@ build
 dist
 Sailfish.egg-info
 wheelhouse
+.vscode
+libs/libPhylolib.a

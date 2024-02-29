@@ -1,5 +1,6 @@
 
-#include "../libs/includes/tree.h"
+
+#include "../libs/Phylolib/includes/tree.h"
 
 #include "DiscreteDistribution.h"
 

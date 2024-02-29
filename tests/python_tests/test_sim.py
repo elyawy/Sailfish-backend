@@ -7,15 +7,15 @@ from _Sailfish import Tree, Simulator, SimProtocol, Msa, DiscreteDistribution
 
 
 # tree = Tree(f"{pathlib.Path.home()}/Data/yeast/RAxML_tree.tree")
-tree = Tree(f"tests/trees/normalbranches_nLeaves10.treefile")
+tree = Tree(f"tests/trees/simple.tree")
 
 root_node = tree.root
 
 protocol = SimProtocol(tree)
 
 
-rates_i = list(repeat(0.01, tree.num_nodes))
-rates_d = list(repeat(0.01, tree.num_nodes))
+rates_i = list(repeat(0.1, tree.num_nodes))
+rates_d = list(repeat(0.1, tree.num_nodes))
 
 a_param = 1.08
 
@@ -55,7 +55,7 @@ all_dists = list(repeat(dist, tree.num_nodes))
 # print(all_dists)
 
 
-protocol.set_sequence_size(1000)
+protocol.set_sequence_size(10000)
 protocol.set_insertion_rates(rates_i)
 protocol.set_deletion_rates(rates_d)
 protocol.set_insertion_length_distributions(all_dists)
@@ -71,6 +71,7 @@ max_lengths = []
 for i in range(10000):
     blockmap = sim.gen_indels()
     msa = Msa(blockmap, root_node)
+    # msa.print_indels()
     seq_lengths = []
     for seq in msa.get_msa():
         current_arr = np.array(seq)
@@ -85,10 +86,10 @@ print("max mean:", sum(max_lengths)/len(max_lengths))
 
 print(max(max_lengths))
 
-from matplotlib import pyplot as plt
+# from matplotlib import pyplot as plt
 
-plt.hist(min_lengths, bins=50)
-plt.show()
+# plt.hist(min_lengths, bins=50)
+# plt.show()
 
-plt.hist(max_lengths, bins=50)
-plt.show()
+# plt.hist(max_lengths, bins=50)
+# plt.show()

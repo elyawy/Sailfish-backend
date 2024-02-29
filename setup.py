@@ -21,10 +21,13 @@ __version__ = f"{today.year}.{today.month}.{today.day}"
 
 # SRC_DIR = Path("src").resolve()
 
+def print_sources(sources):
+    print(sources)
+    return sources
 
 ext_modules = [
     Pybind11Extension("_Sailfish",
-        sorted(glob("src/*.cpp")),
+        sources = sorted(print_sources(glob("src/*.cpp"))),
         cxx_std = "14",
         extra_objects=[str(x) for x in Path(".").resolve().glob("libs/*") if x.is_file()],
         # extra_compile_args=["-g"],

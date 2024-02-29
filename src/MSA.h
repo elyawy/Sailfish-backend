@@ -8,8 +8,8 @@
 #include <map>
 #include <iostream>
 
-#include "../libs/includes/tree.h"
-#include "../libs/includes/sequenceContainer.h"
+#include "../libs/Phylolib/includes/tree.h"
+#include "../libs/Phylolib/includes/sequenceContainer.h"
 
 #include "Sequence.h"
 
