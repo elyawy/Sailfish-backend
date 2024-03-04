@@ -1,6 +1,7 @@
 #include "../libs/Phylolib/includes/amino.h"
 #include "../libs/Phylolib/includes/nucleotide.h"
 #include "../libs/Phylolib/includes/chebyshevAccelerator.h"
+#include "../libs/Phylolib/includes/trivialAccelerator.h"
 #include "../libs/Phylolib/includes/gammaDistribution.h"
 
 
@@ -37,13 +38,34 @@ void modelFactory::setModelParameters(std::vector<MDOUBLE> params) {
         std::cout << "Please specify an appropriate model before setting parameters.\n";
         return;
     }
+
+    switch (_model){
+        case modelCode::GTR: {
+            if (params.size() != 10) {std::cout << "The 'GTR' model requires 10 paraemeters, " 
+                << params.size() <<  " were provided\n"; return;}
+            break;
+        }    
+        case modelCode::HKY: {
+            if (params.size() != 5) {std::cout << "The 'HKY' model requires 5 paraemeters, " 
+                << params.size() <<  " were provided\n"; return;}
+            break;
+        }    
+        case modelCode::TAMURA92: {
+            if (params.size() != 2) {std::cout << "The 'TAMURA92' model requires 2 paraemeters, " 
+                << params.size() <<  " were provided\n"; return;}
+            break;
+        }    
+        default:
+            break;
+    }
+
     _parameters = params;
     _state = factoryState::GAMMA;
 }
 
 void modelFactory::setGammaParameters(MDOUBLE alpha, size_t numCategories) {
     if (_state!=factoryState::GAMMA) {
-        std::cout << "Please specify a model before proceeding.\n";
+        std::cout << "Please specify a model and its correct parameters before proceeding.\n";
         return;
     }
     _alpha = alpha;
@@ -54,8 +76,6 @@ void modelFactory::setGammaParameters(MDOUBLE alpha, size_t numCategories) {
 void modelFactory::resetFactory() {
     _state = factoryState::ALPHABET;
 }
-
-
 
 
 std::unique_ptr<stochasticProcess> modelFactory::getStochasticProcess() {
@@ -74,41 +94,108 @@ std::unique_ptr<stochasticProcess> modelFactory::getStochasticProcess() {
     std::unique_ptr<replacementModel> repModel;
 
 
-    if (_model==modelCode::NUCJC) repModel = std::make_unique<nucJC>();
-    if (_model==modelCode::AAJC) repModel = std::make_unique<aaJC>();
-    // if (_model==modelCode::GTR) repModel = std::make_unique<gtrModel>(_parameters);
-    // if (_model==modelCode::HKY) repModel = &hky();
-    // if (_model==modelCode::TAMURA92) repModel = &tamura92();
-    // if (_model==modelCode::WYANGMODEL) repModel = &wYangModel();
-    if (_model==modelCode::CPREV45) repModel = std::make_unique<pupAll>(datMatrixHolder::cpREV45);
-    if (_model==modelCode::DAYHOFF) repModel = std::make_unique<pupAll>(datMatrixHolder::dayhoff);
-    if (_model==modelCode::JONES) repModel = std::make_unique<pupAll>(datMatrixHolder::jones);
-    if (_model==modelCode::MTREV24) repModel = std::make_unique<pupAll>(datMatrixHolder::mtREV24);
-    if (_model==modelCode::WAG) repModel = std::make_unique<pupAll>(datMatrixHolder::wag);
-    if (_model==modelCode::HIVB) repModel = std::make_unique<pupAll>(datMatrixHolder::HIVb);
-    if (_model==modelCode::HIVW) repModel = std::make_unique<pupAll>(datMatrixHolder::HIVw);
-    if (_model==modelCode::LG) repModel = std::make_unique<pupAll>(datMatrixHolder::lg);
-    if (_model==modelCode::EMPIRICODON) repModel = std::make_unique<pupAll>(datMatrixHolder::empiriCodon);
-    if (_model==modelCode::EX_BURIED) repModel = std::make_unique<pupAll>(datMatrixHolder::EX_BURIED);
-    if (_model==modelCode::EX_EXPOSED) repModel = std::make_unique<pupAll>(datMatrixHolder::EX_EXPOSED);
-    if (_model==modelCode::EHO_EXTENDED) repModel = std::make_unique<pupAll>(datMatrixHolder::EHO_EXTENDED);
-    if (_model==modelCode::EHO_HELIX) repModel = std::make_unique<pupAll>(datMatrixHolder::EHO_HELIX);
-    if (_model==modelCode::EX_EHO_BUR_EXT) repModel = std::make_unique<pupAll>(datMatrixHolder::EX_EHO_BUR_EXT);
-    if (_model==modelCode::EX_EHO_BUR_HEL) repModel = std::make_unique<pupAll>(datMatrixHolder::EX_EHO_EXP_HEL);
-    if (_model==modelCode::EX_EHO_BUR_OTH) repModel = std::make_unique<pupAll>(datMatrixHolder::EX_EHO_BUR_OTH);
-    if (_model==modelCode::EX_EHO_EXP_EXT) repModel = std::make_unique<pupAll>(datMatrixHolder::EX_EHO_EXP_EXT);
-    if (_model==modelCode::EX_EHO_EXP_HEL) repModel = std::make_unique<pupAll>(datMatrixHolder::EX_EHO_EXP_HEL);
-    if (_model==modelCode::EX_EHO_EXP_OTH) repModel = std::make_unique<pupAll>(datMatrixHolder::EX_EHO_EXP_OTH);
+    switch (_model) {
+        case modelCode::NUCJC:
+            repModel = std::make_unique<nucJC>();
+            break;
+        case modelCode::AAJC:
+            repModel = std::make_unique<aaJC>();
+            break;
+        case modelCode::GTR: {
+            Vdouble frequencies = std::vector<MDOUBLE>(_parameters.begin(), _parameters.begin()+4);
+            const MDOUBLE a2c = _parameters[4];
+            const MDOUBLE a2g = _parameters[5];
+            const MDOUBLE a2t = _parameters[6];
+            const MDOUBLE c2g = _parameters[7];
+            const MDOUBLE c2t = _parameters[8];
+            const MDOUBLE g2t = _parameters[9];
+            repModel = std::make_unique<gtrModel>(frequencies, a2c, a2g, a2t, c2g, c2t, g2t);
+            break;
+        }
+        case modelCode::HKY: {
+            Vdouble inProbabilities = std::vector<MDOUBLE>(_parameters.begin(), _parameters.begin()+4);
+            const MDOUBLE TrTv = _parameters[4];
+            repModel = std::make_unique<hky>(inProbabilities, TrTv); // handle different parameters!
+            break;
+        }
+        case modelCode::TAMURA92: {
+            const MDOUBLE theta = _parameters[0];
+            const MDOUBLE TrTv = _parameters[1];
+            repModel = std::make_unique<tamura92>(theta, TrTv);
+            break;
+        }
+        // case modelCode::WYANGMODEL:
+        //     repModel = &wYangModel();
+        case modelCode::CPREV45:
+            repModel = std::make_unique<pupAll>(datMatrixHolder::cpREV45);
+            break;
+        case modelCode::DAYHOFF:
+            repModel = std::make_unique<pupAll>(datMatrixHolder::dayhoff);
+            break;
+        case modelCode::JONES:
+            repModel = std::make_unique<pupAll>(datMatrixHolder::jones);
+            break;
+        case modelCode::MTREV24:
+            repModel = std::make_unique<pupAll>(datMatrixHolder::mtREV24);
+            break;
+        case modelCode::WAG:
+            repModel = std::make_unique<pupAll>(datMatrixHolder::wag);
+            break;
+        case modelCode::HIVB:
+            repModel = std::make_unique<pupAll>(datMatrixHolder::HIVb);
+            break;
+        case modelCode::HIVW:
+            repModel = std::make_unique<pupAll>(datMatrixHolder::HIVw);
+            break;
+        case modelCode::LG:
+            repModel = std::make_unique<pupAll>(datMatrixHolder::lg);
+            break;
+        case modelCode::EMPIRICODON:
+            repModel = std::make_unique<pupAll>(datMatrixHolder::empiriCodon);
+            break;
+        case modelCode::EX_BURIED:
+            repModel = std::make_unique<pupAll>(datMatrixHolder::EX_BURIED);
+            break;
+        case modelCode::EX_EXPOSED:
+            repModel = std::make_unique<pupAll>(datMatrixHolder::EX_EXPOSED);
+            break;
+        case modelCode::EHO_EXTENDED:
+            repModel = std::make_unique<pupAll>(datMatrixHolder::EHO_EXTENDED);
+            break;
+        case modelCode::EHO_HELIX:
+            repModel = std::make_unique<pupAll>(datMatrixHolder::EHO_HELIX);
+            break;
+        case modelCode::EX_EHO_BUR_EXT:
+            repModel = std::make_unique<pupAll>(datMatrixHolder::EX_EHO_BUR_EXT);
+            break;
+        case modelCode::EX_EHO_BUR_HEL:
+            repModel = std::make_unique<pupAll>(datMatrixHolder::EX_EHO_EXP_HEL);
+            break;
+        case modelCode::EX_EHO_BUR_OTH:
+            repModel = std::make_unique<pupAll>(datMatrixHolder::EX_EHO_BUR_OTH);
+            break;
+        case modelCode::EX_EHO_EXP_EXT:
+            repModel = std::make_unique<pupAll>(datMatrixHolder::EX_EHO_EXP_EXT);
+            break;
+        case modelCode::EX_EHO_EXP_HEL:
+            repModel = std::make_unique<pupAll>(datMatrixHolder::EX_EHO_EXP_HEL);
+            break;
+        case modelCode::EX_EHO_EXP_OTH:
+            repModel = std::make_unique<pupAll>(datMatrixHolder::EX_EHO_EXP_OTH);
+            break;
+    }
 
-    chebyshevAccelerator accelerator(repModel.get());
-    pijAccelerator* pij = &accelerator;
+    std::unique_ptr<pijAccelerator> pij;
+
+    if (_alphabet==alphabetCode::AMINOACID) {
+        pij = std::make_unique<chebyshevAccelerator>(repModel.get());
+    } else if  (_alphabet==alphabetCode::NUCLEOTIDE){
+        pij = std::make_unique<trivialAccelerator>(repModel.get());
+    }
 
     gammaDistribution dist(_alpha, _gammaCategories);
 
-
-    // stochasticProcess sp(&dist, pij);
-
-    return std::make_unique<stochasticProcess>(&dist, pij);
+    return std::make_unique<stochasticProcess>(&dist, pij.get());
 }
 
 alphabet* modelFactory::getAlphabet() {
@@ -119,6 +206,10 @@ alphabet* modelFactory::getAlphabet() {
     if (_alphabet==alphabetCode::NUCLEOTIDE) _alph = new nucleotide();
     if (_alphabet==alphabetCode::AMINOACID) _alph = new amino();
     return _alph;
+}
+
+bool modelFactory::isModelValid() {
+    return (_state==factoryState::COMPLETE);
 }
 
 

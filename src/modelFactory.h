@@ -83,6 +83,8 @@ public:
     
     tree* getTree(){ return _tree;};
 
+    bool isModelValid();
+
     ~modelFactory();
 private:
     factoryState _state;

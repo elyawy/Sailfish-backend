@@ -155,6 +155,7 @@ private:
     }
 
     sequenceContainer simulateSubstitutions(modelFactory& mFac, size_t sequenceLength) {
+        
         rateMatrixSim subSim(mFac);
         subSim.setSeed(_seed);
         subSim.generate_seq(sequenceLength);
