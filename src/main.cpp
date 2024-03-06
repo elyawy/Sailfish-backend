@@ -49,7 +49,7 @@ PYBIND11_MODULE(_Sailfish, m) {
         .def("get_table", &DiscreteDistribution::getTable, "Get Vose's alias table (useful for debugging)");
 
     py::class_<tree>(m, "Tree")
-        .def(py::init<const std::string&>(), "Create Phylogenetic tree object from newick formatted file")
+        .def(py::init<const std::string&, bool>(), "Create Phylogenetic tree object from newick formatted file")
         .def_property_readonly("num_nodes", &tree::getNodesNum)
         .def_property_readonly("root", &tree::getRoot);
 
@@ -68,7 +68,7 @@ PYBIND11_MODULE(_Sailfish, m) {
         .def("set_insertion_rates", &SimulationProtocol::setInsertionRates)
         .def("get_insertion_rate", &SimulationProtocol::getInsertionRate)
         .def("set_deletion_rates", &SimulationProtocol::setDeletionRates)
-        .def("get_deletion_rates", &SimulationProtocol::getDeletionRate)
+        .def("get_deletion_rate", &SimulationProtocol::getDeletionRate)
         .def("set_insertion_length_distributions", &SimulationProtocol::setInsertionLengthDistributions)
         .def("get_insertion_length_distribution", &SimulationProtocol::getInsertionDistribution)
         .def("set_deletion_length_distributions", &SimulationProtocol::setDeletionLengthDistributions)
@@ -141,6 +141,7 @@ PYBIND11_MODULE(_Sailfish, m) {
         .def("fill_substitutions", &MSA::fillSubstitutions)
         .def("print_msa", &MSA::printFullMsa)
         .def("print_indels", &MSA::printIndels)
+        .def("print_msa", &MSA::writeFullMsa)
         .def("get_msa", &MSA::getMSAVec);
 
 }

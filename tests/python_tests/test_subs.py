@@ -7,7 +7,8 @@ from _Sailfish import Tree, Simulator, SimProtocol, Msa, DiscreteDistribution, m
 
 
 # tree = Tree(f"{pathlib.Path.home()}/Data/yeast/RAxML_tree.tree")
-tree = Tree(f"tests/trees/normalbranches_nLeaves10.treefile")
+# tree = Tree(f"tests/trees/normalbranches_nLeaves10.treefile", True)
+tree = Tree("(A:0.1,B:0.2,C:0.3);", False)
 
 root_node = tree.root
 
@@ -36,7 +37,7 @@ len_dist = [(i**(-a_param))/area_under for i in range(1,truncation)]
 # exit(1)
 dist = DiscreteDistribution(len_dist)
 rand_seed = int(str(time.time_ns())[-8:])
-print(rand_seed)
+# print(rand_seed)
 dist.set_seed(rand_seed)
 
 
@@ -88,6 +89,8 @@ for i in range(10):
     msa.fill_substitutions(substitutions)
     msas.append(msa)
 
+
+msas[4].print_msa()
 # Hack to catch cout output as string
 # import os, io, sys, tempfile
 
