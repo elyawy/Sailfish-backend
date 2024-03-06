@@ -19,7 +19,14 @@ PYBIND11_MODULE(_Sailfish, m) {
         .. autosummary::
            :toctree: _generate
 
-           Blocklist
+            DiscreteDistribution
+            SimProtocol
+            alphabetCode
+            modelCode
+            modelFactory
+            Simulator
+            Msa
+            Tree
     )pbdoc";
 
     py::class_<Block>(m, "Block")
@@ -37,12 +44,12 @@ PYBIND11_MODULE(_Sailfish, m) {
 
     py::class_<DiscreteDistribution>(m, "DiscreteDistribution")
         .def(py::init<std::vector<double>>())
-        .def("draw_sample", &DiscreteDistribution::drawSample)
-        .def("set_seed", &DiscreteDistribution::setSeed)
-        .def("get_table", &DiscreteDistribution::getTable);
+        .def("draw_sample", &DiscreteDistribution::drawSample, "Draw a random sample according to the given distribution")
+        .def("set_seed", &DiscreteDistribution::setSeed, "Set seed for the random number generator")
+        .def("get_table", &DiscreteDistribution::getTable, "Get Vose's alias table (useful for debugging)");
 
     py::class_<tree>(m, "Tree")
-        .def(py::init<const std::string&>())
+        .def(py::init<const std::string&>(), "Create Phylogenetic tree object from newick formatted file")
         .def_property_readonly("num_nodes", &tree::getNodesNum)
         .def_property_readonly("root", &tree::getRoot);
 
@@ -84,7 +91,7 @@ PYBIND11_MODULE(_Sailfish, m) {
         .value("GTR", modelCode::GTR)
         .value("HKY", modelCode::HKY)
         .value("TAMURA92", modelCode::TAMURA92)
-        .value("WYANGMODEL", modelCode::WYANGMODEL)
+        // .value("WYANGMODEL", modelCode::WYANGMODEL)
         .value("CPREV45", modelCode::CPREV45)
         .value("DAYHOFF", modelCode::DAYHOFF)
         .value("JONES", modelCode::JONES)	// THIS IS JTT
@@ -124,7 +131,7 @@ PYBIND11_MODULE(_Sailfish, m) {
         .def("gen_indels", &Simulator::generateSimulation)
         .def("run_sim", &Simulator::runSimulator)
         .def("gen_substitutions", &Simulator::simulateSubstitutions);
-    
+
 
     py::class_<MSA>(m, "Msa")
         .def(py::init<std::map<std::string, BlockTree>&, tree::TreeNode*>())
