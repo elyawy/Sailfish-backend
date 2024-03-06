@@ -3,6 +3,7 @@ import os
 
 from typing import List, Optional, Dict
 from re import split
+from scipy.stats import geom, poisson, zipf
 
 print(_Sailfish.Tree)
 print(_Sailfish.Simulator)
@@ -227,3 +228,52 @@ class Msa:
     
     def get_msa(self) -> str:
         return self..msa.get_msa()
+    
+
+class GeometricDistribution(Distribution):
+    def __init__(self, p: float, truncation: int = 150):
+        """
+        Calculation of geoemtric moment
+        inputs:
+        p - p parameter of the geoemtric distribution
+        truncation - (optional, by default 150) maximal value of the distribution
+        """
+        CDF = lambda x: geom.cdf(x, self.p)
+        norm_factor = CDF(self.truncation) - CDF(0)
+
+        probabilities = geom.pmf(np.arange(1, self.truncation+1), self.p)
+        probabilities = probabilities / norm_factor
+
+        self.set_dist(probabilities)
+
+class PoissonDistribution(Distribution):
+    def __init__(self, p: float, truncation: int = 150):
+        """
+        Calculation of geoemtric moment
+        inputs:
+        p - p parameter of the geoemtric distribution
+        truncation - (optional, by default 150) maximal value of the distribution
+        """
+        CDF = lambda x: poisson.cdf(x, self.p)
+        norm_factor = CDF(self.truncation) - CDF(0)
+
+        probabilities = poisson.pmf(np.arange(1, self.truncation+1), self.p)
+        probabilities = probabilities / norm_factor
+
+        self.set_dist(probabilities)
+
+class ZipfDistribution(Distribution):
+    def __init__(self, p: float, truncation: int = 150):
+        """
+        Calculation of geoemtric moment
+        inputs:
+        p - p parameter of the geoemtric distribution
+        truncation - (optional, by default 150) maximal value of the distribution
+        """
+        CDF = lambda x: zipf.cdf(x, self.p)
+        norm_factor = CDF(self.truncation) - CDF(0)
+
+        probabilities = zipf.pmf(np.arange(1, self.truncation+1), self.p)
+        probabilities = probabilities / norm_factor
+
+        self.set_dist(probabilities)
