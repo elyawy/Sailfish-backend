@@ -46,6 +46,7 @@ protocol.set_deletion_length_distributions(possion)
 
 protocol.set_insertion_rates(0.1)
 protocol.set_deletion_rates(0.1)
+protocol.set_sequence_size(100)
 
 print(protocol.get_all_deletion_length_distribution())
 print(protocol.get_all_insertion_length_distribution())
@@ -60,3 +61,4 @@ blocktree = simantov.gen_indels()
 
 msa = sim._Sailfish.Msa(blocktree, tree._tree.root)
 
+msa.print_indels()
