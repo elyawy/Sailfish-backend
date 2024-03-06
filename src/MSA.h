@@ -7,6 +7,7 @@
 #include <cstdlib>
 #include <map>
 #include <iostream>
+#include <fstream>
 
 #include "../libs/Phylolib/includes/tree.h"
 #include "../libs/Phylolib/includes/sequenceContainer.h"
@@ -159,12 +160,14 @@ public:
 		}
 	}
 
-    void printFullMsa() {
 
+    std::string generateMsaString() {
+        std::stringstream msaString;
         for (size_t row = 0; row < _numberOfSequences; row++) {
             int passedSeq = 0;
             int id = _substitutions->placeToId(row);
             // std::cout << id << "\n";
+            msaString << ">" << _substitutions->name(id) << "\n";
             std::string currentSeq = (*_substitutions)[id].toString();
 
             // std::cout << currentSeq << "\n";
@@ -173,24 +176,35 @@ public:
 
                 if (strSize < 0) {
                     strSize = -strSize;
-                    std::cout << std::string(strSize, '-');
+                    msaString << std::string(strSize, '-');
                 } else {
-                    std::cout << currentSeq.substr(passedSeq, strSize);
+                    msaString << currentSeq.substr(passedSeq, strSize);
                 }
                 // std::cout << strSize << " ";
 
                 passedSeq += strSize;
             }
-            std::cout << "\n";
+            msaString << "\n";
             
         }
-    
+        return msaString.str();
+    }
+
+    void printFullMsa() {
+        std::cout << generateMsaString();
 	}
 
 
 
-    void writeMSA() {
-        
+
+
+    void writeFullMsa(const char * filePath) {
+        ofstream msafile (filePath);
+        if (msafile.is_open()) {
+            msafile << generateMsaString();
+            msafile.close();
+        }
+        else cout << "Unable to open file";
     }
 
     std::vector<vector<int>> getMSAVec() {return _alignedSequence;}
