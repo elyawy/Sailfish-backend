@@ -3,6 +3,8 @@ import os
 
 from typing import List, Optional, Dict
 from re import split
+
+import numpy as np
 from scipy.stats import geom, poisson, zipf
 
 print(_Sailfish.Tree)
@@ -53,21 +55,26 @@ class BlockTree:
 
 class Distribution:
     def set_dist(self, dist):
-        if sum(dist) != 1:
+        epsilon = 10e-6
+        if abs(sum(dist)-1) > epsilon:
             raise ValueError(f"Sum of the distribution should be 1 for a valid probability distribution. Input received is: {dist}, sum is {sum(dist)}")
         for x in dist:
-            if x < 0:
+            if x < 0 or x > 1:
                 raise ValueError(f"Each value of the probabilities should be between 0 to 1. Received a value of {x}")
-        self.dist = _Sailfish.DiscreteDistribution(dist)
+        self._dist = _Sailfish.DiscreteDistribution(dist)
     
     def draw_sample(self) -> int:
-        return self.dist.draw_sample()
+        return self._dist.draw_sample()
     
     def set_seed(self, seed: int) -> None:
-        return self.dist.set_seed(seed)
+        return self._dist.set_seed(seed)
     
     def get_table(self) -> List:
-        return self.dist.get_table()
+        return self._dist.get_table()
+    
+    def _get_Sailfish_dist(self) -> _Sailfish.DiscreteDistribution:
+        return self._dist
+
 
 class CustomDistribution(Distribution):
     '''
@@ -92,7 +99,14 @@ class Tree:
                 raise ValueError(f"Failed to read tree from file. File path: {input_str}, content: {tree_str}")
             else:
                 raise ValueError(f"Failed construct tree from string. String received: {tree_str}")
-        self.tree = _Sailfish.Tree(tree_str)
+        self._tree = _Sailfish.Tree(input_str, is_from_file)
+    
+    def get_num_nodes(self) -> int:
+        return self._tree.num_nodes
+
+    def _get_Sailfish_tree(self) -> _Sailfish.Tree:
+        return self._tree
+
 
 class SimProtocol:
     '''
@@ -100,14 +114,14 @@ class SimProtocol:
     '''
     def __init__(self, input_str: Optional[str] = None, tree: Optional[Tree] = None):
         if tree:
-            self.tree = tree
+            self._tree = tree
         elif input_str:
-            self.tree = Tree(input_str) 
+            self._tree = Tree(input_str) 
         else:
             raise ValueError(f"please provide one of the following: input_str (newick format / pass to file containing a tree), or a tree (created by the Tree class)")
         
-        self.num_branches = self.tree.num_nodes - 1
-        self.sim = _Sailfish.SimulationProtocol(self.tree)
+        self.num_branches = self._tree.get_num_nodes() - 1
+        self.sim = _Sailfish.SimProtocol(self._tree._get_Sailfish_tree())
     
     def set_seed(self, seed: int) -> None:
         self.sim.set_seed(seed)
@@ -171,12 +185,12 @@ class SimProtocol:
         else:
             raise ValueError(f"please provide one of the following: deletion_rate (a single value used for all branches), or a deletion_rates (a list of values, each corresponding to a different branch)")
         
-        self.sim.set_insertion_length_distributions(self.insertion_dists)
+        self.sim.set_insertion_length_distributions([dist._get_Sailfish_dist() for dist in self.insertion_dists])
     
     def get_insertion_length_distribution(self, branch_num: int) -> Distribution:
         if branch_num >= self.num_branches:
             raise ValueError(f"The branch number should be between 0 to {self.num_branches} (not included). Received value of {branch_num}")
-        return self.sim.get_insertion_length_distribution(branch_num)
+        return self.insertion_dists[branch_num]
     
     def get_all_insertion_length_distribution(self) -> Dict:
         return {i: self.get_insertion_length_distribution(i) for i in range(self.num_branches)}
@@ -191,12 +205,12 @@ class SimProtocol:
         else:
             raise ValueError(f"please provide one of the following: deletion_rate (a single value used for all branches), or a deletion_rates (a list of values, each corresponding to a different branch)")
         
-        self.sim.set_deletion_length_distributions(self.deletion_dists)
+        self.sim.set_deletion_length_distributions([dist._get_Sailfish_dist() for dist in self.deletion_dists])
     
     def get_deletion_length_distribution(self, branch_num: int) -> Distribution:
         if branch_num >= self.num_branches:
             raise ValueError(f"The branch number should be between 0 to {self.num_branches} (not included). Received value of {branch_num}")
-        return self.sim.get_deletion_length_distribution(branch_num)
+        return self.deletion_dists[branch_num]
     
     def get_all_deletion_length_distribution(self) -> Dict:
         return {i: self.get_deletion_length_distribution(i) for i in range(self.num_branches)}
@@ -227,7 +241,7 @@ class Msa:
         return self.msa.print_indels()
     
     def get_msa(self) -> str:
-        return self..msa.get_msa()
+        return self.msa.get_msa()
     
 
 class GeometricDistribution(Distribution):
@@ -238,13 +252,18 @@ class GeometricDistribution(Distribution):
         p - p parameter of the geoemtric distribution
         truncation - (optional, by default 150) maximal value of the distribution
         """
-        CDF = lambda x: geom.cdf(x, self.p)
-        norm_factor = CDF(self.truncation) - CDF(0)
+        self.p = p
+        self.truncation = truncation
+        CDF = lambda x: geom.cdf(x, p)
+        norm_factor = CDF(truncation) - CDF(0)
 
-        probabilities = geom.pmf(np.arange(1, self.truncation+1), self.p)
+        probabilities = geom.pmf(np.arange(1, truncation+1), p)
         probabilities = probabilities / norm_factor
 
         self.set_dist(probabilities)
+
+    def __repr__(self) -> str:
+        return f"Geometric distribution with a p of {self.p} and truncation of {self.truncation}"
 
 class PoissonDistribution(Distribution):
     def __init__(self, p: float, truncation: int = 150):
@@ -254,13 +273,18 @@ class PoissonDistribution(Distribution):
         p - p parameter of the geoemtric distribution
         truncation - (optional, by default 150) maximal value of the distribution
         """
-        CDF = lambda x: poisson.cdf(x, self.p)
-        norm_factor = CDF(self.truncation) - CDF(0)
+        self.p = p
+        self.truncation = truncation
+        CDF = lambda x: poisson.cdf(x, p)
+        norm_factor = CDF(truncation) - CDF(0)
 
-        probabilities = poisson.pmf(np.arange(1, self.truncation+1), self.p)
+        probabilities = poisson.pmf(np.arange(1, truncation+1), p)
         probabilities = probabilities / norm_factor
 
         self.set_dist(probabilities)
+
+    def __repr__(self) -> str:
+        return f"Poisson distribution with a p of {self.p} and truncation of {self.truncation}"
 
 class ZipfDistribution(Distribution):
     def __init__(self, p: float, truncation: int = 150):
@@ -270,10 +294,15 @@ class ZipfDistribution(Distribution):
         p - p parameter of the geoemtric distribution
         truncation - (optional, by default 150) maximal value of the distribution
         """
-        CDF = lambda x: zipf.cdf(x, self.p)
-        norm_factor = CDF(self.truncation) - CDF(0)
+        self.p = p
+        self.truncation = truncation
+        CDF = lambda x: zipf.cdf(x, p)
+        norm_factor = CDF(truncation) - CDF(0)
 
-        probabilities = zipf.pmf(np.arange(1, self.truncation+1), self.p)
+        probabilities = zipf.pmf(np.arange(1, truncation+1), p)
         probabilities = probabilities / norm_factor
 
         self.set_dist(probabilities)
+    
+    def __repr__(self) -> str:
+        return f"Zipf distribution with a p of {self.p} and truncation of {self.truncation}"
