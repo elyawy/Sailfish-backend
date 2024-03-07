@@ -81,16 +81,19 @@ msas = []
 substitution_list = []
 
 
-for i in range(10):
+for i in range(1):
     blockmap = sim.gen_indels()
+    print(blockmap)
+    print(root_node)
     msa = Msa(blockmap, root_node)
+    print(msa)
     substitutions = sim.gen_substitutions(mFac, msa.length())
     substitution_list.append(substitutions)
     msa.fill_substitutions(substitutions)
     msas.append(msa)
 
 
-msas[4].print_msa()
+#msas[4].print_msa()
 # Hack to catch cout output as string
 # import os, io, sys, tempfile
 
