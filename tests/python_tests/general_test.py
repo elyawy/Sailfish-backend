@@ -1,7 +1,8 @@
-
-# import sys
-# sys.path.append("/home/elyalab/Dev/projects/Sailfish-backend/Sailfish/")
-from Sailfish import simulator as sim
+import sys
+sys.path.append("C:/Users/97250/Documents/GitHub/Sailfish-backend/Sailfish")
+#from Sailfish import simulator as sim
+#sys.path.append("/home/elyalab/Dev/projects/Sailfish-backend/Sailfish/")
+import simulator as sim
 import numpy as np
 
 TRUNCATION_NUM = 20
@@ -30,35 +31,44 @@ print(f'possion dist: ')
 print(frq)
 
 
-tree = sim.Tree("(A:0.01,B:0.5,C:0.03);")
+tree = sim.Tree("(A:0.5,B:0.5,C:0.13);")
 
 print(tree.get_num_nodes())
 
 
-tree = sim.Tree("/home/elyalab/Dev/projects/Sailfish-backend/tests/trees/normalbranches_nLeaves100.treefile")
+#tree = sim.Tree("/home/elyalab/Dev/projects/Sailfish-backend/tests/trees/normalbranches_nLeaves100.treefile")
 
-print(tree.get_num_nodes())
+#print(tree.get_num_nodes())
 
-protocol = sim.SimProtocol(tree=tree)
+#protocol = sim.SimProtocol(tree=tree)
+#
+#protocol.set_insertion_length_distributions(geodist)
+#protocol.set_deletion_length_distributions(possion)
+#
+#protocol.set_insertion_rates(0.1)
+#protocol.set_deletion_rates(0.1)
+#protocol.set_sequence_size(100)
+#
+#print(protocol.get_all_deletion_length_distribution())
+#print(protocol.get_all_insertion_length_distribution())
+#print(protocol.get_all_deletion_rates())
+#print(protocol.get_all_insertion_rates())
+#
+#protocol.set_seed(2)
+#
+#simantov = sim._Sailfish.Simulator(protocol._sim)
+#
+#blocktree = simantov.gen_indels()
+#print(type(blocktree["A"]))
+#print(type(blocktree["A"].block_list()))
+#print(blocktree["A"].print_tree())
 
-protocol.set_insertion_length_distributions(geodist)
-protocol.set_deletion_length_distributions(possion)
+#msa = sim._Sailfish.Msa(blocktree, tree._tree.root)
+#
+#msa.print_indels()
 
-protocol.set_insertion_rates(0.1)
-protocol.set_deletion_rates(0.1)
-protocol.set_sequence_size(100)
+simulator = sim.Simulator()
+#block_tree = simulator.gen_indels()
+#block_tree.print_branches()
 
-print(protocol.get_all_deletion_length_distribution())
-print(protocol.get_all_insertion_length_distribution())
-print(protocol.get_all_deletion_rates())
-print(protocol.get_all_insertion_rates())
-
-protocol.set_seed(2)
-
-simantov = sim._Sailfish.Simulator(protocol.sim)
-
-blocktree = simantov.gen_indels()
-
-msa = sim._Sailfish.Msa(blocktree, tree._tree.root)
-
-msa.print_indels()
+print(simulator.simulate(times=4))
