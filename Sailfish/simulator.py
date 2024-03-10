@@ -5,8 +5,6 @@ from typing import List, Optional, Dict
 from re import split
 from enum import Enum
 
-import numpy as np
-
 print(_Sailfish.Tree)
 print(_Sailfish.Simulator)
 print(_Sailfish.SimProtocol)
@@ -408,8 +406,8 @@ class GeometricDistribution(Distribution):
         CDF = lambda x: 1-(1-p)**x
         norm_factor = CDF(truncation) - CDF(0)
 
-        probabilities = PMF(np.arange(1, truncation+1))
-        probabilities = probabilities / norm_factor
+        probabilities = [PMF(i)/norm_factor for i in range(1, truncation+1)]
+        # probabilities = probabilities / norm_factor
 
         self.set_dist(probabilities)
 
@@ -430,13 +428,11 @@ class PoissonDistribution(Distribution):
         factorial = lambda z: reduce(operator.mul, [1, 1] if z == 0 else range(1,z+1))
 
         PMF = lambda x: ((p**x)*(math.e**-p))*(1.0/factorial(x))
-        PMF = np.vectorize(PMF)
         CDF = lambda x: (math.e**-p)*sum([(p**i)*(1.0/factorial(i)) for i in range(0,x+1)])
 
         norm_factor = CDF(truncation) - CDF(0)
 
-        probabilities = PMF(np.arange(1, truncation+1))
-        probabilities = probabilities / norm_factor
+        probabilities = [PMF(i)/norm_factor for i in range(1, truncation+1)]
 
         self.set_dist(probabilities)
 
@@ -458,8 +454,7 @@ class ZipfDistribution(Distribution):
         CDF = lambda x: HARMONIC(x, p) / HARMONIC(truncation, p)
         norm_factor = CDF(truncation) - CDF(0)
 
-        probabilities = PMF(np.arange(1, truncation+1), p)
-        probabilities = probabilities / norm_factor
+        probabilities = [PMF(i)/norm_factor for i in range(1, truncation+1)]
 
         self.set_dist(probabilities)
     
