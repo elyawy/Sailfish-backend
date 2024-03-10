@@ -1,13 +1,11 @@
 import _Sailfish
-import os
-import warnings
-
+import os, warnings, math, operator
+from functools import reduce
 from typing import List, Optional, Dict
 from re import split
 from enum import Enum
 
 import numpy as np
-from scipy.stats import geom, poisson, zipf
 
 print(_Sailfish.Tree)
 print(_Sailfish.Simulator)
@@ -406,10 +404,11 @@ class GeometricDistribution(Distribution):
         """
         self.p = p
         self.truncation = truncation
-        CDF = lambda x: geom.cdf(x, p)
+        PMF = lambda x: p*(1-p)**(x-1)
+        CDF = lambda x: 1-(1-p)**x
         norm_factor = CDF(truncation) - CDF(0)
 
-        probabilities = geom.pmf(np.arange(1, truncation+1), p)
+        probabilities = PMF(np.arange(1, truncation+1))
         probabilities = probabilities / norm_factor
 
         self.set_dist(probabilities)
@@ -427,10 +426,16 @@ class PoissonDistribution(Distribution):
         """
         self.p = p
         self.truncation = truncation
-        CDF = lambda x: poisson.cdf(x, p)
+
+        factorial = lambda z: reduce(operator.mul, [1, 1] if z == 0 else range(1,z+1))
+
+        PMF = lambda x: ((p**x)*(math.e**-p))*(1.0/factorial(x))
+        PMF = np.vectorize(PMF)
+        CDF = lambda x: (math.e**-p)*sum([(p**i)*(1.0/factorial(i)) for i in range(0,x+1)])
+
         norm_factor = CDF(truncation) - CDF(0)
 
-        probabilities = poisson.pmf(np.arange(1, truncation+1), p)
+        probabilities = PMF(np.arange(1, truncation+1))
         probabilities = probabilities / norm_factor
 
         self.set_dist(probabilities)
@@ -448,10 +453,12 @@ class ZipfDistribution(Distribution):
         """
         self.p = p
         self.truncation = truncation
-        CDF = lambda x: zipf.cdf(x, p)
+        HARMONIC = lambda n,s: sum([(i**-s) for i in range(1,n+1)])
+        PMF = lambda x: (x**-p)*(1.0/HARMONIC(truncation, p))
+        CDF = lambda x: HARMONIC(x, p) / HARMONIC(truncation, p)
         norm_factor = CDF(truncation) - CDF(0)
 
-        probabilities = zipf.pmf(np.arange(1, truncation+1), p)
+        probabilities = PMF(np.arange(1, truncation+1), p)
         probabilities = probabilities / norm_factor
 
         self.set_dist(probabilities)
