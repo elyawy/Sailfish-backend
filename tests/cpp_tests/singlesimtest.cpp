@@ -57,8 +57,11 @@ int main() {
     mFac.setGammaParameters(2.0, 4);
 
     if (!mFac.isModelValid()) return 0;
+
+    sim.initSubstitionSim(mFac);
     
-    std::shared_ptr<sequenceContainer> seqContainer = sim.simulateSubstitutions(mFac, msas[0].getMSAlength());
+
+    std::shared_ptr<sequenceContainer> seqContainer = sim.simulateSubstitutions(msas[0].getMSAlength());
     // q2pt::Pij_t error in function pijt...
     msas[0].fillSubstitutions(seqContainer);
     // msas[0].printFullMsa();

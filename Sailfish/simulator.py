@@ -364,6 +364,7 @@ class Simulator:
         else:
             # TODO complete
             pass
+        self._simulator.init_substitution_sim(self._model_factory)
         self._is_sub_model_init = True
     
     def set_replacement_model(model: _Sailfish.modelCode, *args) -> None:
@@ -378,10 +379,11 @@ class Simulator:
     def gen_indels(self) -> BlockTreePython:
         return BlockTreePython(self._simulator.gen_indels())
     
+    
     def gen_substitutions(self, length: int):
         if not self._is_sub_model_init:
             self._init_sub_model()
-        return self._simulator.gen_substitutions(self._model_factory, length)
+        return self._simulator.gen_substitutions(length)
     
     # @profile
     def simulate(self, times: int = 1) -> List[Msa]:
