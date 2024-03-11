@@ -154,14 +154,13 @@ private:
         return blocks;
     }
 
-    sequenceContainer simulateSubstitutions(modelFactory& mFac, size_t sequenceLength) {
+    std::shared_ptr<sequenceContainer> simulateSubstitutions(modelFactory& mFac, size_t sequenceLength) {
         
         rateMatrixSim subSim(mFac);
         subSim.setSeed(_seed);
         subSim.generate_seq(sequenceLength);
-        
-
-        return subSim.toSeqDataWithoutInternalNodes();
+        std::shared_ptr<sequenceContainer> sharedSeqContainer = move(subSim.toSeqDataWithoutInternalNodes());
+        return sharedSeqContainer;
     }
 
 

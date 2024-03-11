@@ -242,14 +242,15 @@ sequenceContainer rateMatrixSim::toSeqData() {
 	return myseqData;
 }
 
-sequenceContainer rateMatrixSim::toSeqDataWithoutInternalNodes() {
-	sequenceContainer myseqData;
+std::unique_ptr<sequenceContainer> rateMatrixSim::toSeqDataWithoutInternalNodes() {
+	std::unique_ptr<sequenceContainer> myseqData = std::make_unique<sequenceContainer>();
+	// sequenceContainer myseqData;
 	for (int i=0; i < _simulatedSequences.size(); ++i) {
 		tree::nodeP theCurNode = _et->findNodeByName(_simulatedSequences[i].name());
 		if (theCurNode == NULL)
 			errorMsg::reportError("could not find the specified name: " + _simulatedSequences[i].name());
 		if (theCurNode->isInternal()) continue;
-		myseqData.add(_simulatedSequences[i]);
+		myseqData->add(_simulatedSequences[i]);
 	}
 	return myseqData;
 }

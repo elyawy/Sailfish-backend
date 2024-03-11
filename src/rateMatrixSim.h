@@ -34,7 +34,7 @@ public:
 	tree* gettree() {return _et;}
 	virtual ~rateMatrixSim();
 	sequenceContainer toSeqData();
-	sequenceContainer toSeqDataWithoutInternalNodes();
+	std::unique_ptr<sequenceContainer> toSeqDataWithoutInternalNodes();
 	void generate_rates_continuous_gamma(const int seqLength,const MDOUBLE alpha,Vdouble rates);
 	MDOUBLE getAvgSub() {return _avgSubtitutionsPerSite;}
 	

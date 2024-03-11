@@ -1,8 +1,10 @@
-import sys
-sys.path.append("C:/Users/97250/Documents/GitHub/Sailfish-backend/Sailfish")
-#from Sailfish import simulator as sim
-#sys.path.append("/home/elyalab/Dev/projects/Sailfish-backend/Sailfish/")
-import simulator as sim
+import sys, pathlib, warnings
+sys.path.insert(0,str(pathlib.Path(".").resolve()))
+from Sailfish import simulator as sim
+print(sim.__file__)
+warnings.filterwarnings("ignore")
+
+# from Sailfish import simulator
 import numpy as np
 
 TRUNCATION_NUM = 20
@@ -31,7 +33,7 @@ print(f'possion dist: ')
 print(frq)
 
 
-tree = sim.Tree("(A:0.5,B:0.5,C:0.13);")
+tree = sim.Tree("((A:0.5,B:0.5):0.01,C:0.13);")
 
 print(tree.get_num_nodes())
 
@@ -70,5 +72,7 @@ print(tree.get_num_nodes())
 simulator = sim.Simulator()
 #block_tree = simulator.gen_indels()
 #block_tree.print_branches()
+msa = simulator.simulate(times=1)
 
-print(simulator.simulate(times=4))
+msa.write_msa("this.fasta")
+

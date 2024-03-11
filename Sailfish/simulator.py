@@ -1,19 +1,19 @@
 import _Sailfish
-import os, warnings, math, operator
+import os, warnings, math, operator, time, profile
 from functools import reduce
 from typing import List, Optional, Dict
 from re import split
 from enum import Enum
 
-print(_Sailfish.Tree)
-print(_Sailfish.Simulator)
-print(_Sailfish.SimProtocol)
-print(_Sailfish.Msa)
-print(_Sailfish.DiscreteDistribution)
-print(_Sailfish.modelFactory)
-print(_Sailfish.alphabetCode)
-print(_Sailfish.modelCode)
- 
+# print(_Sailfish.Tree)
+# print(_Sailfish.Simulator)
+# print(_Sailfish.SimProtocol)
+# print(_Sailfish.Msa)
+# print(_Sailfish.DiscreteDistribution)
+# print(_Sailfish.modelFactory)
+# print(_Sailfish.alphabetCode)
+# print(_Sailfish.modelCode)
+
 
 class SIMULATION_TYPE(Enum):
     DNA = 1
@@ -293,6 +293,9 @@ class Msa:
     def get_msa(self) -> str:
         return self._msa.get_msa()
     
+    def write_msa(self, file_path) -> None:
+        self._msa.write_msa(file_path)
+    
     #def __repr__(self) -> str:
     #    return f"{self.get_msa()}"
 
@@ -380,13 +383,27 @@ class Simulator:
             self._init_sub_model()
         return self._simulator.gen_substitutions(self._model_factory, length)
     
+    # @profile
     def simulate(self, times: int = 1) -> List[Msa]:
         Msas = []
         for idx in range(times):
+            tic = time.perf_counter()
             blocktree = self.gen_indels()
+            toc = time.perf_counter()
+            print(f"generated indels in {toc - tic:0.10f} seconds")
+            tic = time.perf_counter()
             msa = Msa(blocktree._get_Sailfish_blocks(), self._simProtocol._get_root())
+            toc = time.perf_counter()
+            print(f"generated msa from blocks in {toc - tic:0.10f} seconds")
+            tic = time.perf_counter()
             substitutions = self.gen_substitutions(msa.get_length())
+            toc = time.perf_counter()
+            print(f"generated substitutions in {toc - tic:0.10f} seconds")
+            tic = time.perf_counter()
             msa.fill_substitutions(substitutions)
+            toc = time.perf_counter()
+            print(f"filled msa with substitutions in {toc - tic:0.10f} seconds")
+
             if times == 1:
                 return msa
             Msas.append(msa)
