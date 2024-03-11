@@ -124,7 +124,7 @@ public:
     };
 
 
-    void fillSubstitutions(sequenceContainer* _seqContainer) {
+    void fillSubstitutions(std::shared_ptr<sequenceContainer> _seqContainer) {
         _substitutions = _seqContainer;
     }
 
@@ -217,7 +217,7 @@ private:
 
 	SuperSequence* _originalAlignedSeqs; //The aligned sequences
 
-    sequenceContainer* _substitutions;
+    std::shared_ptr<sequenceContainer> _substitutions;
 	std::vector<vector<int>> _alignedSequence;
     size_t _msaLength; // Length of the MSA
 	size_t _numberOfSequences; // NUMBER OF SEQUENCES IN THE MSA

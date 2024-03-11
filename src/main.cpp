@@ -76,7 +76,7 @@ PYBIND11_MODULE(_Sailfish, m) {
 
 
 
-    py::class_<sequenceContainer>(m, "sequenceContainer")
+    py::class_<sequenceContainer, std::shared_ptr<sequenceContainer>>(m, "sequenceContainer")
         .def(py::init<>());
 
     py::enum_<alphabetCode>(m, "alphabetCode")
@@ -141,7 +141,7 @@ PYBIND11_MODULE(_Sailfish, m) {
         .def("fill_substitutions", &MSA::fillSubstitutions)
         .def("print_msa", &MSA::printFullMsa)
         .def("print_indels", &MSA::printIndels)
-        .def("print_msa", &MSA::writeFullMsa)
+        .def("write_msa", &MSA::writeFullMsa)
         .def("get_msa", &MSA::getMSAVec);
 
 }

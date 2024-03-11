@@ -4,3 +4,6 @@ Sailfish.egg-info
 wheelhouse
 .vscode
 libs/libPhylolib.a
+Sailfish/__pycache__
+Sailfish/__pycache__/*.pyc
+shell.nix

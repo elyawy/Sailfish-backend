@@ -58,10 +58,10 @@ int main() {
 
     if (!mFac.isModelValid()) return 0;
     
-    sequenceContainer seqContainer = sim.simulateSubstitutions(mFac, msas[0].getMSAlength());
+    std::shared_ptr<sequenceContainer> seqContainer = sim.simulateSubstitutions(mFac, msas[0].getMSAlength());
     // q2pt::Pij_t error in function pijt...
-    msas[0].fillSubstitutions(&seqContainer);
-    msas[0].printFullMsa("/home/elyalab/msa.fasta");
+    msas[0].fillSubstitutions(seqContainer);
+    // msas[0].printFullMsa();
     // msas[0].writeFullMsa("/home/elyalab/fasta.fasta");
 
     // blockmaps.clear();
