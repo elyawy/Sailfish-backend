@@ -130,6 +130,7 @@ PYBIND11_MODULE(_Sailfish, m) {
         .def("reset_sim", &Simulator::resetSimulator)
         .def("gen_indels", &Simulator::generateSimulation)
         .def("run_sim", &Simulator::runSimulator)
+        .def("init_substitution_sim", &Simulator::initSubstitionSim)
         .def("gen_substitutions", &Simulator::simulateSubstitutions);
 
 

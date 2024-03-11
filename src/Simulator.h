@@ -15,6 +15,7 @@ class Simulator
 {
 private:
     SimulationProtocol* _protocol;
+    std::unique_ptr<rateMatrixSim> _substitutionSim;
     size_t _seed;
 	std::mt19937 _mt_rand;
     std::uniform_real_distribution<double> _biased_coin;
@@ -154,12 +155,15 @@ private:
         return blocks;
     }
 
-    std::shared_ptr<sequenceContainer> simulateSubstitutions(modelFactory& mFac, size_t sequenceLength) {
-        
-        rateMatrixSim subSim(mFac);
-        subSim.setSeed(_seed);
-        subSim.generate_seq(sequenceLength);
-        std::shared_ptr<sequenceContainer> sharedSeqContainer = move(subSim.toSeqDataWithoutInternalNodes());
+    void initSubstitionSim(modelFactory& mFac) {
+        _substitutionSim = make_unique<rateMatrixSim>(mFac);
+        _substitutionSim->setSeed(_seed);
+
+    }
+
+    std::shared_ptr<sequenceContainer> simulateSubstitutions(size_t sequenceLength) {
+        _substitutionSim->generate_seq(sequenceLength);
+        std::shared_ptr<sequenceContainer> sharedSeqContainer = move(_substitutionSim->toSeqDataWithoutInternalNodes());
         return sharedSeqContainer;
     }
 
