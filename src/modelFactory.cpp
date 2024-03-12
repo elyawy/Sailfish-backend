@@ -78,7 +78,7 @@ void modelFactory::resetFactory() {
 }
 
 
-std::unique_ptr<stochasticProcess> modelFactory::getStochasticProcess() {
+std::shared_ptr<stochasticProcess> modelFactory::getStochasticProcess() {
     if (_state!=factoryState::COMPLETE) {
         std::cout << "Please set all the required model parameters.\n";
         // return;
@@ -195,7 +195,7 @@ std::unique_ptr<stochasticProcess> modelFactory::getStochasticProcess() {
 
     gammaDistribution dist(_alpha, _gammaCategories);
 
-    return std::make_unique<stochasticProcess>(&dist, pij.get());
+    return std::make_shared<stochasticProcess>(&dist, pij.get());
 }
 
 alphabet* modelFactory::getAlphabet() {
