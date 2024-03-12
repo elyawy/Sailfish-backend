@@ -4,8 +4,10 @@
 // #include "definitions.h"
 
 int main() {
-    tree tree_("../trees/normalbranches_nLeaves10.treefile");
+    // tree tree_("../trees/normalbranches_nLeaves10.treefile");
+    tree tree_("/home/elyalab/Data/Bacillus_1ZARG/RAxML_tree.tree");
 
+    // tree tree_("(A:0.1,B:0.2);", false);
     vector<DiscreteDistribution*> insertionDists(tree_.getNodesNum() - 1);
     vector<DiscreteDistribution*> deletionDists(tree_.getNodesNum() - 1);
 
@@ -31,7 +33,7 @@ int main() {
     protocol.setInsertionRates(insertionRates);
     protocol.setDeletionRates(deletionRates);
 
-    protocol.setSequenceSize(500);
+    protocol.setSequenceSize(1000);
 
     protocol.setSaveAncestral(false);
 
@@ -58,9 +60,9 @@ int main() {
     {
         std::vector<BlockMap> blockmaps = sim.runSimulator(1);
         std::vector<MSA> msas = MSA::generateMSAs(blockmaps, tree_.getRoot());
+        // std::cout << i << " " << msas[0].getMSAlength() << "\n";
         std::shared_ptr<sequenceContainer> seqContainer = sim.simulateSubstitutions(msas[0].getMSAlength());
         msas[0].fillSubstitutions(seqContainer);
-        
     }
     
 

@@ -16,6 +16,12 @@
 rateMatrixSim::rateMatrixSim(modelFactory& mFac) {
 		_et = mFac.getTree();
 		_sp = mFac.getStochasticProcess();
+		_alphaSize = _sp->alphabetSize();
+
+		_cpijGam = computePijGam();
+		_cpijGam.fillPij(*_et, *_sp);
+
+
 		_alph = mFac.getAlphabet();
 		_avgSubtitutionsPerSite = 0.0;
 	};
@@ -39,9 +45,11 @@ void rateMatrixSim::generate_seq(int seqLength) {
 
 	sequence justAseq(_alph);
 	_simulatedSequences.resize(_et->getNodesNum(),justAseq);
+	std::cout << "hey\n";
 	for (int i=0; i < _simulatedSequences.size(); ++i) {
 		_simulatedSequences[i].resize(seqLength);
 	}
+	std::cout << "hey\n";
 	generateRootSeq(seqLength);
 
 	vector<MDOUBLE> rateVec(seqLength);
@@ -58,35 +66,35 @@ void rateMatrixSim::generate_seq(int seqLength) {
 }
 
 
-void rateMatrixSim::generate_rates_continuous_gamma(const int seqLength,const MDOUBLE alpha, Vdouble rates)
-{
-	rates.clear();
-	rates.resize(seqLength);
-	for (int h = 0; h < seqLength; h++)  {
-	  rates[h] = talRandom::SampleGamma(alpha);
-	}
-}
+// void rateMatrixSim::generate_rates_continuous_gamma(const int seqLength,const MDOUBLE alpha, Vdouble rates)
+// {
+// 	rates.clear();
+// 	rates.resize(seqLength);
+// 	for (int h = 0; h < seqLength; h++)  {
+// 	  rates[h] = talRandom::SampleGamma(alpha);
+// 	}
+// }
 
-void rateMatrixSim::generate_seq_continuous_gamma(int seqLength) {
-	sequence justAseq(_alph);
-	_simulatedSequences.resize(_et->getNodesNum(),justAseq);
-	for (int i=0; i < _simulatedSequences.size(); ++i) {
-		_simulatedSequences[i].resize(seqLength);
-	}
-	generateRootSeq(seqLength); 
+// void rateMatrixSim::generate_seq_continuous_gamma(int seqLength) {
+// 	sequence justAseq(_alph);
+// 	_simulatedSequences.resize(_et->getNodesNum(),justAseq);
+// 	for (int i=0; i < _simulatedSequences.size(); ++i) {
+// 		_simulatedSequences[i].resize(seqLength);
+// 	}
+// 	generateRootSeq(seqLength); 
 
-	vector<MDOUBLE> rateVec(seqLength);
-	MDOUBLE alpha= (static_cast<gammaDistribution*>(_sp->distr()))->getAlpha();
-	for (int h = 0; h < seqLength; h++)  {
-	  rateVec[h] = talRandom::SampleGamma(alpha);
-	}
+// 	vector<MDOUBLE> rateVec(seqLength);
+// 	MDOUBLE alpha= (static_cast<gammaDistribution*>(_sp->distr()))->getAlpha();
+// 	for (int h = 0; h < seqLength; h++)  {
+// 	  rateVec[h] = talRandom::SampleGamma(alpha);
+// 	}
 	
-	_avgSubtitutionsPerSite = 0.0;
-	for (int p=0 ; p < _et->getRoot()->getNumberOfSons() ; ++p) {
-	  recursiveGenerateSpecificSeq(rateVec, seqLength, _et->getRoot()->getSon(p));
-	}
-	_avgSubtitutionsPerSite /= 1.0*seqLength;
-}
+// 	_avgSubtitutionsPerSite = 0.0;
+// 	for (int p=0 ; p < _et->getRoot()->getNumberOfSons() ; ++p) {
+// 	  recursiveGenerateSpecificSeq(rateVec, seqLength, _et->getRoot()->getSon(p));
+// 	}
+// 	_avgSubtitutionsPerSite /= 1.0*seqLength;
+// }
 		
 void rateMatrixSim::generate_seqWithRateVectorNoStopCodon(const Vdouble& simRates, int seqLength)
 {
@@ -175,9 +183,9 @@ void rateMatrixSim::recursiveGenerateSpecificSeq(
 							tree::nodeP myNode) {
 
 	for (int y = 0; y < seqLength; y++) {
-		MDOUBLE lenFromFather=myNode->dis2father()*rateVec[y];
+		// MDOUBLE lenFromFather=myNode->dis2father()*rateVec[y];
 		int aaInFather = _simulatedSequences[myNode->father()->id()][y];
-		int newChar = giveRandomChar(aaInFather,lenFromFather,y);
+		int newChar = giveRandomChar(aaInFather, myNode->id(), rateVec[y]);
 		if(newChar != aaInFather) _avgSubtitutionsPerSite += 1;
 		_simulatedSequences[myNode->id()][y] = newChar;
     }
@@ -196,7 +204,7 @@ int rateMatrixSim::giveRandomChar() const {
 
 		MDOUBLE theRandNum = talRandom::giveRandomNumberBetweenZeroAndEntry(1.0);
 		MDOUBLE sum = 0.0;
-		for (int j=0;j<_sp->alphabetSize();++j) {
+		for (int j=0;j<_alphaSize;++j) {
 			sum+=_sp->freq(j);
 			if (theRandNum<sum) return j;
 		}
@@ -206,15 +214,16 @@ int rateMatrixSim::giveRandomChar() const {
 }
 
 int rateMatrixSim::giveRandomChar(const int letterInFatherNode,
-								 const MDOUBLE length,
-								 const int pos) const {
+								 const int nodeId,
+								 const MDOUBLE rateCat) const {
 	assert(letterInFatherNode>=0);
-	assert(letterInFatherNode<_sp->alphabetSize());
+	assert(letterInFatherNode<_alphaSize);
 	for (int loop =0 ;loop<100000 ;loop++) {
 		MDOUBLE theRandNum = talRandom::giveRandomNumberBetweenZeroAndEntry(1.0);
 		MDOUBLE sum = 0.0;
-		for (int j=0;j<_sp->alphabetSize();++j) {
-			sum+=_sp->Pij_t(letterInFatherNode,j, length);
+		for (int j=0;j<_alphaSize;++j) {
+			// sum+=_sp->Pij_t(letterInFatherNode,j, length);
+			sum+=_cpijGam.getPij(rateCat, nodeId, letterInFatherNode, j);
 			if (theRandNum<sum) return j;
 		}
 	}

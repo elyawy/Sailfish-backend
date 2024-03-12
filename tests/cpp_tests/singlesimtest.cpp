@@ -4,7 +4,7 @@
 // #include "definitions.h"
 
 int main() {
-    tree tree_("../trees/normalbranches_nLeaves10.treefile");
+    tree tree_("../trees/normalbranches_nLeaves5000.treefile");
 
     vector<DiscreteDistribution*> insertionDists(tree_.getNodesNum() - 1);
     vector<DiscreteDistribution*> deletionDists(tree_.getNodesNum() - 1);
@@ -31,7 +31,7 @@ int main() {
     protocol.setInsertionRates(insertionRates);
     protocol.setDeletionRates(deletionRates);
 
-    protocol.setSequenceSize(100);
+    protocol.setSequenceSize(30000);
 
     protocol.setSaveAncestral(false);
 

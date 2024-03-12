@@ -70,7 +70,7 @@ class modelFactory
 public:
     modelFactory(tree* tr): _state(factoryState::ALPHABET), _tree(tr){}
 
-    std::unique_ptr<stochasticProcess> getStochasticProcess();
+    std::shared_ptr<stochasticProcess> getStochasticProcess();
 
     void setAlphabet(alphabetCode alphabet);
     void setReplacementModel(modelCode model);

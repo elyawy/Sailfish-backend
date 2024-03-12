@@ -389,22 +389,22 @@ class Simulator:
     def simulate(self, times: int = 1) -> List[Msa]:
         Msas = []
         for idx in range(times):
-            tic = time.perf_counter()
+            # tic = time.perf_counter()
             blocktree = self.gen_indels()
-            toc = time.perf_counter()
-            print(f"generated indels in {toc - tic:0.10f} seconds")
-            tic = time.perf_counter()
+            # toc = time.perf_counter()
+            # print(f"generated indels in {toc - tic:0.10f} seconds")
+            # tic = time.perf_counter()
             msa = Msa(blocktree._get_Sailfish_blocks(), self._simProtocol._get_root())
-            toc = time.perf_counter()
-            print(f"generated msa from blocks in {toc - tic:0.10f} seconds")
-            tic = time.perf_counter()
+            # toc = time.perf_counter()
+            # print(f"generated msa from blocks in {toc - tic:0.10f} seconds")
+            # tic = time.perf_counter()
             substitutions = self.gen_substitutions(msa.get_length())
-            toc = time.perf_counter()
-            print(f"generated substitutions in {toc - tic:0.10f} seconds")
-            tic = time.perf_counter()
+            # toc = time.perf_counter()
+            # print(f"generated substitutions in {toc - tic:0.10f} seconds")
+            # tic = time.perf_counter()
             msa.fill_substitutions(substitutions)
-            toc = time.perf_counter()
-            print(f"filled msa with substitutions in {toc - tic:0.10f} seconds")
+            # toc = time.perf_counter()
+            # print(f"filled msa with substitutions in {toc - tic:0.10f} seconds")
 
             if times == 1:
                 return msa

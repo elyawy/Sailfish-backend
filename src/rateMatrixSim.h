@@ -7,6 +7,7 @@
 #include "../libs/Phylolib/includes/tree.h"
 #include "../libs/Phylolib/includes/stochasticProcess.h"
 #include "../libs/Phylolib/includes/sequenceContainer.h"
+#include "../libs/Phylolib/includes/computePijComponent.h"
 
 #include "modelFactory.h"
 
@@ -42,12 +43,14 @@ private:
 	void generateRootSeq(int seqLength);	
 	void recursiveGenerateSpecificSeq(const Vdouble& rateVec, int seqLength, tree::nodeP myNode);
 	int giveRandomChar() const;
-	int giveRandomChar(const int letterInFatherNode, const MDOUBLE length,const int pos) const;
+	int giveRandomChar(const int letterInFatherNode, const int nodeId,const MDOUBLE rateCat) const;
 	int getRandCategory(const int pos) const;
 
 	vector<sequence> _simulatedSequences; // the sequences (nodes * seqLen)
 	tree* _et;
-	std::unique_ptr<const stochasticProcess> _sp;
+	std::shared_ptr<const stochasticProcess> _sp;
+	size_t _alphaSize;
+	computePijGam _cpijGam;
 	const alphabet* _alph;
 	MDOUBLE _avgSubtitutionsPerSite;
 	
