@@ -1,8 +1,8 @@
 
 
 #include "../libs/Phylolib/includes/tree.h"
+#include "../libs/Phylolib/includes/DiscreteDistribution.h"
 
-#include "DiscreteDistribution.h"
 
 
 class SimulationProtocol

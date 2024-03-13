@@ -158,6 +158,7 @@ class SimProtocol:
         
         self._num_branches = self._tree.get_num_nodes() - 1
         self._sim = _Sailfish.SimProtocol(self._tree._get_Sailfish_tree())
+        self._seed = 0
         self._root_seq_size = 0
     
     def get_tree(self) -> Tree:
@@ -173,10 +174,11 @@ class SimProtocol:
         return self._num_branches
     
     def set_seed(self, seed: int) -> None:
+        self._seed = seed
         self._sim.set_seed(seed)
     
     def get_seed(self) -> int:
-        return sim.get_seed()
+        return self._seed
     
     def set_sequence_size(self, sequence_size: int) -> None:
         self._sim.set_sequence_size(sequence_size)
@@ -227,10 +229,13 @@ class SimProtocol:
     
     def set_insertion_length_distributions(self, insertion_dist: Optional[Distribution] = None, insertion_dists: Optional[List[Distribution]] = None) -> None:
         if insertion_dist:
+            insertion_dist.set_seed(self.get_seed())
             self.insertion_dists = [insertion_dist] * self._num_branches
         elif insertion_dists:
             if not len(insertion_dists) == self._num_branches:
                 raise ValueError(f"The length of the insertion dists should be equal to the number of branches in the tree. The insertion_dists length is {len(insertion_dists)} and the number of branches is {self._num_branches}. You can pass a single value as insertion_dist which will be used for all branches.")
+            for dist in deletion_dist:
+                dist.set_seed(self.get_seed())
             self.insertion_dists = insertion_dists
         else:
             raise ValueError(f"please provide one of the following: deletion_rate (a single value used for all branches), or a deletion_rates (a list of values, each corresponding to a different branch)")
@@ -247,10 +252,13 @@ class SimProtocol:
     
     def set_deletion_length_distributions(self, deletion_dist: Optional[Distribution] = None, deletion_dists: Optional[List[Distribution]] = None) -> None:
         if deletion_dist:
+            deletion_dist.set_seed(self.get_seed())
             self.deletion_dists = [deletion_dist] * self._num_branches
         elif deletion_dists:
             if not len(deletion_dists) == self._num_branches:
                 raise ValueError(f"The length of the deletion dists should be equal to the number of branches in the tree. The deletion_dists length is {len(deletion_dists)} and the number of branches is {self._num_branches}. You can pass a single value as deletion_dist which will be used for all branches.")
+            for dist in deletion_dist:
+                dist.set_seed(self.get_seed())
             self.deletion_dists = deletion_dists
         else:
             raise ValueError(f"please provide one of the following: deletion_rate (a single value used for all branches), or a deletion_rates (a list of values, each corresponding to a different branch)")
@@ -364,6 +372,7 @@ class Simulator:
         else:
             # TODO complete
             pass
+        self._model_factory
         self._simulator.init_substitution_sim(self._model_factory)
         self._is_sub_model_init = True
     
