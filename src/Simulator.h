@@ -26,7 +26,7 @@ private:
     Simulator(SimulationProtocol* protocol): _protocol(protocol),
     _seed(protocol->getSeed()), _mt_rand(protocol->getSeed()),
     _biased_coin(0,1) {
-        std::cout << "simulator ready!\n";
+        // std::cout << "simulator ready!\n";
     }
 
     void initSimulator() {
@@ -125,11 +125,14 @@ private:
             if (coinFlip < insertionProbability) {
                 auto _fair_die = std::uniform_int_distribution<int>(1, sequenceSize + 1);
                 eventIndex = _fair_die(_mt_rand);
+                // std::cout << eventIndex << " ";
                 eventLength = insertionLengthDistribution->drawSample();
                 eventType = event::INSERTION;
             } else {
                 auto _fair_die = std::uniform_int_distribution<int>(1, sequenceSize);
                 eventIndex = _fair_die(_mt_rand);
+                // std::cout << eventIndex << " ";
+
                 eventLength = deletionLengthDistribution->drawSample();
                 if (eventLength + eventIndex > sequenceSize) {
                     eventLength = sequenceSize - eventIndex;

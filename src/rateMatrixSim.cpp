@@ -1,4 +1,7 @@
 // $Id: simulateTree.cpp 8508 2010-08-12 15:21:04Z rubi $
+#include <stack>
+#include <unordered_map>
+
 
 #include "../libs/Phylolib/includes/definitions.h"
 #include "../libs/Phylolib/includes/treeUtil.h"
@@ -38,6 +41,8 @@ rateMatrixSim::~rateMatrixSim() {
 }
 
 void rateMatrixSim::setSeed(size_t seed) {
+	_seed = seed;
+	_cpijGam.setSeed(seed);
 	talRandom::setSeed(seed);
 }
 
@@ -45,11 +50,11 @@ void rateMatrixSim::generate_seq(int seqLength) {
 
 	sequence justAseq(_alph);
 	_simulatedSequences.resize(_et->getNodesNum(),justAseq);
-	std::cout << "hey\n";
+
 	for (int i=0; i < _simulatedSequences.size(); ++i) {
 		_simulatedSequences[i].resize(seqLength);
 	}
-	std::cout << "hey\n";
+
 	generateRootSeq(seqLength);
 
 	vector<MDOUBLE> rateVec(seqLength);
@@ -64,6 +69,50 @@ void rateMatrixSim::generate_seq(int seqLength) {
 	}
 	_avgSubtitutionsPerSite /= 1.0*seqLength;
 }
+
+// void rateMatrixSim::generate_sequence_log(int seqLength) {
+// 	using nodeP = tree::nodeP;
+//     using SubsMap = std::map<std::string, std::vector<std::tuple<size_t, size_t>>>;
+
+// 	generateRootLog(seqLength);
+
+// 	vector<MDOUBLE> rateVec(seqLength);
+// 	for (int h = 0; h < seqLength; h++)  {
+// 		int theRanCat = getRandCategory(h);
+// 		rateVec[h] = _sp->rates(theRanCat);
+// 	}
+
+
+// 	std::stack<nodeP> nodes;
+// 	nodes.push(_et->getRoot());
+// 	nodeP currentNode = nodes.top();
+
+// 	SubsMap nodeToSubsVec;
+// 	// nodeToBlockMap[currentNode->name()] = BlockTree(sequenceSize);
+// 	// size_t nodePosition = 0;
+// 	// while (!nodes.empty()) {
+// 	// 	nodes.pop();
+// 	// 	if (!currentNode->isLeaf()) {
+// 	// 		for (auto node: currentNode->getSons()) {
+// 	// 			nodes.push(node);
+// 	// 		}
+// 	// 	} else {
+// 	// 		if (nodes.empty()) break;
+// 	// 	}
+// 	// 	currentNode = nodes.top();
+// 	// 	sequenceSize = nodeToBlockMap[currentNode->father()->name()].length() - 1;
+// 	// 	BlockTree blocks = simulateAlongBranch(sequenceSize, currentNode->dis2father(), nodePosition);
+// 	// 	nodeToBlockMap[currentNode->name()] = blocks;
+
+// 	// 	++nodePosition;
+// 	// }
+	
+// 	_avgSubtitutionsPerSite = 0.0;
+// 	for (int p=0 ; p < _et->getRoot()->getNumberOfSons() ; ++p) {
+// 	  recursiveGenerateSpecificSeq(rateVec, seqLength, _et->getRoot()->getSon(p));
+// 	}
+// 	_avgSubtitutionsPerSite /= 1.0*seqLength;
+// }
 
 
 // void rateMatrixSim::generate_rates_continuous_gamma(const int seqLength,const MDOUBLE alpha, Vdouble rates)
@@ -176,6 +225,18 @@ void rateMatrixSim::generateRootSeq(int seqLength) {
 
 }
 
+// void rateMatrixSim::generateRootLog(int seqLength) {
+// 	_rootSequence.resize(seqLength);
+
+// 	for (int i = 0; i < seqLength; i++) {
+// 		_rootSequence[i] =  giveRandomChar();
+//      }
+
+// 	_rootSequence.setAlphabet(_alph);
+// 	_rootSequence.setName(_et->getRoot()->name());
+// 	_rootSequence.setID(_et->getRoot()->id());
+// }
+
 
 void rateMatrixSim::recursiveGenerateSpecificSeq(
 							const vector<MDOUBLE> &rateVec,
@@ -218,17 +279,20 @@ int rateMatrixSim::giveRandomChar(const int letterInFatherNode,
 								 const MDOUBLE rateCat) const {
 	assert(letterInFatherNode>=0);
 	assert(letterInFatherNode<_alphaSize);
-	for (int loop =0 ;loop<100000 ;loop++) {
-		MDOUBLE theRandNum = talRandom::giveRandomNumberBetweenZeroAndEntry(1.0);
-		MDOUBLE sum = 0.0;
-		for (int j=0;j<_alphaSize;++j) {
-			// sum+=_sp->Pij_t(letterInFatherNode,j, length);
-			sum+=_cpijGam.getPij(rateCat, nodeId, letterInFatherNode, j);
-			if (theRandNum<sum) return j;
-		}
-	}
-	errorMsg::reportError("Could not give random character. The reason is probably that the Pij_t do not sum to one.");
-	return 1;
+	int randChar = _cpijGam.getRandomChar(rateCat, nodeId, letterInFatherNode);
+	// std::cout << randChar << "\n";
+	return randChar;
+	// for (int loop =0 ;loop<100000 ;loop++) {
+	// 	MDOUBLE theRandNum = talRandom::giveRandomNumberBetweenZeroAndEntry(1.0);
+	// 	MDOUBLE sum = 0.0;
+	// 	for (int j=0;j<_alphaSize;++j) {
+	// 		// sum+=_sp->Pij_t(letterInFatherNode,j, length);
+	// 		sum+=_cpijGam.getPij(rateCat, nodeId, letterInFatherNode, j);
+	// 		if (theRandNum<sum) return j;
+	// 	}
+	// }
+	// errorMsg::reportError("Could not give random character. The reason is probably that the Pij_t do not sum to one.");
+	// return 1;
 }
 
 
