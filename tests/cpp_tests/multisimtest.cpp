@@ -4,8 +4,8 @@
 // #include "definitions.h"
 
 int main() {
-    // tree tree_("../trees/normalbranches_nLeaves10.treefile");
-    tree tree_("/home/elyawy/Data/Bacillus_1ZARG/RAxML_tree.tree");
+    tree tree_("../trees/normalbranches_nLeaves10.treefile");
+    // tree tree_("/home/elyawy/Data/Bacillus_1ZARG/RAxML_tree.tree");
 
     // tree tree_("(A:0.1,B:0.2);", false);
     vector<DiscreteDistribution*> insertionDists(tree_.getNodesNum() - 1);

@@ -1,6 +1,8 @@
 // $Id: simulateTree.cpp 8508 2010-08-12 15:21:04Z rubi $
 #include <stack>
 #include <unordered_map>
+#include <ostream>
+#include <sstream>
 
 
 #include "../libs/Phylolib/includes/definitions.h"
@@ -25,7 +27,11 @@ rateMatrixSim::rateMatrixSim(modelFactory& mFac) {
 		_cpijGam.fillPij(*_et, *_sp);
 
 
+		_subManager = std::make_shared<substitutionManager>(_et->getNodesNum());
+
 		_alph = mFac.getAlphabet();
+		_rootSequence = std::make_shared<sequence>(_alph);
+		
 		_avgSubtitutionsPerSite = 0.0;
 	};
 // simulateTree::simulateTree(const tree&  _inEt,
@@ -46,66 +52,124 @@ void rateMatrixSim::setSeed(size_t seed) {
 	talRandom::setSeed(seed);
 }
 
-void rateMatrixSim::generate_seq(int seqLength) {
+// void rateMatrixSim::generate_seq(int seqLength) {
 
-	sequence justAseq(_alph);
-	_simulatedSequences.resize(_et->getNodesNum(),justAseq);
+// 	sequence justAseq(_alph);
+// 	_simulatedSequences.resize(_et->getNodesNum(),justAseq);
 
-	for (int i=0; i < _simulatedSequences.size(); ++i) {
-		_simulatedSequences[i].resize(seqLength);
-	}
+// 	for (int i=0; i < _simulatedSequences.size(); ++i) {
+// 		_simulatedSequences[i].resize(seqLength);
+// 	}
 
-	generateRootSeq(seqLength);
-
-	vector<MDOUBLE> rateVec(seqLength);
-	for (int h = 0; h < seqLength; h++)  {
-		int theRanCat = getRandCategory(h);
-		rateVec[h] = _sp->rates(theRanCat);
-	}
-	
-	_avgSubtitutionsPerSite = 0.0;
-	for (int p=0 ; p < _et->getRoot()->getNumberOfSons() ; ++p) {
-	  recursiveGenerateSpecificSeq(rateVec, seqLength, _et->getRoot()->getSon(p));
-	}
-	_avgSubtitutionsPerSite /= 1.0*seqLength;
-}
-
-// void rateMatrixSim::generate_sequence_log(int seqLength) {
-// 	using nodeP = tree::nodeP;
-//     using SubsMap = std::map<std::string, std::vector<std::tuple<size_t, size_t>>>;
-
-// 	generateRootLog(seqLength);
+// 	generateRootSeq(seqLength);
 
 // 	vector<MDOUBLE> rateVec(seqLength);
 // 	for (int h = 0; h < seqLength; h++)  {
 // 		int theRanCat = getRandCategory(h);
 // 		rateVec[h] = _sp->rates(theRanCat);
 // 	}
+	
+// 	_avgSubtitutionsPerSite = 0.0;
+// 	for (int p=0 ; p < _et->getRoot()->getNumberOfSons() ; ++p) {
+// 	  recursiveGenerateSpecificSeq(rateVec, seqLength, _et->getRoot()->getSon(p));
+// 	}
+// 	_avgSubtitutionsPerSite /= 1.0*seqLength;
+// }
+
+void rateMatrixSim::generate_substitution_log(int seqLength) {
+	using nodeP = tree::nodeP;
+	// generateRootLog(seqLength);
+	// _rootSequence = sequence(_alph);
+	_rootSequence->resize(seqLength);
+	generateRootSeq(seqLength);
+
+	_rateVec.resize(seqLength);
+	for (int h = 0; h < seqLength; h++)  {
+		int theRanCat = getRandCategory(h);
+		_rateVec[h] = _sp->rates(theRanCat);
+	}
+
+	std::cout << "starting subs simulation\n";
+
+	mutateSeqRecuresively(_et->getRoot(), seqLength);
+
+	// _subManager->printSubManager();
+}
+
+void rateMatrixSim::mutateSeqRecuresively(tree::nodeP currentNode, int seqLength) {
+
+	for (auto &node: currentNode->getSons()) {
 
 
-// 	std::stack<nodeP> nodes;
-// 	nodes.push(_et->getRoot());
-// 	nodeP currentNode = nodes.top();
 
-// 	SubsMap nodeToSubsVec;
-// 	// nodeToBlockMap[currentNode->name()] = BlockTree(sequenceSize);
-// 	// size_t nodePosition = 0;
-// 	// while (!nodes.empty()) {
-// 	// 	nodes.pop();
-// 	// 	if (!currentNode->isLeaf()) {
-// 	// 		for (auto node: currentNode->getSons()) {
-// 	// 			nodes.push(node);
-// 	// 		}
-// 	// 	} else {
-// 	// 		if (nodes.empty()) break;
-// 	// 	}
-// 	// 	currentNode = nodes.top();
-// 	// 	sequenceSize = nodeToBlockMap[currentNode->father()->name()].length() - 1;
-// 	// 	BlockTree blocks = simulateAlongBranch(sequenceSize, currentNode->dis2father(), nodePosition);
-// 	// 	nodeToBlockMap[currentNode->name()] = blocks;
+		mutateSeqAlongBranch(node, seqLength);
+		mutateSeqRecuresively(node, seqLength);
+		// if (node->isLeaf()) {
+			// std::stringstream filename;
+			// filename << "/home/elyawy/temp/" << node->id() << ".fasta";
+			// std::cout << "writing to " << filename.str() << "\n";
 
-// 	// 	++nodePosition;
-// 	// }
+			// std::ofstream o(filename.str());
+			// o <<  (*_rootSequence) << std::endl;
+			// o.close();
+			// _subManager->dumpSubstitutionLog(node->id());
+		// }
+		std::cout << currentNode->id() << "\n";
+		// _subManager->dumpSubstitutionLog(currentNode->id());
+		undoLastSubs(currentNode->id());
+	}
+}
+
+void rateMatrixSim::mutateSeqAlongBranch(tree::nodeP currentNode, int seqLength) {
+	// std::cout << "mutating sequence along branch\n";
+	const int nodeId = currentNode->id();
+	const int parentId = currentNode->father()->id();
+	const MDOUBLE distToFather = currentNode->dis2father();
+	// std::cout << parentId << "->" << nodeId << "\n";
+	// std::cout << "current branch length: " << distToFather << "\n";
+
+	// std::cin.get();
+	for (size_t site = 0; site < seqLength; ++site) {
+		int parentChar = (*_subManager).getCharacter(parentId, site, *_rootSequence);
+		int nextChar = giveRandomChar(parentChar, nodeId ,_rateVec[site]);
+		if (nextChar != parentChar){
+			_subManager->handleEvent(parentId, site, parentChar);
+			if (currentNode->isLeaf()) {
+				_subManager->handleEvent(nodeId, site, nextChar);
+			}
+			(*_rootSequence)[site] = nextChar;
+		}
+		// std::cout << site << "\n";
+	}
+	// _subManager->printSubManager();
+}
+
+void rateMatrixSim::undoLastSubs(int fromNode) {
+	auto nodeChangeMap = _subManager->getChangeMap(fromNode);
+	for (auto &item: *nodeChangeMap) {
+		(*_rootSequence)[item.first] = item.second;
+	}
+}
+
+	// SubsMap nodeToSubsVec;
+	// nodeToBlockMap[currentNode->name()] = BlockTree(sequenceSize);
+	// size_t nodePosition = 0;
+	// while (!nodes.empty()) {
+	// 	nodes.pop();
+	// 	if (!currentNode->isLeaf()) {
+	// 		for (auto node: currentNode->getSons()) {
+	// 			nodes.push(node);
+	// 		}
+	// 	} else {
+	// 		if (nodes.empty()) break;
+	// 	}
+	// 	currentNode = nodes.top();
+	// 	sequenceSize = nodeToBlockMap[currentNode->father()->name()].length() - 1;
+	// 	BlockTree blocks = simulateAlongBranch(sequenceSize, currentNode->dis2father(), nodePosition);
+	// 	nodeToBlockMap[currentNode->name()] = blocks;
+
+	// 	++nodePosition;
+	// }
 	
 // 	_avgSubtitutionsPerSite = 0.0;
 // 	for (int p=0 ; p < _et->getRoot()->getNumberOfSons() ; ++p) {
@@ -145,84 +209,94 @@ void rateMatrixSim::generate_seq(int seqLength) {
 // 	_avgSubtitutionsPerSite /= 1.0*seqLength;
 // }
 		
-void rateMatrixSim::generate_seqWithRateVectorNoStopCodon(const Vdouble& simRates, int seqLength)
-{
-	if (_alph->size() != 4)
-		errorMsg::reportError("generate_seqWithRateVectorNoStopCodon is applicable only for nucleotide process");
-	if (seqLength %3 != 0)
-		errorMsg::reportError("generate_seqWithRateVectorNoStopCodon: seqLenth should be a multiplicative of 3");
-	if (simRates.size() != seqLength)
-		errorMsg::reportError("generate_seqWithRateVectorNoStopCodon: the size of simRates should be identical to seqLenth");
+// void rateMatrixSim::generate_seqWithRateVectorNoStopCodon(const Vdouble& simRates, int seqLength)
+// {
+// 	if (_alph->size() != 4)
+// 		errorMsg::reportError("generate_seqWithRateVectorNoStopCodon is applicable only for nucleotide process");
+// 	if (seqLength %3 != 0)
+// 		errorMsg::reportError("generate_seqWithRateVectorNoStopCodon: seqLenth should be a multiplicative of 3");
+// 	if (simRates.size() != seqLength)
+// 		errorMsg::reportError("generate_seqWithRateVectorNoStopCodon: the size of simRates should be identical to seqLenth");
 
-//	sequence justAseq(_alph);
-//	vector<sequence> simulatedSequences(_et.getNodesNum(),justAseq);
-	vector<sequence> simulatedSequences;
-	//generate three nucleotide positions at a time. Repeat each position if the generated sequences contain stop codon 
-	Vdouble rateVec(3);
-	bool bStopCodonFound = false;
-	codon codonAlph;
-	for (int p = 0; p < seqLength; p+=3)
-	{
-		rateVec[0] = simRates[p];
-		rateVec[1] = simRates[p+1];
-		rateVec[2] = simRates[p+2];
-		//generate 3 nucleotide positions with no stop codon
-		for (int loop = 0; loop < 1000; ++loop)
-		{
-			bStopCodonFound = false;
-			generate_seqWithRateVector(rateVec, 3);
-			for (int s = 0; s < _simulatedSequences.size(); ++s)
-			{
-				string codonStr = _simulatedSequences[s].toString();
-				if (codonAlph.isStopCodon(codonStr))
-				{
-                    bStopCodonFound = true;
-					break;
-				}
-			}
-			if (!bStopCodonFound)
-				break;
-		}
-		if (bStopCodonFound)
-			errorMsg::reportError("Could not generate a position without stop codon");
-		//append positions to the positions generated so far
-		if (p == 0)
-			simulatedSequences = _simulatedSequences; //this will copy also the names of the sequences
-		else
-		{
-            for (int i = 0; i < simulatedSequences.size(); ++i)
-                simulatedSequences[i] += _simulatedSequences[i];
-		}
-	}
-	_simulatedSequences = simulatedSequences;
-}
+// //	sequence justAseq(_alph);
+// //	vector<sequence> simulatedSequences(_et.getNodesNum(),justAseq);
+// 	vector<sequence> simulatedSequences;
+// 	//generate three nucleotide positions at a time. Repeat each position if the generated sequences contain stop codon 
+// 	Vdouble rateVec(3);
+// 	bool bStopCodonFound = false;
+// 	codon codonAlph;
+// 	for (int p = 0; p < seqLength; p+=3)
+// 	{
+// 		rateVec[0] = simRates[p];
+// 		rateVec[1] = simRates[p+1];
+// 		rateVec[2] = simRates[p+2];
+// 		//generate 3 nucleotide positions with no stop codon
+// 		for (int loop = 0; loop < 1000; ++loop)
+// 		{
+// 			bStopCodonFound = false;
+// 			generate_seqWithRateVector(rateVec, 3);
+// 			for (int s = 0; s < _simulatedSequences.size(); ++s)
+// 			{
+// 				string codonStr = _simulatedSequences[s].toString();
+// 				if (codonAlph.isStopCodon(codonStr))
+// 				{
+//                     bStopCodonFound = true;
+// 					break;
+// 				}
+// 			}
+// 			if (!bStopCodonFound)
+// 				break;
+// 		}
+// 		if (bStopCodonFound)
+// 			errorMsg::reportError("Could not generate a position without stop codon");
+// 		//append positions to the positions generated so far
+// 		if (p == 0)
+// 			simulatedSequences = _simulatedSequences; //this will copy also the names of the sequences
+// 		else
+// 		{
+//             for (int i = 0; i < simulatedSequences.size(); ++i)
+//                 simulatedSequences[i] += _simulatedSequences[i];
+// 		}
+// 	}
+// 	_simulatedSequences = simulatedSequences;
+// }
 
 
 
-void rateMatrixSim::generate_seqWithRateVector(const Vdouble& rateVec, const int seqLength) {
-	sequence justAseq(_alph);
-	_simulatedSequences.resize(_et->getNodesNum(),justAseq);
-	for (int i=0; i < _simulatedSequences.size(); ++i) {
-		_simulatedSequences[i].resize(seqLength);
-	}
-	generateRootSeq(seqLength); 
+// void rateMatrixSim::generate_seqWithRateVector(const Vdouble& rateVec, const int seqLength) {
+// 	sequence justAseq(_alph);
+// 	_simulatedSequences.resize(_et->getNodesNum(),justAseq);
+// 	for (int i=0; i < _simulatedSequences.size(); ++i) {
+// 		_simulatedSequences[i].resize(seqLength);
+// 	}
+// 	generateRootSeq(seqLength); 
 
-	_avgSubtitutionsPerSite = 0.0;
-	for (int p=0 ; p < _et->getRoot()->getNumberOfSons() ; ++p) {
-	  recursiveGenerateSpecificSeq(rateVec,seqLength,_et->getRoot()->getSon(p));
-	}
-	_avgSubtitutionsPerSite /= 1.0*seqLength;
-}
+// 	_avgSubtitutionsPerSite = 0.0;
+// 	for (int p=0 ; p < _et->getRoot()->getNumberOfSons() ; ++p) {
+// 	  recursiveGenerateSpecificSeq(rateVec,seqLength,_et->getRoot()->getSon(p));
+// 	}
+// 	_avgSubtitutionsPerSite /= 1.0*seqLength;
+// }
+
+// void rateMatrixSim::generateRootSeq(int seqLength) {	
+// 	for (int i = 0; i < seqLength; i++) {
+// 		_simulatedSequences[_et->getRoot()->id()][i] =  giveRandomChar();
+//      }
+
+// 	_simulatedSequences[_et->getRoot()->id()].setAlphabet(_alph);
+// 	_simulatedSequences[_et->getRoot()->id()].setName(_et->getRoot()->name());
+// 	_simulatedSequences[_et->getRoot()->id()].setID(_et->getRoot()->id());
+
+// }
 
 void rateMatrixSim::generateRootSeq(int seqLength) {	
 	for (int i = 0; i < seqLength; i++) {
-		_simulatedSequences[_et->getRoot()->id()][i] =  giveRandomChar();
+		(*_rootSequence)[i] =  giveRandomChar();
      }
 
-	_simulatedSequences[_et->getRoot()->id()].setAlphabet(_alph);
-	_simulatedSequences[_et->getRoot()->id()].setName(_et->getRoot()->name());
-	_simulatedSequences[_et->getRoot()->id()].setID(_et->getRoot()->id());
-
+	_rootSequence->setAlphabet(_alph);
+	_rootSequence->setName(_et->getRoot()->name());
+	_rootSequence->setID(_et->getRoot()->id());
 }
 
 // void rateMatrixSim::generateRootLog(int seqLength) {
@@ -238,25 +312,25 @@ void rateMatrixSim::generateRootSeq(int seqLength) {
 // }
 
 
-void rateMatrixSim::recursiveGenerateSpecificSeq(
-							const vector<MDOUBLE> &rateVec,
-							const int seqLength,
-							tree::nodeP myNode) {
+// void rateMatrixSim::recursiveGenerateSpecificSeq(
+// 							const vector<MDOUBLE> &rateVec,
+// 							const int seqLength,
+// 							tree::nodeP myNode) {
 
-	for (int y = 0; y < seqLength; y++) {
-		// MDOUBLE lenFromFather=myNode->dis2father()*rateVec[y];
-		int aaInFather = _simulatedSequences[myNode->father()->id()][y];
-		int newChar = giveRandomChar(aaInFather, myNode->id(), rateVec[y]);
-		if(newChar != aaInFather) _avgSubtitutionsPerSite += 1;
-		_simulatedSequences[myNode->id()][y] = newChar;
-    }
-	_simulatedSequences[myNode->id()].setAlphabet(_alph);
-	_simulatedSequences[myNode->id()].setName(myNode->name());
-	_simulatedSequences[myNode->id()].setID(myNode->id());
-	for (int x =0 ; x < myNode->getNumberOfSons(); ++x) {
-	  recursiveGenerateSpecificSeq(rateVec, seqLength, myNode->getSon(x));
-	}
-}
+// 	for (int y = 0; y < seqLength; y++) {
+// 		// MDOUBLE lenFromFather=myNode->dis2father()*rateVec[y];
+// 		int aaInFather = _simulatedSequences[myNode->father()->id()][y];
+// 		int newChar = giveRandomChar(aaInFather, myNode->id(), rateVec[y]);
+// 		if(newChar != aaInFather) _avgSubtitutionsPerSite += 1;
+// 		_simulatedSequences[myNode->id()][y] = newChar;
+//     }
+// 	_simulatedSequences[myNode->id()].setAlphabet(_alph);
+// 	_simulatedSequences[myNode->id()].setName(myNode->name());
+// 	_simulatedSequences[myNode->id()].setID(myNode->id());
+// 	for (int x =0 ; x < myNode->getNumberOfSons(); ++x) {
+// 	  recursiveGenerateSpecificSeq(rateVec, seqLength, myNode->getSon(x));
+// 	}
+// }
 
 
 
@@ -277,8 +351,8 @@ int rateMatrixSim::giveRandomChar() const {
 int rateMatrixSim::giveRandomChar(const int letterInFatherNode,
 								 const int nodeId,
 								 const MDOUBLE rateCat) const {
-	assert(letterInFatherNode>=0);
-	assert(letterInFatherNode<_alphaSize);
+	// assert(letterInFatherNode>=0);
+	// assert(letterInFatherNode<_alphaSize);
 	int randChar = _cpijGam.getRandomChar(rateCat, nodeId, letterInFatherNode);
 	// std::cout << randChar << "\n";
 	return randChar;

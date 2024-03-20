@@ -159,13 +159,14 @@ private:
     }
 
     void initSubstitionSim(modelFactory& mFac) {
-        _substitutionSim = make_unique<rateMatrixSim>(mFac);
+        _substitutionSim = std::make_unique<rateMatrixSim>(mFac);
         _substitutionSim->setSeed(_seed);
 
     }
 
     std::shared_ptr<sequenceContainer> simulateSubstitutions(size_t sequenceLength) {
-        _substitutionSim->generate_seq(sequenceLength);
+        _substitutionSim->generate_substitution_log(sequenceLength);
+
         std::shared_ptr<sequenceContainer> sharedSeqContainer = move(_substitutionSim->toSeqDataWithoutInternalNodes());
         return sharedSeqContainer;
     }
