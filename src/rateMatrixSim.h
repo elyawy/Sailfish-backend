@@ -55,6 +55,8 @@ private:
 
 
 	void mutateSeqAlongBranch(tree::nodeP parentNode, int seqLength);
+	void mutateEntireSeq(tree::nodeP currentNode, int seqLength);
+	void mutateSeqGillespie(tree::nodeP currentNode, int seqLength, MDOUBLE distToParent);
 	void undoLastSubs(int fromNode);
 	
 
@@ -69,6 +71,12 @@ private:
 	int _seed;
 	const alphabet* _alph;
 	MDOUBLE _avgSubtitutionsPerSite;
+	MDOUBLE _subtitutionsRatePerSite;
+	MDOUBLE _rateCategoriesSum;
+	std::vector<MDOUBLE> _normalizedRateCategories;
+	std::unique_ptr<DiscreteDistribution> _siteSampler;
+	std::mt19937 _mt_rand;
+
 
 	std::shared_ptr<substitutionManager> _subManager;
 	

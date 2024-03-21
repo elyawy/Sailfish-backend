@@ -33,6 +33,15 @@ rateMatrixSim::rateMatrixSim(modelFactory& mFac) {
 		_rootSequence = std::make_shared<sequence>(_alph);
 		
 		_avgSubtitutionsPerSite = 0.0;
+		_subtitutionsRatePerSite = 0.0;
+
+		_rateCategoriesSum = 0.0;
+		for (int j=0;j<_sp->categories() ;++j) {
+			_rateCategoriesSum += _sp->rates(j);
+		}
+		for (int j=0;j<_sp->categories() ;++j) {
+			_normalizedRateCategories.push_back(_sp->rates(j)/_rateCategoriesSum);
+		}
 	};
 // simulateTree::simulateTree(const tree&  _inEt,
 // 						   const stochasticProcess& sp,
@@ -48,6 +57,7 @@ rateMatrixSim::~rateMatrixSim() {
 
 void rateMatrixSim::setSeed(size_t seed) {
 	_seed = seed;
+	_mt_rand.seed(seed);
 	_cpijGam.setSeed(seed);
 	talRandom::setSeed(seed);
 }
@@ -80,16 +90,23 @@ void rateMatrixSim::generate_substitution_log(int seqLength) {
 	using nodeP = tree::nodeP;
 	// generateRootLog(seqLength);
 	// _rootSequence = sequence(_alph);
-	_rootSequence->resize(seqLength);
-	generateRootSeq(seqLength);
+
+	std::vector<MDOUBLE> rateNormalizedVec(seqLength);
 
 	_rateVec.resize(seqLength);
 	for (int h = 0; h < seqLength; h++)  {
 		int theRanCat = getRandCategory(h);
 		_rateVec[h] = _sp->rates(theRanCat);
+		rateNormalizedVec[h] = _normalizedRateCategories[theRanCat];
 	}
 
+	_siteSampler = std::make_unique<DiscreteDistribution>(rateNormalizedVec);
+
+	_rootSequence->resize(seqLength);
+	generateRootSeq(seqLength);
+
 	std::cout << "starting subs simulation\n";
+	std::cin.get();
 
 	mutateSeqRecuresively(_et->getRoot(), seqLength);
 
@@ -99,11 +116,13 @@ void rateMatrixSim::generate_substitution_log(int seqLength) {
 void rateMatrixSim::mutateSeqRecuresively(tree::nodeP currentNode, int seqLength) {
 
 	for (auto &node: currentNode->getSons()) {
-
+		// std::cout << "mutating from " << currentNode->id() << " to " << node->id() << "\n";
 
 
 		mutateSeqAlongBranch(node, seqLength);
 		mutateSeqRecuresively(node, seqLength);
+		// std::cout << "finished from " << currentNode->id() << " to " << node->id() << "\n";
+
 		// if (node->isLeaf()) {
 			// std::stringstream filename;
 			// filename << "/home/elyawy/temp/" << node->id() << ".fasta";
@@ -116,19 +135,37 @@ void rateMatrixSim::mutateSeqRecuresively(tree::nodeP currentNode, int seqLength
 		// }
 		std::cout << currentNode->id() << "\n";
 		// _subManager->dumpSubstitutionLog(currentNode->id());
-		undoLastSubs(currentNode->id());
+		if (!_subManager->isEmpty(currentNode->id()))undoLastSubs(currentNode->id());
 	}
 }
 
 void rateMatrixSim::mutateSeqAlongBranch(tree::nodeP currentNode, int seqLength) {
 	// std::cout << "mutating sequence along branch\n";
-	const int nodeId = currentNode->id();
-	const int parentId = currentNode->father()->id();
+	// const int nodeId = currentNode->id();
+	// const int parentId = currentNode->father()->id();
 	const MDOUBLE distToFather = currentNode->dis2father();
+
 	// std::cout << parentId << "->" << nodeId << "\n";
 	// std::cout << "current branch length: " << distToFather << "\n";
+	// mutateEntireSeq(currentNode, seqLength);
 
 	// std::cin.get();
+	if (distToFather > 0.2) {
+		mutateEntireSeq(currentNode, seqLength);
+	} else {
+		mutateSeqGillespie(currentNode, seqLength, distToFather);
+	}
+	// _subManager->printSubManager();
+}
+
+
+void rateMatrixSim::mutateEntireSeq(tree::nodeP currentNode, int seqLength) {
+
+	// std::cout << "mutating entire sequence!\n";
+	const int nodeId = currentNode->id();
+	const int parentId = currentNode->father()->id();
+
+
 	for (size_t site = 0; site < seqLength; ++site) {
 		int parentChar = (*_subManager).getCharacter(parentId, site, *_rootSequence);
 		int nextChar = giveRandomChar(parentChar, nodeId ,_rateVec[site]);
@@ -141,13 +178,54 @@ void rateMatrixSim::mutateSeqAlongBranch(tree::nodeP currentNode, int seqLength)
 		}
 		// std::cout << site << "\n";
 	}
-	// _subManager->printSubManager();
 }
 
+
+void rateMatrixSim::mutateSeqGillespie(tree::nodeP currentNode, int seqLength, MDOUBLE distToParent) {
+	// std::cout << "mutating sequence using Gillespie!\n";
+
+	const int nodeId = currentNode->id();
+	const int parentId = currentNode->father()->id();
+	MDOUBLE branchLength = distToParent;
+
+	double lambdaParam = _subtitutionsRatePerSite/seqLength;
+	std::exponential_distribution<double> distribution(lambdaParam);
+	double waitingTime = distribution(_mt_rand);
+	while (waitingTime < distToParent) {
+
+		int mutatedSite = _siteSampler->drawSample() - 1;
+		int parentChar = (*_subManager).getCharacter(parentId, mutatedSite, *_rootSequence);
+		int nextChar = giveRandomChar(parentChar, nodeId ,_rateVec[mutatedSite]);
+		_subManager->handleEvent(parentId, mutatedSite, parentChar);
+		if (currentNode->isLeaf()) {
+			_subManager->handleEvent(nodeId, mutatedSite, nextChar);
+		}
+		(*_rootSequence)[mutatedSite] = nextChar;
+
+		// should update substitution per site variable,
+		MDOUBLE parentCharFreq = _sp->freq(parentChar)*_rateVec[mutatedSite];
+		MDOUBLE nextCharFreq = _sp->freq(nextChar)*_rateVec[mutatedSite];
+		_subtitutionsRatePerSite += (nextCharFreq - parentCharFreq);
+		lambdaParam = _subtitutionsRatePerSite/seqLength;//sequenceWiseInsertionRate + sequenceWiseDeletionRate;
+
+		branchLength = branchLength - waitingTime;
+		std::exponential_distribution<double> distribution(lambdaParam);
+		waitingTime = distribution(_mt_rand);
+	}
+}
+
+
 void rateMatrixSim::undoLastSubs(int fromNode) {
+	// std::cout << "undoing subs back to " << fromNode << "\n";
 	auto nodeChangeMap = _subManager->getChangeMap(fromNode);
 	for (auto &item: *nodeChangeMap) {
-		(*_rootSequence)[item.first] = item.second;
+		int currentSite = item.first;
+		MDOUBLE oldFreq = _sp->freq((*_rootSequence)[currentSite])*_rateVec[currentSite];
+		MDOUBLE newFreq = _sp->freq(item.second)*_rateVec[currentSite];
+		(*_rootSequence)[currentSite] = item.second;
+
+		_subtitutionsRatePerSite += (newFreq - oldFreq);
+
 	}
 }
 
@@ -291,8 +369,12 @@ void rateMatrixSim::undoLastSubs(int fromNode) {
 
 void rateMatrixSim::generateRootSeq(int seqLength) {	
 	for (int i = 0; i < seqLength; i++) {
-		(*_rootSequence)[i] =  giveRandomChar();
+		int newChar = giveRandomChar();
+		(*_rootSequence)[i] =  newChar;
+		_subtitutionsRatePerSite += _sp->freq(newChar)*_rateVec[i];
      }
+
+	 
 
 	_rootSequence->setAlphabet(_alph);
 	_rootSequence->setName(_et->getRoot()->name());

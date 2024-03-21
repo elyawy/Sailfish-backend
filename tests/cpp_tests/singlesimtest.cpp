@@ -3,9 +3,14 @@
 #include "../../src/Simulator.h"
 // #include "definitions.h"
 
+
+
 // takes 10 minutes currently
 int main() {
-    tree tree_("../trees/normalbranches_nLeaves100.treefile");
+    tree tree_("../trees/normalbranches_nLeaves5000.treefile");
+    // tree tree_("(A:0.1,B:0.2);", false);
+
+    tree_.getRoot()->orderSonsByHeight();
 
     vector<DiscreteDistribution*> insertionDists(tree_.getNodesNum() - 1);
     vector<DiscreteDistribution*> deletionDists(tree_.getNodesNum() - 1);

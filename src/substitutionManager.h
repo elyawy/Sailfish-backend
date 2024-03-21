@@ -82,10 +82,16 @@ public:
         return (*_substitutionVec[nodeId])[position];
     }
 
-
+    bool isEmpty(const int nodeId) {
+        return _substitutionVec[nodeId] == nullptr;
+    }
 
 
     std::unique_ptr<changeMap> getChangeMap(const int nodeId) {
+        if ((_substitutionVec[nodeId] == nullptr)) {
+            std::cout << nodeId << " <- this node is null\n";
+        }
+
         return std::move(_substitutionVec[nodeId]);
     }
 
