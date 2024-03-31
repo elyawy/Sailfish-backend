@@ -369,7 +369,7 @@ void rateMatrixSim::undoLastSubs(int fromNode) {
 
 void rateMatrixSim::generateRootSeq(int seqLength) {	
 	for (int i = 0; i < seqLength; i++) {
-		int newChar = giveRandomChar();
+		ALPHACHAR newChar = giveRandomChar();
 		(*_rootSequence)[i] =  newChar;
 		_subtitutionsRatePerSite += _sp->freq(newChar)*_rateVec[i];
      }
@@ -416,7 +416,7 @@ void rateMatrixSim::generateRootSeq(int seqLength) {
 
 
 
-int rateMatrixSim::giveRandomChar() const {
+ALPHACHAR rateMatrixSim::giveRandomChar() const {
 	for (int loop =0 ;loop<100000 ;loop++) {
 
 		MDOUBLE theRandNum = talRandom::giveRandomNumberBetweenZeroAndEntry(1.0);
@@ -430,7 +430,7 @@ int rateMatrixSim::giveRandomChar() const {
 	return 1;
 }
 
-int rateMatrixSim::giveRandomChar(const int letterInFatherNode,
+ALPHACHAR rateMatrixSim::giveRandomChar(const ALPHACHAR letterInFatherNode,
 								 const int nodeId,
 								 const MDOUBLE rateCat) const {
 	// assert(letterInFatherNode>=0);

@@ -48,8 +48,8 @@ private:
 	void generateRootSeq(int seqLength);
 
 	// void recursiveGenerateSpecificSeq(const Vdouble& rateVec, int seqLength, tree::nodeP myNode);
-	int giveRandomChar() const;
-	int giveRandomChar(const int letterInFatherNode, const int nodeId,const MDOUBLE rateCat) const;
+	ALPHACHAR giveRandomChar() const;
+	ALPHACHAR giveRandomChar(const ALPHACHAR letterInFatherNode, const int nodeId,const MDOUBLE rateCat) const;
 	int getRandCategory(const int pos) const;
 
 
