@@ -135,7 +135,9 @@ void rateMatrixSim::mutateSeqRecuresively(tree::nodeP currentNode, int seqLength
 		// }
 		std::cout << currentNode->id() << "\n";
 		// _subManager->dumpSubstitutionLog(currentNode->id());
-		if (!_subManager->isEmpty(currentNode->id()))undoLastSubs(currentNode->id());
+		if (!_subManager->isEmpty(currentNode->id())) {
+			_subManager->undoSubs(currentNode->id(), *_rootSequence, _rateVec, _sp.get());
+		}
 	}
 }
 
@@ -150,7 +152,7 @@ void rateMatrixSim::mutateSeqAlongBranch(tree::nodeP currentNode, int seqLength)
 	// mutateEntireSeq(currentNode, seqLength);
 
 	// std::cin.get();
-	if (distToFather > 0.2) {
+	if (distToFather > 2) {
 		mutateEntireSeq(currentNode, seqLength);
 	} else {
 		mutateSeqGillespie(currentNode, seqLength, distToFather);
@@ -170,11 +172,11 @@ void rateMatrixSim::mutateEntireSeq(tree::nodeP currentNode, int seqLength) {
 		int parentChar = (*_subManager).getCharacter(parentId, site, *_rootSequence);
 		int nextChar = giveRandomChar(parentChar, nodeId ,_rateVec[site]);
 		if (nextChar != parentChar){
-			_subManager->handleEvent(parentId, site, parentChar);
+			_subManager->handleEvent(parentId, site, parentChar, _rateVec, _sp.get(), *_rootSequence);
 			if (currentNode->isLeaf()) {
-				_subManager->handleEvent(nodeId, site, nextChar);
+				_subManager->handleEvent(nodeId, site, nextChar, _rateVec, _sp.get(), *_rootSequence);
 			}
-			(*_rootSequence)[site] = nextChar;
+			// (*_rootSequence)[site] = nextChar;
 		}
 		// std::cout << site << "\n";
 	}
@@ -188,43 +190,33 @@ void rateMatrixSim::mutateSeqGillespie(tree::nodeP currentNode, int seqLength, M
 	const int parentId = currentNode->father()->id();
 	MDOUBLE branchLength = distToParent;
 
-	double lambdaParam = _subtitutionsRatePerSite/seqLength;
+	double lambdaParam = _subManager->getReactantsSum();
 	std::exponential_distribution<double> distribution(lambdaParam);
 	double waitingTime = distribution(_mt_rand);
-	while (waitingTime < distToParent) {
+	if (waitingTime < 0) {
+		std::cout << branchLength << " " << lambdaParam << " " << waitingTime << "\n";
+		errorMsg::reportError("waiting time is negative :(");
+	}
+	while (waitingTime < branchLength) {
 
 		int mutatedSite = _siteSampler->drawSample() - 1;
 		int parentChar = (*_subManager).getCharacter(parentId, mutatedSite, *_rootSequence);
 		int nextChar = giveRandomChar(parentChar, nodeId ,_rateVec[mutatedSite]);
-		_subManager->handleEvent(parentId, mutatedSite, parentChar);
+		_subManager->handleEvent(parentId, mutatedSite, parentChar, _rateVec, _sp.get(), *_rootSequence);
 		if (currentNode->isLeaf()) {
-			_subManager->handleEvent(nodeId, mutatedSite, nextChar);
+			_subManager->handleEvent(nodeId, mutatedSite, nextChar, _rateVec, _sp.get(), *_rootSequence);
 		}
-		(*_rootSequence)[mutatedSite] = nextChar;
-
 		// should update substitution per site variable,
-		MDOUBLE parentCharFreq = _sp->freq(parentChar)*_rateVec[mutatedSite];
-		MDOUBLE nextCharFreq = _sp->freq(nextChar)*_rateVec[mutatedSite];
-		_subtitutionsRatePerSite += (nextCharFreq - parentCharFreq);
-		lambdaParam = _subtitutionsRatePerSite/seqLength;//sequenceWiseInsertionRate + sequenceWiseDeletionRate;
+		lambdaParam = _subManager->getReactantsSum();
 
+		if (waitingTime < 0) {
+			std::cout << branchLength << " " << lambdaParam << " " << waitingTime << "\n";
+			errorMsg::reportError("waiting time is negative :(");
+		}
 		branchLength = branchLength - waitingTime;
+
 		std::exponential_distribution<double> distribution(lambdaParam);
 		waitingTime = distribution(_mt_rand);
-	}
-}
-
-
-void rateMatrixSim::undoLastSubs(int fromNode) {
-	// std::cout << "undoing subs back to " << fromNode << "\n";
-	auto nodeChangeMap = _subManager->getChangeMap(fromNode);
-	for (auto &item: *nodeChangeMap) {
-		int currentSite = item.first;
-		MDOUBLE oldFreq = _sp->freq((*_rootSequence)[currentSite])*_rateVec[currentSite];
-		MDOUBLE newFreq = _sp->freq(item.second)*_rateVec[currentSite];
-		(*_rootSequence)[currentSite] = item.second;
-
-		_subtitutionsRatePerSite += (newFreq - oldFreq);
 
 	}
 }
@@ -371,7 +363,14 @@ void rateMatrixSim::generateRootSeq(int seqLength) {
 	for (int i = 0; i < seqLength; i++) {
 		ALPHACHAR newChar = giveRandomChar();
 		(*_rootSequence)[i] =  newChar;
-		_subtitutionsRatePerSite += _sp->freq(newChar)*_rateVec[i];
+
+		MDOUBLE qii = _sp->Qij(newChar, newChar);
+		MDOUBLE rate = _rateVec[i];
+
+		if(qii > 0) errorMsg::reportError("Qii is positive!");
+		if(rate < 0) errorMsg::reportError("rate is negative!");
+
+		_subManager->updateReactantsSum((_sp->Qij(newChar, newChar)),_rateVec[i]);
      }
 
 	 

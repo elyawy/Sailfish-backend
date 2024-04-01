@@ -14,14 +14,23 @@ class substitutionManager
 private:
     using changeMap = std::unordered_map<size_t, int>;
     std::vector<std::unique_ptr<changeMap>> _substitutionVec;
+    MDOUBLE _sumOfReactantsXRates;
     // size_t _changeCounter;
 public:
     substitutionManager(int numberOfTreeNodes) {
         _substitutionVec.resize(numberOfTreeNodes);
-
-        
+        _sumOfReactantsXRates = 0.0;
         // _changeCounter = 0;
     }
+
+    void updateReactantsSum(MDOUBLE Qii, MDOUBLE siteRate) {
+        _sumOfReactantsXRates += (-Qii*siteRate);
+    }
+
+    MDOUBLE getReactantsSum() {
+        return _sumOfReactantsXRates;
+    }
+
 
     int getCharacter(const int nodeId, const size_t position, const sequence &rootSeq) {
         if (_substitutionVec[nodeId] == nullptr) return rootSeq[position];
@@ -33,25 +42,23 @@ public:
 
     
 
-    void handleEvent(const int nodeId, const size_t position, const int change) {
+    void handleEvent(const int nodeId, const size_t position, const int change,
+                     const vector<MDOUBLE> &rates, const stochasticProcess *sp,
+                    sequence &rootSeq) {
         // std::cout << "Change in node: " << nodeId << "\n";
         // std::cout << position << "->" << change << "\n";
         if (_substitutionVec[nodeId] == nullptr) {
             _substitutionVec[nodeId] = std::make_unique<changeMap>();
         }
+
+        ALPHACHAR previousChar = getCharacter(nodeId,position,rootSeq);
+
+        MDOUBLE previousQii = sp->Qij(previousChar, previousChar);
+		MDOUBLE newQii = sp->Qij(change, change);
+		updateReactantsSum(newQii - previousQii, rates[position]);
+
         (*_substitutionVec[nodeId])[position] = change;
-        
-        // (_substitutionVec[nodeId])[position] = change;
-        // ++_changeCounter;
-        // if (_substitutionMap.count(nodeId) == 0) {
-        //     std::shared_ptr<changeMap> seqChanges  = std::make_shared<changeMap>();
-        //     (*seqChanges)[position] = change; // log change in changeMap;
-        //     _substitutionMap[nodeId] = seqChanges;
-        // } else {
-        //     std::shared_ptr<changeMap> seqChanges = _substitutionMap[nodeId];
-        //     (*seqChanges)[position] = change;
-        //     _substitutionMap[nodeId] = seqChanges;
-        // }
+        rootSeq[position] = change;
     }
 
     void dumpSubstitutionLog(const int nodeId) {
@@ -70,14 +77,38 @@ public:
 
     }
 
-    // void readSubsLog(const int nodeId) {
 
-    // }
+    void undoSubs(int fromNode, sequence &rootSeq, 
+                  const vector<MDOUBLE> &rates, const stochasticProcess *sp) {
+        if ((_substitutionVec[fromNode] == nullptr)) {
+            errorMsg::reportError("Trying to reach removed pointer!");
+        }
+        auto nodeChangeMap = getChangeMap(fromNode);
+
+        for (auto &item: *nodeChangeMap) {
+            int currentSite = item.first;
+            ALPHACHAR currentChar = rootSeq[currentSite];
+            ALPHACHAR restoredChar = item.second;
+
+            MDOUBLE oldFreq = sp->Qij(currentChar, currentChar);
+            MDOUBLE newFreq = sp->Qij(restoredChar, restoredChar);
+            
+            rootSeq[currentSite] = item.second;
+
+            updateReactantsSum(newFreq - oldFreq, rates[currentSite]);
+	    }
+
+    }
+
+
 
     
 
     int getChange(const int nodeId, const size_t position) {
-        if ((_substitutionVec[nodeId] == nullptr)) return -1;
+        if ((_substitutionVec[nodeId] == nullptr)) {
+            errorMsg::reportError("Trying to reach removed pointer!");
+            return -1;
+        }
 
         return (*_substitutionVec[nodeId])[position];
     }
@@ -89,6 +120,7 @@ public:
 
     std::unique_ptr<changeMap> getChangeMap(const int nodeId) {
         if ((_substitutionVec[nodeId] == nullptr)) {
+            errorMsg::reportError("Trying to reach removed pointer!");
             std::cout << nodeId << " <- this node is null\n";
         }
 
