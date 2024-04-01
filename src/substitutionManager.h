@@ -12,7 +12,7 @@
 class substitutionManager
 {
 private:
-    using changeMap = std::unordered_map<size_t, int>;
+    using changeMap = std::unordered_map<size_t, ALPHACHAR>;
     std::vector<std::unique_ptr<changeMap>> _substitutionVec;
     MDOUBLE _sumOfReactantsXRates;
     // size_t _changeCounter;
@@ -42,7 +42,7 @@ public:
 
     
 
-    void handleEvent(const int nodeId, const size_t position, const int change,
+    void handleEvent(const int nodeId, const size_t position, const ALPHACHAR change,
                      const vector<MDOUBLE> &rates, const stochasticProcess *sp,
                     sequence &rootSeq) {
         // std::cout << "Change in node: " << nodeId << "\n";

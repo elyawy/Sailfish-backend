@@ -152,7 +152,7 @@ void rateMatrixSim::mutateSeqAlongBranch(tree::nodeP currentNode, int seqLength)
 	// mutateEntireSeq(currentNode, seqLength);
 
 	// std::cin.get();
-	if (distToFather > 2) {
+	if (distToFather > 0.5) {
 		mutateEntireSeq(currentNode, seqLength);
 	} else {
 		mutateSeqGillespie(currentNode, seqLength, distToFather);
