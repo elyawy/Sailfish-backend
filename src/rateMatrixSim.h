@@ -46,21 +46,12 @@ public:
 	
 private:
 	void generateRootSeq(int seqLength);
-
-	// void recursiveGenerateSpecificSeq(const Vdouble& rateVec, int seqLength, tree::nodeP myNode);
-	ALPHACHAR giveRandomChar() const;
-	ALPHACHAR giveRandomChar(const ALPHACHAR letterInFatherNode, const int nodeId,const MDOUBLE rateCat) const;
-	int getRandCategory(const int pos) const;
-
-
-
 	void mutateSeqAlongBranch(tree::nodeP parentNode, int seqLength);
 	void mutateEntireSeq(tree::nodeP currentNode, int seqLength);
 	void mutateSeqGillespie(tree::nodeP currentNode, int seqLength, MDOUBLE distToParent);
-	void undoLastSubs(int fromNode);
-	
+	void saveSequence(int nodeId, std::string name);
 
-	vector<sequence> _simulatedSequences; // the sequences (nodes * seqLen)
+	vector<std::unique_ptr<sequence>> _simulatedSequences; // the sequences (nodes * seqLen)
 	std::shared_ptr<sequence> _rootSequence;
 	vector<MDOUBLE> _rateVec;
 
@@ -75,7 +66,10 @@ private:
 	MDOUBLE _rateCategoriesSum;
 	std::vector<MDOUBLE> _normalizedRateCategories;
 	std::unique_ptr<DiscreteDistribution> _siteSampler;
-	std::mt19937 _mt_rand;
+	std::unique_ptr<DiscreteDistribution> _frequencySampler;
+	std::unique_ptr<DiscreteDistribution> _rateSampler;
+
+	std::mt19937_64 _mt_rand;
 
 
 	std::shared_ptr<substitutionManager> _subManager;

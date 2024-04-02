@@ -32,11 +32,11 @@ public:
     }
 
 
-    int getCharacter(const int nodeId, const size_t position, const sequence &rootSeq) {
+    ALPHACHAR getCharacter(const int nodeId, const size_t position, const sequence &rootSeq) {
         if (_substitutionVec[nodeId] == nullptr) return rootSeq[position];
         changeMap* currentChanges = (_substitutionVec[nodeId].get());
         size_t isChanged = (*currentChanges).count(position);
-        int returnChar =  isChanged ? (*currentChanges)[position] : rootSeq[position];
+        ALPHACHAR returnChar =  isChanged ? (*currentChanges)[position] : rootSeq[position];
         return returnChar;
     }
 
@@ -104,7 +104,7 @@ public:
 
     
 
-    int getChange(const int nodeId, const size_t position) {
+    ALPHACHAR getChange(const int nodeId, const size_t position) {
         if ((_substitutionVec[nodeId] == nullptr)) {
             errorMsg::reportError("Trying to reach removed pointer!");
             return -1;
@@ -114,14 +114,16 @@ public:
     }
 
     bool isEmpty(const int nodeId) {
-        return _substitutionVec[nodeId] == nullptr;
+
+        bool checkEmpty = _substitutionVec[nodeId] == nullptr;
+        return checkEmpty;
     }
 
 
     std::unique_ptr<changeMap> getChangeMap(const int nodeId) {
         if ((_substitutionVec[nodeId] == nullptr)) {
-            errorMsg::reportError("Trying to reach removed pointer!");
             std::cout << nodeId << " <- this node is null\n";
+            errorMsg::reportError("Trying to reach removed pointer!");
         }
 
         return std::move(_substitutionVec[nodeId]);
@@ -137,19 +139,7 @@ public:
         }
     }
 
-    // void printNumChangesResetCounter() {
-        // std::cout << _changeCounter << "\n";
-        // _changeCounter = 0;
-    // };
 
 
-    ~substitutionManager() {
-        // for (size_t i = 0; i < _substitutionVec.size(); i++) {
-        //     if (_substitutionVec[i] != nullptr)
-        //     {
-        //         delete _substitutionVec[i];
-        //     }
-        // }
-
-    };
+    ~substitutionManager() {};
 };
