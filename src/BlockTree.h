@@ -8,7 +8,8 @@
 class BlockTree
 {
 private:
-  using TreeType = avl_array<int, std::uint32_t, 1000000U, true>;
+ // consider creating different sized avl_arrays to reduce ram usage.
+  using TreeType = avl_array<int, std::uint32_t, 100000U, true>;
   std::shared_ptr<TreeType> _avlTree;
 public:
   BlockTree(int first_block_size) {

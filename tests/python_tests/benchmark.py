@@ -20,7 +20,8 @@ trees_map = {
     # "100": trees_path / "normalbranches_nLeaves100.treefile",
     # "1k": trees_path / "normalbranches_nLeaves1000.treefile",
     # "5k": trees_path / "normalbranches_nLeaves5000.treefile",
-    "10k": trees_path / "normalbranches_nLeaves10000.treefile"
+    # "10k": trees_path / "normalbranches_nLeaves10000.treefile"
+    "100k": trees_path / "normalbranches_nLeaves100000.treefile"
 }
 
 def init_protocol(number_of_species) -> sim.Simulator:
@@ -42,7 +43,7 @@ def time_me(func):
         tic = time.perf_counter()
         res = func(*args, **kwargs)
         toc = time.perf_counter()
-        print(f"func {func.__name__} with {num_sequences} sequences took {toc - tic:0.10f} seconds")
+        print(f"function {func.__name__} took {toc - tic:0.10f} seconds with {num_sequences} sequences")
         return res
 
     return wrapper
@@ -53,7 +54,8 @@ for num_sequences in trees_map.keys():
 
     blocktree = time_me(simulator.gen_indels)()
     msa = time_me(sim.Msa)(blocktree._get_Sailfish_blocks(), simulator._simProtocol._get_root())
-    substitutions = time_me(simulator.gen_substitutions)(msa.get_length())
+    # print(msa.get_length())
+    # substitutions = time_me(simulator.gen_substitutions)(msa.get_length())
     # msa.fill_substitutions(substitutions)
     # msa.print_msa()
     # msa.write_msa("/home/elyawy/Data/hugemsa.fasta") 
