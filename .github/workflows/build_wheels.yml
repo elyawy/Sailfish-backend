@@ -30,10 +30,10 @@ jobs:
               os: "windows-latest",
               id: "windows-x86-64"
             }
-          - {
-              os: "macos-14",
-              id: "macos-arm-64"
-            }
+          # - {
+          #     os: "macos-14",
+          #     id: "macos-arm-64"
+          #   }
           - {
               os: "macos-13",
               id: "macos-x86-64"
