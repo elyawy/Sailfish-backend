@@ -36,7 +36,9 @@ len_dist = [(i**(-a_param))/area_under for i in range(1,truncation)]
 
 # exit(1)
 dist = DiscreteDistribution(len_dist)
-rand_seed = int(str(time.time_ns())[-8:])
+# rand_seed = int(str(time.time_ns())[-8:])
+rand_seed = 42
+
 # print(rand_seed)
 dist.set_seed(rand_seed)
 
@@ -87,11 +89,19 @@ for i in range(1):
     print(root_node)
     msa = Msa(blockmap, root_node)
     print(msa)
-    substitutions = sim.gen_substitutions(mFac, msa.length())
+    sim.init_substitution_sim(mFac)
+    print("q")
+    substitutions = sim.gen_substitutions(msa.length())
+    print("a")
+
     substitution_list.append(substitutions)
+    print("b")
     msa.fill_substitutions(substitutions)
+    print("c")
+
     msas.append(msa)
 
+msas[0].print_msa()
 
 #msas[4].print_msa()
 # Hack to catch cout output as string

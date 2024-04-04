@@ -45,7 +45,7 @@ PYBIND11_MODULE(_Sailfish, m) {
     py::class_<DiscreteDistribution>(m, "DiscreteDistribution")
         .def(py::init<std::vector<double>>())
         .def("draw_sample", &DiscreteDistribution::drawSample, "Draw a random sample according to the given distribution")
-        .def("set_seed", &DiscreteDistribution::setSeed, "Set seed for the random number generator")
+        .def_static("set_seed", &DiscreteDistribution::setSeed, "Set seed for the random number generator")
         .def("get_table", &DiscreteDistribution::getTable, "Get Vose's alias table (useful for debugging)");
 
     py::class_<tree>(m, "Tree")
