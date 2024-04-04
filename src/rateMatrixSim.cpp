@@ -68,9 +68,6 @@ rateMatrixSim::~rateMatrixSim() {
 void rateMatrixSim::setSeed(size_t seed) {
 	_seed = seed;
 	_mt_rand.seed(seed);
-	talRandom::setSeed(seed);
-	_frequencySampler->setSeed(seed);
-	_rateSampler->setSeed(seed);
 }
 
 

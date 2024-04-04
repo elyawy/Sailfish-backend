@@ -1,6 +1,7 @@
-import pathlib, time
+import pathlib, time, sys
 from itertools import repeat
 import numpy as np
+sys.path.insert(0,str(pathlib.Path(".").resolve()))
 
 
 from _Sailfish import Tree, Simulator, SimProtocol, Msa, DiscreteDistribution, modelFactory, alphabetCode, modelCode
@@ -15,8 +16,8 @@ root_node = tree.root
 protocol = SimProtocol(tree)
 
 
-rates_i = list(repeat(0.01, tree.num_nodes))
-rates_d = list(repeat(0.01, tree.num_nodes))
+rates_i = list(repeat(0.0, tree.num_nodes))
+rates_d = list(repeat(0.0, tree.num_nodes))
 
 a_param = 1.08
 
@@ -35,10 +36,13 @@ len_dist = [(i**(-a_param))/area_under for i in range(1,truncation)]
 # print(sum(i*len_dist[i-1] for i in range(1,51)))
 
 # exit(1)
+DiscreteDistribution.set_seed(1)
 dist = DiscreteDistribution(len_dist)
-rand_seed = int(str(time.time_ns())[-8:])
+# rand_seed = int(str(time.time_ns())[-8:])
+rand_seed = 1
+
 # print(rand_seed)
-dist.set_seed(rand_seed)
+# dist.set_seed(rand_seed)
 
 
 # freq_table = {i:0 for i in range(1,51)}
@@ -71,7 +75,7 @@ mFac = modelFactory(tree)
 
 mFac.set_alphabet(alphabetCode.AMINOACID)
 mFac.set_replacement_model(modelCode.WAG)
-mFac.set_gamma_parameters(0.5, 4)
+mFac.set_gamma_parameters(1, 2)
 
 
 min_lengths = []
@@ -83,15 +87,15 @@ substitution_list = []
 
 for i in range(1):
     blockmap = sim.gen_indels()
-    print(blockmap)
-    print(root_node)
     msa = Msa(blockmap, root_node)
-    print(msa)
-    substitutions = sim.gen_substitutions(mFac, msa.length())
+    sim.init_substitution_sim(mFac)
+    substitutions = sim.gen_substitutions(msa.length())
     substitution_list.append(substitutions)
     msa.fill_substitutions(substitutions)
+
     msas.append(msa)
 
+msas[0].print_msa()
 
 #msas[4].print_msa()
 # Hack to catch cout output as string
