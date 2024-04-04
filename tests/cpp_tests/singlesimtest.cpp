@@ -3,8 +3,14 @@
 #include "../../src/Simulator.h"
 // #include "definitions.h"
 
+
+
+// takes 10 minutes currently
 int main() {
-    tree tree_("../trees/normalbranches_nLeaves10.treefile");
+    tree tree_("../trees/normalbranches_nLeaves1000.treefile");
+    // tree tree_("(A:0.1,B:0.2);", false);
+
+    tree_.getRoot()->orderSonsByHeight();
 
     vector<DiscreteDistribution*> insertionDists(tree_.getNodesNum() - 1);
     vector<DiscreteDistribution*> deletionDists(tree_.getNodesNum() - 1);
@@ -23,6 +29,8 @@ int main() {
 
     fill(insertionRates.begin(), insertionRates.end(), 0.03);
     fill(deletionRates.begin(), deletionRates.end(), 0.09);
+    // fill(insertionRates.begin(), insertionRates.end(), 0.01);
+    // fill(deletionRates.begin(), deletionRates.end(), 0.01);
 
     SimulationProtocol protocol(&tree_);
 
@@ -32,7 +40,7 @@ int main() {
     protocol.setInsertionRates(insertionRates);
     protocol.setDeletionRates(deletionRates);
 
-    protocol.setSequenceSize(50);
+    protocol.setSequenceSize(30000);
 
     protocol.setSaveAncestral(false);
 
@@ -46,7 +54,7 @@ int main() {
 
     std::vector<BlockMap> blockmaps = sim.runSimulator(1);
 
-    std::cout << "finished all indel simulations\n";
+    // std::cout << "finished all indel simulations\n";
     std::vector<MSA> msas = MSA::generateMSAs(blockmaps, tree_.getRoot());
 
     modelFactory mFac(&tree_);
@@ -60,11 +68,16 @@ int main() {
     if (!mFac.isModelValid()) return 0;
 
     sim.initSubstitionSim(mFac);
-    
 
-    std::shared_ptr<sequenceContainer> seqContainer = sim.simulateSubstitutions(msas[0].getMSAlength());
+    int msaLength = msas[0].getMSAlength();
+
+    // std::cout << "number of nodes to simulate: " << tree_.getNodesNum() - 1 << "\n";
+    // std::cout << "length of the MSA will be: " << msaLength << "\n";
+
+    std::shared_ptr<sequenceContainer> seqContainer = sim.simulateSubstitutions(msaLength);
     // q2pt::Pij_t error in function pijt...
     msas[0].fillSubstitutions(seqContainer);
+
     msas[0].printFullMsa();
     // msas[0].writeFullMsa("/home/elyalab/fasta.fasta");
 
