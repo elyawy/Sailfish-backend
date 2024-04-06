@@ -75,7 +75,7 @@ mFac = modelFactory(tree)
 
 mFac.set_alphabet(alphabetCode.AMINOACID)
 mFac.set_replacement_model(modelCode.WAG)
-mFac.set_gamma_parameters(1.0, 1)
+mFac.set_gamma_parameters(2.0, 100)
 
 
 min_lengths = []
@@ -89,10 +89,7 @@ for i in range(1):
     blockmap = sim.gen_indels()
     msa = Msa(blockmap, root_node)
     sim.init_substitution_sim(mFac)
-    print("a")
     substitutions = sim.gen_substitutions(msa.length())
-    print("b")
-
     substitution_list.append(substitutions)
     msa.fill_substitutions(substitutions)
 
