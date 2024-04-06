@@ -53,7 +53,8 @@ private:
 
 	vector<std::unique_ptr<sequence>> _simulatedSequences; // the sequences (nodes * seqLen)
 	std::shared_ptr<sequence> _rootSequence;
-	vector<MDOUBLE> _rateVec;
+	// vector<MDOUBLE> _rateVec;
+	vector<size_t> _rateCategories;
 
 	tree* _et;
 	std::shared_ptr<const stochasticProcess> _sp;
@@ -63,8 +64,6 @@ private:
 	const alphabet* _alph;
 	MDOUBLE _avgSubtitutionsPerSite;
 	MDOUBLE _subtitutionsRatePerSite;
-	MDOUBLE _rateCategoriesSum;
-	std::vector<MDOUBLE> _normalizedRateCategories;
 	std::unique_ptr<DiscreteDistribution> _siteSampler;
 	std::unique_ptr<DiscreteDistribution> _frequencySampler;
 	std::unique_ptr<DiscreteDistribution> _rateSampler;

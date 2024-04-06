@@ -35,14 +35,9 @@ rateMatrixSim::rateMatrixSim(modelFactory& mFac) {
 		_avgSubtitutionsPerSite = 0.0;
 		_subtitutionsRatePerSite = 0.0;
 
-		_rateCategoriesSum = 0.0;
 		std::vector<MDOUBLE> rateProbs;
 		for (int j = 0 ; j < _sp->categories(); ++j) {
-			_rateCategoriesSum += _sp->rates(j);
 			rateProbs.push_back(_sp->ratesProb(j));
-		}
-		for (int j = 0 ; j < _sp->categories(); ++j) {
-			_normalizedRateCategories.push_back(_sp->rates(j)/_rateCategoriesSum);
 		}
 		_rateSampler = std::make_unique<DiscreteDistribution>(rateProbs);
 
@@ -76,16 +71,20 @@ void rateMatrixSim::generate_substitution_log(int seqLength) {
 	// generateRootLog(seqLength);
 	// _rootSequence = sequence(_alph);
 
-	std::vector<MDOUBLE> rateNormalizedVec(seqLength);
+	std::vector<MDOUBLE> ratesVec(seqLength);
 
-	_rateVec.resize(seqLength);
+	// _rateVec.resize(seqLength);
+	MDOUBLE sumOfRatesAcrossSites = 0.0;
+	_rateCategories.resize(seqLength);
 	for (int h = 0; h < seqLength; h++)  {
-		int theRanCat = _rateSampler->drawSample() - 1;
-		_rateVec[h] = _sp->rates(theRanCat);
-		rateNormalizedVec[h] = _normalizedRateCategories[theRanCat];
+		int selectedRandomCategory = _rateSampler->drawSample() - 1;
+		_rateCategories[h] = selectedRandomCategory;
+		ratesVec[h] = _sp->rates(selectedRandomCategory);
+		sumOfRatesAcrossSites += ratesVec[h];
 	}
+	MDOUBLE sumOfRatesNoramlizingFactor = 1.0 / sumOfRatesAcrossSites;
 
-	_siteSampler = std::make_unique<DiscreteDistribution>(rateNormalizedVec);
+	_siteSampler = std::make_unique<DiscreteDistribution>(ratesVec, sumOfRatesNoramlizingFactor);
 	// _siteSampler->setSeed(_seed);
 
 	_rootSequence->resize(seqLength);
@@ -108,7 +107,7 @@ void rateMatrixSim::mutateSeqRecuresively(tree::nodeP currentNode, int seqLength
 
 		// std::cout << "Node: " << currentNode->id() << "\n";
 		if (!_subManager->isEmpty(currentNode->id())) {
-			_subManager->undoSubs(currentNode->id(), *_rootSequence, _rateVec, _sp.get());
+			_subManager->undoSubs(currentNode->id(), *_rootSequence, _rateCategories, _sp.get());
 		}
 	}
 }
@@ -128,11 +127,11 @@ void rateMatrixSim::mutateEntireSeq(tree::nodeP currentNode, int seqLength) {
 	const int parentId = currentNode->father()->id();
 	for (size_t site = 0; site < seqLength; ++site) {
 		ALPHACHAR parentChar = (*_subManager).getCharacter(parentId, site, *_rootSequence);
-		ALPHACHAR nextChar = _cpijGam.getRandomChar(_rateVec[site], nodeId, parentChar);
+		ALPHACHAR nextChar = _cpijGam.getRandomChar(_rateCategories[site], nodeId, parentChar);
 		if (nextChar != parentChar){
-			_subManager->handleEvent(parentId, site, parentChar, _rateVec, _sp.get(), *_rootSequence);
+			_subManager->handleEvent(parentId, site, parentChar, _rateCategories, _sp.get(), *_rootSequence);
 			if (currentNode->isLeaf()) {
-				_subManager->handleEvent(nodeId, site, nextChar, _rateVec, _sp.get(), *_rootSequence);
+				_subManager->handleEvent(nodeId, site, nextChar, _rateCategories, _sp.get(), *_rootSequence);
 			}
 		}
 	}
@@ -158,10 +157,10 @@ void rateMatrixSim::mutateSeqGillespie(tree::nodeP currentNode, int seqLength, M
 
 		int mutatedSite = _siteSampler->drawSample() - 1;
 		ALPHACHAR parentChar = (*_subManager).getCharacter(parentId, mutatedSite, *_rootSequence);
-		ALPHACHAR nextChar = _cpijGam.getRandomChar(_rateVec[mutatedSite], nodeId, parentChar);
-		_subManager->handleEvent(parentId, mutatedSite, parentChar, _rateVec, _sp.get(), *_rootSequence);
+		ALPHACHAR nextChar = _cpijGam.getRandomChar(_rateCategories[mutatedSite], nodeId, parentChar);
+		_subManager->handleEvent(parentId, mutatedSite, parentChar, _rateCategories, _sp.get(), *_rootSequence);
 		if (currentNode->isLeaf()) {
-			_subManager->handleEvent(nodeId, mutatedSite, nextChar, _rateVec, _sp.get(), *_rootSequence);
+			_subManager->handleEvent(nodeId, mutatedSite, nextChar, _rateCategories, _sp.get(), *_rootSequence);
 		}
 
 		lambdaParam = _subManager->getReactantsSum();
@@ -178,10 +177,10 @@ void rateMatrixSim::generateRootSeq(int seqLength) {
 		ALPHACHAR newChar = _frequencySampler->drawSample() - 1;
 		(*_rootSequence)[i] =  newChar;
 		MDOUBLE qii = _sp->Qij(newChar, newChar);
-		MDOUBLE rate = _rateVec[i];
+		size_t rateCategory = _rateCategories[i];
 		if(qii > 0) errorMsg::reportError("Qii is positive!");
-		if(rate < 0) errorMsg::reportError("rate is negative!");
-		_subManager->updateReactantsSum((_sp->Qij(newChar, newChar)),_rateVec[i]);
+		if(rateCategory < 0) errorMsg::reportError("rate category is negative!");
+		_subManager->updateReactantsSum((_sp->Qij(newChar, newChar)),_sp->rates(rateCategory));
      }
 
 	_rootSequence->setAlphabet(_alph);

@@ -75,7 +75,7 @@ mFac = modelFactory(tree)
 
 mFac.set_alphabet(alphabetCode.AMINOACID)
 mFac.set_replacement_model(modelCode.WAG)
-mFac.set_gamma_parameters(1, 2)
+mFac.set_gamma_parameters(2.0, 100)
 
 
 min_lengths = []

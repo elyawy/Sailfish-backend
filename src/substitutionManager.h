@@ -43,7 +43,7 @@ public:
     
 
     void handleEvent(const int nodeId, const size_t position, const ALPHACHAR change,
-                     const vector<MDOUBLE> &rates, const stochasticProcess *sp,
+                     const vector<size_t> &rateCategories, const stochasticProcess *sp,
                     sequence &rootSeq) {
         // std::cout << "Change in node: " << nodeId << "\n";
         // std::cout << position << "->" << change << "\n";
@@ -55,7 +55,7 @@ public:
 
         MDOUBLE previousQii = sp->Qij(previousChar, previousChar);
 		MDOUBLE newQii = sp->Qij(change, change);
-		updateReactantsSum(newQii - previousQii, rates[position]);
+		updateReactantsSum(newQii - previousQii, sp->rates(rateCategories[position]));
 
         (*_substitutionVec[nodeId])[position] = change;
         rootSeq[position] = change;
@@ -79,7 +79,7 @@ public:
 
 
     void undoSubs(int fromNode, sequence &rootSeq, 
-                  const vector<MDOUBLE> &rates, const stochasticProcess *sp) {
+                  const vector<size_t> &rateCategories, const stochasticProcess *sp) {
         if ((_substitutionVec[fromNode] == nullptr)) {
             errorMsg::reportError("Trying to reach removed pointer!");
         }
@@ -95,7 +95,7 @@ public:
             
             rootSeq[currentSite] = item.second;
 
-            updateReactantsSum(newFreq - oldFreq, rates[currentSite]);
+            updateReactantsSum(newFreq - oldFreq, sp->rates(rateCategories[currentSite]));
 	    }
 
     }

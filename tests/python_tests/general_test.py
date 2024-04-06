@@ -74,5 +74,6 @@ simulator = sim.Simulator()
 #block_tree.print_branches()
 msa = simulator.simulate(times=1)
 
-msa.write_msa("this.fasta")
+msa.print_msa()
+# msa.write_msa("this.fasta")
 
