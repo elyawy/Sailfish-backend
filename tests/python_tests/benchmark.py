@@ -16,12 +16,12 @@ rate_deletion = 0.09
 trees_path = pathlib.Path("tests/trees").resolve()
 
 trees_map = {
-    # "10": trees_path / "normalbranches_nLeaves10.treefile",
+    "10": trees_path / "normalbranches_nLeaves10.treefile",
     # "100": trees_path / "normalbranches_nLeaves100.treefile",
     # "1k": trees_path / "normalbranches_nLeaves1000.treefile",
     # "5k": trees_path / "normalbranches_nLeaves5000.treefile",
     # "10k": trees_path / "normalbranches_nLeaves10000.treefile"
-    "100k": trees_path / "normalbranches_nLeaves100000.treefile"
+    # "100k": trees_path / "normalbranches_nLeaves100000.treefile"
 }
 
 def init_protocol(number_of_species) -> sim.Simulator:

@@ -40,7 +40,7 @@ int main() {
     protocol.setInsertionRates(insertionRates);
     protocol.setDeletionRates(deletionRates);
 
-    protocol.setSequenceSize(10);
+    protocol.setSequenceSize(100);
 
     protocol.setSaveAncestral(false);
 
@@ -63,7 +63,7 @@ int main() {
     mFac.setReplacementModel(modelCode::WAG);
     // mFac.setModelParameters({0.25,0.25,0.25,0.25,0.1});
 
-    mFac.setGammaParameters(2.0, 4); // TODO: ALLOW 1 CATEGORY!
+    mFac.setGammaParameters(1.0, 2); // TODO: ALLOW 1 CATEGORY!
 
     if (!mFac.isModelValid()) return 0;
 
