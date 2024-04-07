@@ -17,7 +17,7 @@ private:
     SimulationProtocol* _protocol;
     std::unique_ptr<rateMatrixSim> _substitutionSim;
     size_t _seed;
-	std::mt19937 _mt_rand;
+	std::mt19937_64 _mt_rand;
     std::uniform_real_distribution<double> _biased_coin;
     // std::uniform_int_distribution<int> _fair_die;
 
@@ -31,6 +31,7 @@ private:
 
     void initSimulator() {
         _seed = _protocol->getSeed();
+        DiscreteDistribution::setSeed(_seed);
         _mt_rand.seed(_seed);
     }
 
@@ -160,12 +161,13 @@ private:
 
     void initSubstitionSim(modelFactory& mFac) {
         _substitutionSim = std::make_unique<rateMatrixSim>(mFac);
-        _substitutionSim->setSeed(_seed);
-
+        // _substitutionSim->setSeed(_seed);
+        _substitutionSim->setRng(&_mt_rand);
     }
 
     std::shared_ptr<sequenceContainer> simulateSubstitutions(size_t sequenceLength) {
         _substitutionSim->generate_substitution_log(sequenceLength);
+
 
         std::shared_ptr<sequenceContainer> sharedSeqContainer = std::move(_substitutionSim->toSeqDataWithoutInternalNodes());
         return sharedSeqContainer;

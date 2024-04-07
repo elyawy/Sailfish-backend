@@ -12,7 +12,7 @@ int main() {
 
     tree_.getRoot()->orderSonsByHeight();
     std::time_t t1 = 12;//std::time(0);
-    DiscreteDistribution::setSeed(t1);
+    // DiscreteDistribution::setSeed(t1);
     vector<DiscreteDistribution*> insertionDists(tree_.getNodesNum() - 1);
     vector<DiscreteDistribution*> deletionDists(tree_.getNodesNum() - 1);
 

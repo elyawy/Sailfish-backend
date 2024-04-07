@@ -62,8 +62,16 @@ rateMatrixSim::~rateMatrixSim() {
 
 void rateMatrixSim::setSeed(size_t seed) {
 	_seed = seed;
-	_mt_rand.seed(seed);
+	_mt_rand->seed(seed);
 }
+
+void rateMatrixSim::setRng(mt19937_64 *rng) {
+	_mt_rand = rng;
+}
+
+// const mt19937_64& rateMatrixSim::getRng(){
+// 	return *_mt_rand;
+// }
 
 
 void rateMatrixSim::generate_substitution_log(int seqLength) {
@@ -147,7 +155,7 @@ void rateMatrixSim::mutateSeqGillespie(tree::nodeP currentNode, int seqLength, M
 
 	double lambdaParam = _subManager->getReactantsSum();
 	std::exponential_distribution<double> distribution(lambdaParam);
-	double waitingTime = distribution(_mt_rand);
+	double waitingTime = distribution(*_mt_rand);
 	if (waitingTime < 0) {
 		std::cout << branchLength << " " << lambdaParam << " " << waitingTime << "\n";
 		errorMsg::reportError("waiting time is negative :(");
@@ -166,7 +174,7 @@ void rateMatrixSim::mutateSeqGillespie(tree::nodeP currentNode, int seqLength, M
 		lambdaParam = _subManager->getReactantsSum();
 		branchLength = branchLength - waitingTime;
 		std::exponential_distribution<double> distribution(lambdaParam);
-		waitingTime = distribution(_mt_rand);
+		waitingTime = distribution(*_mt_rand);
 
 	}
 }

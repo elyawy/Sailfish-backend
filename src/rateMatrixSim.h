@@ -25,6 +25,9 @@ public:
 	void mutateSeqRecuresively(tree::nodeP currentNode, int seqLength);
 
 	void setSeed(size_t seed);
+	void setRng(mt19937_64 *rng);
+	// const mt19937_64& getRng();
+
 	// int getSeed();
 
 	// This function generates the sequences not using the discrete gamma, but rather,
@@ -68,7 +71,7 @@ private:
 	std::unique_ptr<DiscreteDistribution> _frequencySampler;
 	std::unique_ptr<DiscreteDistribution> _rateSampler;
 
-	std::mt19937_64 _mt_rand;
+	std::mt19937_64 *_mt_rand;
 
 
 	std::shared_ptr<substitutionManager> _subManager;
