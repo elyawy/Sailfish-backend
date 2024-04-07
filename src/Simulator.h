@@ -27,6 +27,7 @@ private:
     _seed(protocol->getSeed()), _mt_rand(protocol->getSeed()),
     _biased_coin(0,1) {
         // std::cout << "simulator ready!\n";
+        DiscreteDistribution::setSeed(_seed);
     }
 
     void initSimulator() {
