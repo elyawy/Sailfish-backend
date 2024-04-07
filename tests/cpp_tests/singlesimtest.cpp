@@ -48,7 +48,7 @@ int main() {
 
     Simulator sim(&protocol);
 
-    sim.initSimulator();
+    // sim.initSimulator();
     using BlockMap = std::map<std::string, BlockTree>;
 
 
