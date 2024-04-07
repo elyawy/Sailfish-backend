@@ -15,9 +15,110 @@ from enum import Enum
 # print(_Sailfish.modelCode)
 
 
+MODEL_CODES = _Sailfish.modelCode
+
 class SIMULATION_TYPE(Enum):
     DNA = 1
     PROTEIN = 2
+
+class Distribution:
+    def set_dist(self, dist):
+        # sum should be "around" 1
+        epsilon = 10e-6
+        if abs(sum(dist)-1) > epsilon:
+            raise ValueError(f"Sum of the distribution should be 1 for a valid probability distribution. Input received is: {dist}, sum is {sum(dist)}")
+        for x in dist:
+            if x < 0 or x > 1:
+                raise ValueError(f"Each value of the probabilities should be between 0 to 1. Received a value of {x}")
+        self._dist = _Sailfish.DiscreteDistribution(dist)
+    
+    def draw_sample(self) -> int:
+        return self._dist.draw_sample()
+    
+    def set_seed(self, seed: int) -> None:
+        return self._dist.set_seed(seed)
+    
+    def get_table(self) -> List:
+        return self._dist.get_table()
+    
+    def _get_Sailfish_dist(self) -> _Sailfish.DiscreteDistribution:
+        return self._dist
+
+class CustomDistribution(Distribution):
+    '''
+    Provide a custom discrete distribution to the model.
+    '''
+    def __init__(self, dist: List[float]):
+        self.set_dist(dist)
+
+class GeometricDistribution(Distribution):
+    def __init__(self, p: float, truncation: int = 150):
+        """
+        Calculation of geoemtric moment
+        inputs:
+        p - p parameter of the geoemtric distribution
+        truncation - (optional, by default 150) maximal value of the distribution
+        """
+        self.p = p
+        self.truncation = truncation
+        PMF = lambda x: p*(1-p)**(x-1)
+        CDF = lambda x: 1-(1-p)**x
+        norm_factor = CDF(truncation) - CDF(0)
+
+        probabilities = [PMF(i)/norm_factor for i in range(1, truncation+1)]
+        # probabilities = probabilities / norm_factor
+
+        self.set_dist(probabilities)
+
+    def __repr__(self) -> str:
+        return f"Geometric distribution: (p={self.p}, truncation{self.truncation})"
+
+class PoissonDistribution(Distribution):
+    def __init__(self, p: float, truncation: int = 150):
+        """
+        Calculation of geoemtric moment
+        inputs:
+        p - p parameter of the geoemtric distribution
+        truncation - (optional, by default 150) maximal value of the distribution
+        """
+        self.p = p
+        self.truncation = truncation
+
+        factorial = lambda z: reduce(operator.mul, [1, 1] if z == 0 else range(1,z+1))
+
+        PMF = lambda x: ((p**x)*(math.e**-p))*(1.0/factorial(x))
+        CDF = lambda x: (math.e**-p)*sum([(p**i)*(1.0/factorial(i)) for i in range(0,x+1)])
+
+        norm_factor = CDF(truncation) - CDF(0)
+
+        probabilities = [PMF(i)/norm_factor for i in range(1, truncation+1)]
+
+        self.set_dist(probabilities)
+
+    def __repr__(self) -> str:
+        return f"Poisson distribution: (p={self.p}, truncation{self.truncation})"
+
+class ZipfDistribution(Distribution):
+    def __init__(self, p: float, truncation: int = 150):
+        """
+        Calculation of geoemtric moment
+        inputs:
+        p - p parameter of the geoemtric distribution
+        truncation - (optional, by default 150) maximal value of the distribution
+        """
+        self.p = p
+        self.truncation = truncation
+        HARMONIC = lambda n,s: sum([(i**-s) for i in range(1,n+1)])
+        PMF = lambda x: (x**-p)*(1.0/HARMONIC(truncation, p))
+        CDF = lambda x: HARMONIC(x, p) / HARMONIC(truncation, p)
+        norm_factor = CDF(truncation) - CDF(0)
+
+        probabilities = [PMF(i)/norm_factor for i in range(1, truncation+1)]
+
+        self.set_dist(probabilities)
+    
+    def __repr__(self) -> str:
+        return f"Zipf distribution: (p={self.p}, truncation{self.truncation})" 
 
 def is_newick(tree: str):
     # from: https://github.com/ila/Newick-validator/blob/master/Newick_Validator.py
@@ -86,36 +187,6 @@ class BlockTreePython:
             raise ValueError(f"branch not in the _branch_block, aviable branches are: {list(self._branch_block_dict_python.keys())}")
         return self._branch_block_dict_python[branch]
 
-class Distribution:
-    def set_dist(self, dist):
-        # sum should be "around" 1
-        epsilon = 10e-6
-        if abs(sum(dist)-1) > epsilon:
-            raise ValueError(f"Sum of the distribution should be 1 for a valid probability distribution. Input received is: {dist}, sum is {sum(dist)}")
-        for x in dist:
-            if x < 0 or x > 1:
-                raise ValueError(f"Each value of the probabilities should be between 0 to 1. Received a value of {x}")
-        self._dist = _Sailfish.DiscreteDistribution(dist)
-    
-    def draw_sample(self) -> int:
-        return self._dist.draw_sample()
-    
-    def set_seed(self, seed: int) -> None:
-        return self._dist.set_seed(seed)
-    
-    def get_table(self) -> List:
-        return self._dist.get_table()
-    
-    def _get_Sailfish_dist(self) -> _Sailfish.DiscreteDistribution:
-        return self._dist
-
-class CustomDistribution(Distribution):
-    '''
-    Provide a custom discrete distribution to the model.
-    '''
-    def __init__(self, dist: List[float]):
-        self.set_dist(dist)
-
 class Tree:
     '''
     The tree class for the simulator
@@ -148,7 +219,12 @@ class SimProtocol:
     '''
     The simulator protocol, sets the different distribution, tree and root length.
     '''
-    def __init__(self, tree = None):
+    def __init__(self, tree = None, 
+                 deletion_rate: float = 0.0, 
+                 insertion_rate: float = 0.0,
+                 deletion_dist: Distribution = ZipfDistribution(1.7, 50),
+                 insertion_dist: Distribution = ZipfDistribution(1.7, 50),
+        ):
         if isinstance(tree, Tree):
             self._tree = tree
         elif isinstance(tree, str):
@@ -160,6 +236,10 @@ class SimProtocol:
         self._sim = _Sailfish.SimProtocol(self._tree._get_Sailfish_tree())
         self._seed = 0
         self._root_seq_size = 0
+        self.set_deletion_rates(deletion_rate=deletion_rate)
+        self.set_insertion_rates(insertion_rate=insertion_rate)
+        self.set_deletion_length_distributions(deletion_dist=deletion_dist)
+        self.set_insertion_length_distributions(insertion_dist=insertion_dist)
     
     def get_tree(self) -> Tree:
         return self._tree
@@ -188,7 +268,7 @@ class SimProtocol:
         return self._root_seq_size
     
     def set_insertion_rates(self, insertion_rate: Optional[float] = None, insertion_rates: Optional[List[float]] = None) -> None:
-        if insertion_rate:
+        if insertion_rate is not None:
             self.insertion_rates = [insertion_rate] * self._num_branches
         elif insertion_rates:
             if not len(insertion_rates) == self._num_branches:
@@ -208,7 +288,7 @@ class SimProtocol:
         return {i: self.get_insertion_rate(i) for i in range(self._num_branches)}
     
     def set_deletion_rates(self, deletion_rate: Optional[float] = None, deletion_rates: Optional[List[float]] = None) -> None:
-        if deletion_rate:
+        if deletion_rate is not None:
             self.deletion_rates = [deletion_rate] * self._num_branches
         elif deletion_rates:
             if not len(deletion_rates) == self._num_branches:
@@ -234,7 +314,7 @@ class SimProtocol:
         elif insertion_dists:
             if not len(insertion_dists) == self._num_branches:
                 raise ValueError(f"The length of the insertion dists should be equal to the number of branches in the tree. The insertion_dists length is {len(insertion_dists)} and the number of branches is {self._num_branches}. You can pass a single value as insertion_dist which will be used for all branches.")
-            for dist in deletion_dist:
+            for dist in insertion_dists:
                 dist.set_seed(self.get_seed())
             self.insertion_dists = insertion_dists
         else:
@@ -257,7 +337,7 @@ class SimProtocol:
         elif deletion_dists:
             if not len(deletion_dists) == self._num_branches:
                 raise ValueError(f"The length of the deletion dists should be equal to the number of branches in the tree. The deletion_dists length is {len(deletion_dists)} and the number of branches is {self._num_branches}. You can pass a single value as deletion_dist which will be used for all branches.")
-            for dist in deletion_dist:
+            for dist in deletion_dists:
                 dist.set_seed(self.get_seed())
             self.deletion_dists = deletion_dists
         else:
@@ -352,10 +432,10 @@ class Simulator:
             raise ValueError(f"protocol miss insertion length distribution, please provide -> simProtocol.set_insertion_length_distributions(float)")
         if not simProtocol.get_deletion_length_distribution(0):
             raise ValueError(f"protocol miss deletion length distribution, please provide -> simProtocol.set_deletion_length_distributions(float)")
-        if not simProtocol.get_insertion_rate(0):
-            raise ValueError(f"protocol miss insertion rate, please provide -> simProtocol.set_insertion_rate(float)")
-        if not simProtocol.get_deletion_rate(0):
-            raise ValueError(f"protocol miss deletion rate, please provide -> simProtocol.set_deletion_rate(float)")
+        if simProtocol.get_insertion_rate(0) < 0:
+            raise ValueError(f"please provide a non zero value for insertion rate, provided value of: {simProtocol.get_insertion_rate(0)} -> simProtocol.set_insertion_rate(float)")
+        if simProtocol.get_deletion_rate(0) < 0:
+            raise ValueError(f"please provide a non zero value for deletion rate, provided value of: {simProtocol.get_deletion_rate(0)} -> simProtocol.set_deletion_rate(float)")
         return True
     
     def reset_sim(self):
@@ -366,23 +446,45 @@ class Simulator:
         self._model_factory = _Sailfish.modelFactory(self._simProtocol._get_Sailfish_tree())
         self._model_factory.set_alphabet(self._alphabet)
         if self._simulation_type == SIMULATION_TYPE.PROTEIN:
-            warnings.warn(f"replacement matrix not provided -> running with default parameters: WAG model code with gamma parameters of (0.5, 4)")
+            warnings.warn(f"replacement matrix not provided -> running with default parameters: WAG model")
             self._model_factory.set_replacement_model(_Sailfish.modelCode.WAG)
-            self._model_factory.set_gamma_parameters(0.5, 4)
         else:
-            # TODO complete
-            pass
-        self._model_factory
+            warnings.warn(f"replacement matrix not provided -> running with default parameters: JC model")
+            self._model_factory.set_replacement_model(_Sailfish.modelCode.NUCJC)
+        self._model_factory.set_gamma_parameters(1.0, 1)
+
         self._simulator.init_substitution_sim(self._model_factory)
         self._is_sub_model_init = True
     
-    def set_replacement_model(model: _Sailfish.modelCode, *args) -> None:
+    def set_replacement_model(
+            self, 
+            model: _Sailfish.modelCode, 
+            model_parameters: List, 
+            gamma_parameters_alpha : float = 1.0, 
+            gamma_parameters_catergories: int = 1
+        ) -> None:
+        if not model:
+            raise ValueError(f"please provide a substitution model from the the following list: {_Sailfish.modelCode}")
+        if int(gamma_parameters_catergories) != gamma_parameters_catergories:
+            raise ValueError(f"gamma_parameters_catergories has to be a positive int value: received value of {gamma_parameters_catergories}")
+        self._model_factory = _Sailfish.modelFactory(self._simProtocol._get_Sailfish_tree())
+
+        self._model_factory.set_alphabet(self._alphabet)
         if self._simulation_type == SIMULATION_TYPE.PROTEIN:
+            if model_parameters:
+                raise ValueError(f"no model parameters are used in protein, recevied value of: {model_parameters}")
             self._model_factory.set_replacement_model(model)
-            self._model_factory.set_gamma_parameters(*args)
         else:
+            if model == MODEL_CODES.NUCJC and model_parameters:
+                raise ValueError(f"no model parameters in JC model, recevied value of: {model_parameters}")
             self._model_factory.set_replacement_model(model)
-            self._model_factory.set_model_parameters(*args)
+            if not model_parameters:
+                raise ValueError(f"please provide a model parameters")
+            self._model_factory.set_model_parameters(model_parameters)
+        
+        self._model_factory.set_gamma_parameters(gamma_parameters_alpha, gamma_parameters_catergories)
+        self._simulator.init_substitution_sim(self._model_factory)
+
         self._is_sub_model_init = True
     
     def gen_indels(self) -> BlockTreePython:
@@ -398,93 +500,13 @@ class Simulator:
     def simulate(self, times: int = 1) -> List[Msa]:
         Msas = []
         for idx in range(times):
-            # tic = time.perf_counter()
             blocktree = self.gen_indels()
-            # toc = time.perf_counter()
-            # print(f"generated indels in {toc - tic:0.10f} seconds")
-            # tic = time.perf_counter()
             msa = Msa(blocktree._get_Sailfish_blocks(), self._simProtocol._get_root())
-            # toc = time.perf_counter()
-            # print(f"generated msa from blocks in {toc - tic:0.10f} seconds")
-            # tic = time.perf_counter()
+            # sim.init_substitution_sim(mFac)
             substitutions = self.gen_substitutions(msa.get_length())
-            # toc = time.perf_counter()
-            # print(f"generated substitutions in {toc - tic:0.10f} seconds")
-            # tic = time.perf_counter()
             msa.fill_substitutions(substitutions)
-            # toc = time.perf_counter()
-            # print(f"filled msa with substitutions in {toc - tic:0.10f} seconds")
 
             if times == 1:
                 return msa
             Msas.append(msa)
         return Msas
-
-class GeometricDistribution(Distribution):
-    def __init__(self, p: float, truncation: int = 150):
-        """
-        Calculation of geoemtric moment
-        inputs:
-        p - p parameter of the geoemtric distribution
-        truncation - (optional, by default 150) maximal value of the distribution
-        """
-        self.p = p
-        self.truncation = truncation
-        PMF = lambda x: p*(1-p)**(x-1)
-        CDF = lambda x: 1-(1-p)**x
-        norm_factor = CDF(truncation) - CDF(0)
-
-        probabilities = [PMF(i)/norm_factor for i in range(1, truncation+1)]
-        # probabilities = probabilities / norm_factor
-
-        self.set_dist(probabilities)
-
-    def __repr__(self) -> str:
-        return f"Geometric distribution: (p={self.p}, truncation{self.truncation})"
-
-class PoissonDistribution(Distribution):
-    def __init__(self, p: float, truncation: int = 150):
-        """
-        Calculation of geoemtric moment
-        inputs:
-        p - p parameter of the geoemtric distribution
-        truncation - (optional, by default 150) maximal value of the distribution
-        """
-        self.p = p
-        self.truncation = truncation
-
-        factorial = lambda z: reduce(operator.mul, [1, 1] if z == 0 else range(1,z+1))
-
-        PMF = lambda x: ((p**x)*(math.e**-p))*(1.0/factorial(x))
-        CDF = lambda x: (math.e**-p)*sum([(p**i)*(1.0/factorial(i)) for i in range(0,x+1)])
-
-        norm_factor = CDF(truncation) - CDF(0)
-
-        probabilities = [PMF(i)/norm_factor for i in range(1, truncation+1)]
-
-        self.set_dist(probabilities)
-
-    def __repr__(self) -> str:
-        return f"Poisson distribution: (p={self.p}, truncation{self.truncation})"
-
-class ZipfDistribution(Distribution):
-    def __init__(self, p: float, truncation: int = 150):
-        """
-        Calculation of geoemtric moment
-        inputs:
-        p - p parameter of the geoemtric distribution
-        truncation - (optional, by default 150) maximal value of the distribution
-        """
-        self.p = p
-        self.truncation = truncation
-        HARMONIC = lambda n,s: sum([(i**-s) for i in range(1,n+1)])
-        PMF = lambda x: (x**-p)*(1.0/HARMONIC(truncation, p))
-        CDF = lambda x: HARMONIC(x, p) / HARMONIC(truncation, p)
-        norm_factor = CDF(truncation) - CDF(0)
-
-        probabilities = [PMF(i)/norm_factor for i in range(1, truncation+1)]
-
-        self.set_dist(probabilities)
-    
-    def __repr__(self) -> str:
-        return f"Zipf distribution: (p={self.p}, truncation{self.truncation})"

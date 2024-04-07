@@ -49,6 +49,7 @@ def time_me(func):
     return wrapper
 
 
+
 for num_sequences in trees_map.keys():
     simulator = init_protocol(num_sequences)
 
