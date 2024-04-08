@@ -1,5 +1,6 @@
 import sys, pathlib, time
 sys.path.insert(0,str(pathlib.Path(".").resolve()))
+import psutil
 from Sailfish import simulator as sim
 print(sim.__file__)
 
@@ -17,9 +18,9 @@ trees_path = pathlib.Path("tests/trees").resolve()
 
 trees_map = {
     "10": trees_path / "normalbranches_nLeaves10.treefile",
-    # "100": trees_path / "normalbranches_nLeaves100.treefile",
-    # "1k": trees_path / "normalbranches_nLeaves1000.treefile",
-    # "5k": trees_path / "normalbranches_nLeaves5000.treefile",
+    "100": trees_path / "normalbranches_nLeaves100.treefile",
+    "1k": trees_path / "normalbranches_nLeaves1000.treefile",
+    "5k": trees_path / "normalbranches_nLeaves5000.treefile",
     # "10k": trees_path / "normalbranches_nLeaves10000.treefile"
     # "100k": trees_path / "normalbranches_nLeaves100000.treefile"
 }
@@ -35,7 +36,9 @@ def init_protocol(number_of_species) -> sim.Simulator:
     simulation_protocol.set_sequence_size(30000)
     # time.sleep(3)
 
-    simulator = sim.Simulator(simulation_protocol)
+    simulator = sim.Simulator(simulation_protocol, simulation_type=sim.SIMULATION_TYPE.DNA)
+    simulator.set_replacement_model(model=sim.MODEL_CODES.NUCJC)
+
     return simulator
 
 def time_me(func):
@@ -52,12 +55,7 @@ def time_me(func):
 
 for num_sequences in trees_map.keys():
     simulator = init_protocol(num_sequences)
-
-    blocktree = time_me(simulator.gen_indels)()
-    msa = time_me(sim.Msa)(blocktree._get_Sailfish_blocks(), simulator._simProtocol._get_root())
-    # print(msa.get_length())
-    # substitutions = time_me(simulator.gen_substitutions)(msa.get_length())
-    # msa.fill_substitutions(substitutions)
-    # msa.print_msa()
-    # msa.write_msa("/home/elyawy/Data/hugemsa.fasta") 
-    # msa = simulator.simus
+    msa = simulator.simulate()
+    process = psutil.Process()
+    print(process.memory_info().rss / 1024**3)  # in bytes 
+    # msa.write_msa(f"simulator_tests/msa_{num_sequences}.fasta") 

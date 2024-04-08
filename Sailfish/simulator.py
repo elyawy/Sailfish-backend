@@ -457,10 +457,10 @@ class Simulator:
         self._is_sub_model_init = True
     
     def set_replacement_model(
-            self, 
-            model: _Sailfish.modelCode, 
-            model_parameters: List, 
-            gamma_parameters_alpha : float = 1.0, 
+            self,
+            model: _Sailfish.modelCode,
+            model_parameters: List = None,
+            gamma_parameters_alpha : float = 1.0,
             gamma_parameters_catergories: int = 1
         ) -> None:
         if not model:
@@ -478,9 +478,12 @@ class Simulator:
             if model == MODEL_CODES.NUCJC and model_parameters:
                 raise ValueError(f"no model parameters in JC model, recevied value of: {model_parameters}")
             self._model_factory.set_replacement_model(model)
-            if not model_parameters:
+            if model == MODEL_CODES.NUCJC and not model_parameters:
+                pass
+            elif not model_parameters:
                 raise ValueError(f"please provide a model parameters")
-            self._model_factory.set_model_parameters(model_parameters)
+            else:
+                self._model_factory.set_model_parameters(model_parameters)
         
         self._model_factory.set_gamma_parameters(gamma_parameters_alpha, gamma_parameters_catergories)
         self._simulator.init_substitution_sim(self._model_factory)

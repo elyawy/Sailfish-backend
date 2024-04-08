@@ -7,7 +7,7 @@
 
 // takes 10 minutes currently
 int main() {
-    tree tree_("../trees/normalbranches_nLeaves10.treefile");
+    tree tree_("../trees/normalbranches_nLeaves1000.treefile");
     // tree tree_("(A:0.1,B:0.2);", false);
 
     tree_.getRoot()->orderSonsByHeight();
@@ -40,7 +40,7 @@ int main() {
     protocol.setInsertionRates(insertionRates);
     protocol.setDeletionRates(deletionRates);
 
-    protocol.setSequenceSize(100);
+    protocol.setSequenceSize(30000);
 
     protocol.setSaveAncestral(false);
 
@@ -59,11 +59,11 @@ int main() {
 
     modelFactory mFac(&tree_);
 
-    mFac.setAlphabet(alphabetCode::AMINOACID);
-    mFac.setReplacementModel(modelCode::WAG);
+    mFac.setAlphabet(alphabetCode::NUCLEOTIDE);
+    mFac.setReplacementModel(modelCode::NUCJC);
     // mFac.setModelParameters({0.25,0.25,0.25,0.25,0.1});
 
-    mFac.setGammaParameters(1.0, 2); // TODO: ALLOW 1 CATEGORY!
+    mFac.setGammaParameters(1.0, 1); // TODO: ALLOW 1 CATEGORY!
 
     if (!mFac.isModelValid()) return 0;
 
@@ -73,6 +73,7 @@ int main() {
 
     // std::cout << "number of nodes to simulate: " << tree_.getNodesNum() - 1 << "\n";
     std::cout << "length of the MSA will be: " << msaLength << "\n";
+    std::cin.get();
 
     std::shared_ptr<sequenceContainer> seqContainer = sim.simulateSubstitutions(msaLength);
     // q2pt::Pij_t error in function pijt...
