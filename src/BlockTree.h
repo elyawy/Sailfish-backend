@@ -36,11 +36,19 @@ public:
     return _avlTree->begin();
   }
 
+  const TreeType::iterator begin () const {
+    return _avlTree->begin();
+  }
+
   TreeType::iterator end () {
     return _avlTree->end();
   }
 
-  size_t length() {
+  const TreeType::iterator end () const {
+    return _avlTree->end();
+  }
+
+  size_t length() const {
     return _avlTree->getTotalLength();
   }
 

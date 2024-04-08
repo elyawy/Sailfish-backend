@@ -75,7 +75,6 @@ void rateMatrixSim::setRng(mt19937_64 *rng) {
 
 
 void rateMatrixSim::generate_substitution_log(int seqLength) {
-	using nodeP = tree::nodeP;
 	// generateRootLog(seqLength);
 	// _rootSequence = sequence(_alph);
 
@@ -180,6 +179,26 @@ void rateMatrixSim::mutateSeqGillespie(tree::nodeP currentNode, int seqLength, M
 }
 
 
+std::unique_ptr<sequence> rateMatrixSim::generateSequence(int seqLength, const tree::nodeP node) {
+	auto seq = std::make_unique<sequence>(_alph);
+
+	for (int i = 0; i < seqLength; i++) {
+		ALPHACHAR newChar = _frequencySampler->drawSample() - 1;
+		(*seq)[i] =  newChar;
+		MDOUBLE qii = _sp->Qij(newChar, newChar);
+		size_t rateCategory = _rateCategories[i];
+		if(qii > 0) errorMsg::reportError("Qii is positive!");
+		if(rateCategory < 0) errorMsg::reportError("rate category is negative!");
+		_subManager->updateReactantsSum((_sp->Qij(newChar, newChar)),_sp->rates(rateCategory));
+     }
+
+	seq->setAlphabet(_alph);
+	seq->setName(node->name());
+	seq->setID(node->id());
+
+	return seq;
+}
+
 void rateMatrixSim::generateRootSeq(int seqLength) {	
 	for (int i = 0; i < seqLength; i++) {
 		ALPHACHAR newChar = _frequencySampler->drawSample() - 1;
@@ -226,4 +245,58 @@ std::unique_ptr<sequenceContainer> rateMatrixSim::toSeqDataWithoutInternalNodes(
 		myseqData->add(*std::move(_simulatedSequences[i]));
 	}
 	return myseqData;
+}
+
+
+void rateMatrixSim::generate_substitution_log(const std::map<std::string, BlockTree> &blockMap) {
+	// generateRootLog(seqLength);
+	// _rootSequence = sequence(_alph);
+	std::string rootName = _et->getRoot()->name();
+
+	size_t rootLength = blockMap.at(rootName).length();
+
+	std::vector<MDOUBLE> ratesVec(rootLength);
+
+	// _rateVec.resize(seqLength);
+	MDOUBLE sumOfRatesAcrossSites = 0.0;
+	_rateCategories.resize(rootLength);
+	for (int h = 0; h < rootLength; h++)  {
+		int selectedRandomCategory = _rateSampler->drawSample() - 1;
+		_rateCategories[h] = selectedRandomCategory;
+		ratesVec[h] = _sp->rates(selectedRandomCategory);
+		sumOfRatesAcrossSites += ratesVec[h];
+	}
+	MDOUBLE sumOfRatesNoramlizingFactor = 1.0 / sumOfRatesAcrossSites;
+
+	_siteSampler = std::make_unique<DiscreteDistribution>(ratesVec, sumOfRatesNoramlizingFactor);
+
+	_rootSequence->resize(rootLength);
+	generateRootSeq(rootLength);
+
+	mutateSeqRecuresively(_et->getRoot(), blockMap);
+
+}
+
+void rateMatrixSim::mutateSeqRecuresively(tree::nodeP currentNode, const std::map<std::string, BlockTree> &blockMap) {
+
+
+	for (auto &node: currentNode->getSons()) {
+		mutateSeqAlongBranch(node, blockMap.at(node->name()));
+		mutateSeqRecuresively(node, blockMap);
+		if (node->isLeaf()) saveSequence(node->id(), node->name());
+
+		// std::cout << "Node: " << currentNode->id() << "\n";
+		if (!_subManager->isEmpty(currentNode->id())) {
+			_subManager->undoSubs(currentNode->id(), *_rootSequence, _rateCategories, _sp.get());
+		}
+	}
+}
+
+void rateMatrixSim::mutateSeqAlongBranch(tree::nodeP currentNode, const BlockTree &blocktree) {
+	const MDOUBLE distToFather = currentNode->dis2father();
+	if (distToFather > 0.2) {
+		mutateEntireSeq(currentNode, seqLength);
+	} else {
+		mutateSeqGillespie(currentNode, seqLength, distToFather);
+	}
 }

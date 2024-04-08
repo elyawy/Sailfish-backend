@@ -9,6 +9,7 @@
 #include "../libs/Phylolib/includes/sequenceContainer.h"
 #include "../libs/Phylolib/includes/computePijComponent.h"
 
+#include "BlockTree.h"
 #include "modelFactory.h"
 #include "substitutionManager.h"
 
@@ -22,7 +23,8 @@ public:
 
 	// void generate_seq(int seqLength);
 	void generate_substitution_log(int seqLength);
-	void mutateSeqRecuresively(tree::nodeP currentNode, int seqLength);
+	void generate_substitution_log(const std::map<std::string, BlockTree> &blockMap);
+
 
 	void setSeed(size_t seed);
 	void setRng(mt19937_64 *rng);
@@ -49,7 +51,13 @@ public:
 	
 private:
 	void generateRootSeq(int seqLength);
+	std::unique_ptr<sequence> generateSequence(int seqLength, const tree::nodeP node);
+	void mutateSeqRecuresively(tree::nodeP currentNode, int seqLength);
+	void mutateSeqRecuresively(tree::nodeP currentNode, const std::map<std::string, BlockTree> &blockMap);
+
 	void mutateSeqAlongBranch(tree::nodeP parentNode, int seqLength);
+	void mutateSeqAlongBranch(tree::nodeP currentNode, const BlockTree &blocktree);
+
 	void mutateEntireSeq(tree::nodeP currentNode, int seqLength);
 	void mutateSeqGillespie(tree::nodeP currentNode, int seqLength, MDOUBLE distToParent);
 	void saveSequence(int nodeId, std::string name);
