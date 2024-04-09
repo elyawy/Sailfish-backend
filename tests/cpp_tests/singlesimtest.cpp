@@ -7,7 +7,7 @@
 
 // takes 10 minutes currently
 int main() {
-    tree tree_("../trees/normalbranches_nLeaves1000.treefile");
+    tree tree_("../trees/normalbranches_nLeaves100.treefile");
     // tree tree_("(A:0.1,B:0.2);", false);
 
     tree_.getRoot()->orderSonsByHeight();
@@ -69,15 +69,24 @@ int main() {
 
     sim.initSubstitionSim(mFac);
 
+
     int msaLength = msas[0].getMSAlength();
+    int halfMsaLength = msaLength/2;
+    int remainingLength = msaLength - halfMsaLength;
 
     // std::cout << "number of nodes to simulate: " << tree_.getNodesNum() - 1 << "\n";
-    std::cout << "length of the MSA will be: " << msaLength << "\n";
-    std::cin.get();
+    std::cout << "length of the MSA will be: " << halfMsaLength << "+" << remainingLength << "\n";
+    std::cout << "length of the whole MSA will be: " << msaLength << "\n";
 
-    std::shared_ptr<sequenceContainer> seqContainer = sim.simulateSubstitutions(msaLength);
+    std::cin.get();
+    // std::shared_ptr<sequenceContainer> seqContainer = sim.simulateSubstitutions(msaLength);
+
+    std::shared_ptr<sequenceContainer> seqContainer1 = sim.simulateSubstitutions(halfMsaLength);
+    std::shared_ptr<sequenceContainer> seqContainer2 = sim.simulateSubstitutions(remainingLength);
+    std::vector<std::shared_ptr<sequenceContainer>> containers = {seqContainer1, seqContainer2};
     // q2pt::Pij_t error in function pijt...
-    msas[0].fillSubstitutions(seqContainer);
+    std::cout << seqContainer1->seqLen() << " " << seqContainer2->seqLen() << "\n";
+    msas[0].fillSubstitutions(containers);
 
     msas[0].printFullMsa();
     // msas[0].writeFullMsa("/home/elyalab/fasta.fasta");

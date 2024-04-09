@@ -124,8 +124,22 @@ public:
     };
 
 
-    void fillSubstitutions(std::shared_ptr<sequenceContainer> _seqContainer) {
-        _substitutions = _seqContainer;
+    // void fillSubstitutions(std::shared_ptr<sequenceContainer> _seqContainer) {
+    //     _substitutions = _seqContainer;
+    // }
+
+    void fillSubstitutions(vector<std::shared_ptr<sequenceContainer>> _seqContainers) {
+        if (_seqContainers.size() == 0) errorMsg::reportError("No sequences in vector!");
+
+        _substitutions = _seqContainers[0];
+
+        for (size_t i = 1; i < _seqContainers.size(); ++i) {
+            for (size_t j = 0; j < _numberOfSequences; ++j) {
+                int idOfSeq = (_seqContainers[i])->placeToId(j);
+                (*_substitutions)[idOfSeq] += (*_seqContainers[i])[idOfSeq];
+            }
+        }
+        if (_substitutions->seqLen() != _msaLength) errorMsg::reportError("Not enough substitutions to fill the MSA");
     }
 
 

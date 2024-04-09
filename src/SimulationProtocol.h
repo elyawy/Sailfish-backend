@@ -24,32 +24,48 @@ public:
         _insertionLengthDistributions = lengthDistributions;
     }
 
-    DiscreteDistribution* getInsertionDistribution(size_t position) {
+    DiscreteDistribution* getInsertionDistribution(size_t position) const{
         return _insertionLengthDistributions[position];
+    }
+
+    std::vector<DiscreteDistribution*> getInsertionDistributions() const{
+        return _insertionLengthDistributions;
     }
 
     void setDeletionLengthDistributions(std::vector<DiscreteDistribution*> lengthDistributions) {
         _deletionLengthDistributions = lengthDistributions;
     }
 
-    DiscreteDistribution* getDeletionDistribution(size_t position) {
+    DiscreteDistribution* getDeletionDistribution(size_t position) const{
         return _deletionLengthDistributions[position];
+    }
+
+    std::vector<DiscreteDistribution*> getDeletionDistributions() const{
+        return _deletionLengthDistributions;
     }
 
     void setInsertionRates(std::vector<double> rates) {
         _insertionRates = rates;
     }
 
-    double getInsertionRate(size_t position) {
+    double getInsertionRate(size_t position) const{
         return _insertionRates[position];
+    }
+
+    std::vector<double> getInsertionRates() const{
+        return _insertionRates;
     }
 
     void setDeletionRates(std::vector<double> rates) {
         _deletionRates = rates;
     }
 
-    double getDeletionRate(size_t position) {
+    double getDeletionRate(size_t position) const {
         return _deletionRates[position];
+    }
+
+    std::vector<double> getDeletionRates() const {
+        return _deletionRates;
     }
 
     void setSequenceSize(size_t sequenceSize) {
@@ -60,15 +76,15 @@ public:
         _seed = seed;
     }
 
-    size_t getSeed() {
+    size_t getSeed() const {
         return _seed;
     }
 
-    tree* getTree(){
+    tree* getTree() const {
         return _tree;
     }
 
-    size_t getSequenceSize(){
+    size_t getSequenceSize() const{
         return _sequenceSize;
     }
 
@@ -76,7 +92,7 @@ public:
         _isSaveAncestral = saveAncestral;
     }
 
-    bool getSaveAncestral() {
+    bool getSaveAncestral() const {
         return _isSaveAncestral;
     }
 

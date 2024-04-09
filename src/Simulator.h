@@ -170,7 +170,8 @@ private:
         _substitutionSim->generate_substitution_log(sequenceLength);
 
 
-        std::shared_ptr<sequenceContainer> sharedSeqContainer = std::move(_substitutionSim->toSeqDataWithoutInternalNodes());
+        std::shared_ptr<sequenceContainer> sharedSeqContainer = _substitutionSim->toSeqDataWithoutInternalNodes();
+        _substitutionSim->initSim();
         return sharedSeqContainer;
     }
 

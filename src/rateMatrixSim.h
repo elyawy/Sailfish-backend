@@ -26,6 +26,8 @@ public:
 
 	void setSeed(size_t seed);
 	void setRng(mt19937_64 *rng);
+
+	void initSim();
 	// const mt19937_64& getRng();
 
 	// int getSeed();

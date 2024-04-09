@@ -18,9 +18,9 @@ trees_path = pathlib.Path("tests/trees").resolve()
 
 trees_map = {
     "10": trees_path / "normalbranches_nLeaves10.treefile",
-    "100": trees_path / "normalbranches_nLeaves100.treefile",
-    "1k": trees_path / "normalbranches_nLeaves1000.treefile",
-    "5k": trees_path / "normalbranches_nLeaves5000.treefile",
+    # "100": trees_path / "normalbranches_nLeaves100.treefile",
+    # "1k": trees_path / "normalbranches_nLeaves1000.treefile",
+    # "5k": trees_path / "normalbranches_nLeaves5000.treefile",
     # "10k": trees_path / "normalbranches_nLeaves10000.treefile"
     # "100k": trees_path / "normalbranches_nLeaves100000.treefile"
 }
@@ -33,7 +33,7 @@ def init_protocol(number_of_species) -> sim.Simulator:
     simulation_protocol.set_deletion_length_distributions(length_deletions)
     simulation_protocol.set_insertion_rates(rate_insertion)
     simulation_protocol.set_deletion_rates(rate_deletion)
-    simulation_protocol.set_sequence_size(30000)
+    simulation_protocol.set_sequence_size(10)
     # time.sleep(3)
 
     simulator = sim.Simulator(simulation_protocol, simulation_type=sim.SIMULATION_TYPE.DNA)
@@ -55,7 +55,8 @@ def time_me(func):
 
 for num_sequences in trees_map.keys():
     simulator = init_protocol(num_sequences)
-    msa = simulator.simulate()
+    msa = simulator()
     process = psutil.Process()
     print(process.memory_info().rss / 1024**3)  # in bytes 
+    msa.print_msa()
     # msa.write_msa(f"simulator_tests/msa_{num_sequences}.fasta") 

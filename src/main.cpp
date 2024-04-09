@@ -51,7 +51,20 @@ PYBIND11_MODULE(_Sailfish, m) {
     py::class_<tree>(m, "Tree")
         .def(py::init<const std::string&, bool>(), "Create Phylogenetic tree object from newick formatted file")
         .def_property_readonly("num_nodes", &tree::getNodesNum)
-        .def_property_readonly("root", &tree::getRoot);
+        .def_property_readonly("root", &tree::getRoot)
+        .def(py::pickle(
+            [](const tree &p) { // __getstate__
+                /* Return a tuple that fully encodes the state of the object */
+                return py::make_tuple(p.stringTreeInPhylipTreeFormat());
+            },
+            [](py::tuple t) { // __setstate__
+                if (t.size() != 1)
+                    throw std::runtime_error("Invalid state!");
+                /* Create a new C++ instance */
+                tree newtree(t[0].cast<std::string>(), false);
+                return newtree;
+            }
+        ));
 
     py::class_<tree::TreeNode>(m, "node")
         .def_property_readonly("sons", &tree::TreeNode::getSons)
@@ -60,7 +73,7 @@ PYBIND11_MODULE(_Sailfish, m) {
         .def("distance_to_father", &tree::TreeNode::dis2father);
 
     py::class_<SimulationProtocol>(m, "SimProtocol")
-        .def(py::init<tree*>())
+        .def(py::init<tree*>()) // TODO: add save ancestral sequence
         .def("set_seed", &SimulationProtocol::setSeed)
         .def("get_seed", &SimulationProtocol::getSeed)
         .def("set_sequence_size", &SimulationProtocol::setSequenceSize)
@@ -72,12 +85,59 @@ PYBIND11_MODULE(_Sailfish, m) {
         .def("set_insertion_length_distributions", &SimulationProtocol::setInsertionLengthDistributions)
         .def("get_insertion_length_distribution", &SimulationProtocol::getInsertionDistribution)
         .def("set_deletion_length_distributions", &SimulationProtocol::setDeletionLengthDistributions)
-        .def("get_deletion_length_distribution", &SimulationProtocol::getDeletionDistribution);
+        .def("get_deletion_length_distribution", &SimulationProtocol::getDeletionDistribution)
+        .def(py::pickle(
+            [](const SimulationProtocol &p) { // __getstate__
+                /* Return a tuple that fully encodes the state of the object */
+                return py::make_tuple(p.getTree(),
+                                      p.getSequenceSize(),
+                                      p.getSeed(),
+                                      p.getInsertionDistributions(),
+                                      p.getDeletionDistributions(),
+                                      p.getInsertionRates(),
+                                      p.getDeletionRates(),
+                                      p.getSaveAncestral());
+            },
+            [](py::tuple t) { // __setstate__
+                if (t.size() != 8)
+                    throw std::runtime_error("Invalid state!");
+                /* Create a new C++ instance */
+                auto newtree = std::make_shared<tree>(t[0].cast<std::string>(), false);
 
+                SimulationProtocol sp(newtree.get());
+                sp.setSequenceSize(t[1].cast<size_t>());
+                sp.setSeed(t[2].cast<size_t>());
+                sp.setInsertionLengthDistributions(t[3].cast<std::vector<DiscreteDistribution*>>());
+                sp.setDeletionLengthDistributions(t[4].cast<std::vector<DiscreteDistribution*>>());
+                sp.setInsertionRates(t[5].cast<std::vector<double>>());
+                sp.setDeletionRates(t[6].cast<std::vector<double>>());
+                sp.setSaveAncestral(t[7].cast<bool>());
+
+                return sp;
+            }
+        ));
 
 
     py::class_<sequenceContainer, std::shared_ptr<sequenceContainer>>(m, "sequenceContainer")
         .def(py::init<>());
+        // .def(py::pickle(
+        //     [](const sequenceContainer &p) { // __getstate__
+        //         /* Return a tuple that fully encodes the state of the object */
+        //         return py::make_tuple(p.);
+        //     },
+        //     [](py::tuple t) { // __setstate__
+        //         if (t.size() != 2)
+        //             throw std::runtime_error("Invalid state!");
+
+        //         /* Create a new C++ instance */
+        //         Pickleable p(t[0].cast<std::string>());
+
+        //         /* Assign any additional state */
+        //         p.setExtra(t[1].cast<int>());
+
+        //         return p;
+        //     }
+        // ));
 
     py::enum_<alphabetCode>(m, "alphabetCode")
         .value("NUCLEOTIDE", alphabetCode::NUCLEOTIDE)

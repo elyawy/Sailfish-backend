@@ -4,6 +4,7 @@ from functools import reduce
 from typing import List, Optional, Dict
 from re import split
 from enum import Enum
+import multiprocessing
 
 # print(_Sailfish.Tree)
 # print(_Sailfish.Simulator)
@@ -219,11 +220,13 @@ class SimProtocol:
     '''
     The simulator protocol, sets the different distribution, tree and root length.
     '''
-    def __init__(self, tree = None, 
+    def __init__(self, tree = None,
+                 root_seq_size: int = 100,
                  deletion_rate: float = 0.0, 
                  insertion_rate: float = 0.0,
                  deletion_dist: Distribution = ZipfDistribution(1.7, 50),
                  insertion_dist: Distribution = ZipfDistribution(1.7, 50),
+                 seed: int = 0
         ):
         if isinstance(tree, Tree):
             self._tree = tree
@@ -234,8 +237,8 @@ class SimProtocol:
         
         self._num_branches = self._tree.get_num_nodes() - 1
         self._sim = _Sailfish.SimProtocol(self._tree._get_Sailfish_tree())
-        self._seed = 0
-        self._root_seq_size = 0
+        self.set_seed(seed)
+        self.set_sequence_size(root_seq_size)
         self.set_deletion_rates(deletion_rate=deletion_rate)
         self.set_insertion_rates(insertion_rate=insertion_rate)
         self.set_deletion_length_distributions(deletion_dist=deletion_dist)
@@ -309,13 +312,10 @@ class SimProtocol:
     
     def set_insertion_length_distributions(self, insertion_dist: Optional[Distribution] = None, insertion_dists: Optional[List[Distribution]] = None) -> None:
         if insertion_dist:
-            insertion_dist.set_seed(self.get_seed())
             self.insertion_dists = [insertion_dist] * self._num_branches
         elif insertion_dists:
             if not len(insertion_dists) == self._num_branches:
                 raise ValueError(f"The length of the insertion dists should be equal to the number of branches in the tree. The insertion_dists length is {len(insertion_dists)} and the number of branches is {self._num_branches}. You can pass a single value as insertion_dist which will be used for all branches.")
-            for dist in insertion_dists:
-                dist.set_seed(self.get_seed())
             self.insertion_dists = insertion_dists
         else:
             raise ValueError(f"please provide one of the following: deletion_rate (a single value used for all branches), or a deletion_rates (a list of values, each corresponding to a different branch)")
@@ -332,13 +332,10 @@ class SimProtocol:
     
     def set_deletion_length_distributions(self, deletion_dist: Optional[Distribution] = None, deletion_dists: Optional[List[Distribution]] = None) -> None:
         if deletion_dist:
-            deletion_dist.set_seed(self.get_seed())
             self.deletion_dists = [deletion_dist] * self._num_branches
         elif deletion_dists:
             if not len(deletion_dists) == self._num_branches:
                 raise ValueError(f"The length of the deletion dists should be equal to the number of branches in the tree. The deletion_dists length is {len(deletion_dists)} and the number of branches is {self._num_branches}. You can pass a single value as deletion_dist which will be used for all branches.")
-            for dist in deletion_dists:
-                dist.set_seed(self.get_seed())
             self.deletion_dists = deletion_dists
         else:
             raise ValueError(f"please provide one of the following: deletion_rate (a single value used for all branches), or a deletion_rates (a list of values, each corresponding to a different branch)")
@@ -369,8 +366,8 @@ class Msa:
     def get_num_sequences(self) -> int:
         return self._msa.num_sequences()
     
-    def fill_substitutions(self, sequenceContainer) -> None:
-        self._msa.fill_substitutions(sequenceContainer)
+    def fill_substitutions(self, sequenceContainers: List) -> None:
+        self._msa.fill_substitutions(sequenceContainers)
     
     def print_msa(self) -> str:
         return self._msa.print_msa()
@@ -384,8 +381,8 @@ class Msa:
     def write_msa(self, file_path) -> None:
         self._msa.write_msa(file_path)
     
-    #def __repr__(self) -> str:
-    #    return f"{self.get_msa()}"
+    # def __repr__(self) -> str:
+    #    return f"{self.print_msa()}"
 
 class Simulator:
     '''
@@ -495,6 +492,7 @@ class Simulator:
     
     
     def gen_substitutions(self, length: int):
+        print(f'starting processes with {length}')
         if not self._is_sub_model_init:
             self._init_sub_model()
         return self._simulator.gen_substitutions(length)
@@ -506,10 +504,30 @@ class Simulator:
             blocktree = self.gen_indels()
             msa = Msa(blocktree._get_Sailfish_blocks(), self._simProtocol._get_root())
             # sim.init_substitution_sim(mFac)
-            substitutions = self.gen_substitutions(msa.get_length())
+            substitutions = self.run_multiple_process_sub(msa.get_length())
             msa.fill_substitutions(substitutions)
 
-            if times == 1:
-                return msa
             Msas.append(msa)
         return Msas
+
+    def __call__(self) -> Msa:
+        return self.simulate(1)[0]
+
+    def run_multiple_process_sub(self,  msa_length: int) -> List:
+        CHUNK_SIZE = int(1e4)
+
+        num_cpus = multiprocessing.cpu_count()
+        print(num_cpus, msa_length, CHUNK_SIZE)
+        
+        if msa_length < CHUNK_SIZE or num_cpus == 1:
+            return [self.gen_substitutions(msa_length)]
+        num_processes_to_run, remainder = divmod(msa_length, CHUNK_SIZE)
+        list_of_chunks = num_processes_to_run * [CHUNK_SIZE]
+        list_of_chunks.append(remainder)
+        print(list_of_chunks)
+        with multiprocessing.Pool(num_cpus) as pool:
+            substitutions = pool.map(self.gen_substitutions, list_of_chunks)
+        return substitutions
+        
+        
+

@@ -57,6 +57,14 @@ rateMatrixSim::rateMatrixSim(modelFactory& mFac) {
 // 		_avgSubtitutionsPerSite = 0.0;
 // 	};
 
+void rateMatrixSim::initSim() {
+	_subManager = std::make_shared<substitutionManager>(_et->getNodesNum());
+	_rootSequence = std::make_shared<sequence>(_alph);
+	_avgSubtitutionsPerSite = 0.0;
+	_subtitutionsRatePerSite = 0.0;
+
+}
+
 rateMatrixSim::~rateMatrixSim() {
 }
 
@@ -225,5 +233,6 @@ std::unique_ptr<sequenceContainer> rateMatrixSim::toSeqDataWithoutInternalNodes(
 
 		myseqData->add(*std::move(_simulatedSequences[i]));
 	}
+	_simulatedSequences.clear();
 	return myseqData;
 }
