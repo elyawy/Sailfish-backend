@@ -7,10 +7,10 @@
 
 // takes 10 minutes currently
 int main() {
-    tree tree_("../trees/normalbranches_nLeaves1000.treefile");
+    tree tree_("../trees/normalbranches_nLeaves10000.treefile");
     // tree tree_("(A:0.1,B:0.2);", false);
 
-    tree_.getRoot()->orderSonsByHeight();
+    // tree_.getRoot()->orderSonsByHeight();
     std::time_t t1 = 12;//std::time(0);
     // DiscreteDistribution::setSeed(t1);
     vector<DiscreteDistribution*> insertionDists(tree_.getNodesNum() - 1);
@@ -27,8 +27,8 @@ int main() {
     vector<double> insertionRates(tree_.getNodesNum() - 1);
     vector<double> deletionRates(tree_.getNodesNum() - 1);
 
-    fill(insertionRates.begin(), insertionRates.end(), 0.03);
-    fill(deletionRates.begin(), deletionRates.end(), 0.09);
+    fill(insertionRates.begin(), insertionRates.end(), 0.0);
+    fill(deletionRates.begin(), deletionRates.end(), 0.0);
     // fill(insertionRates.begin(), insertionRates.end(), 0.01);
     // fill(deletionRates.begin(), deletionRates.end(), 0.01);
 
@@ -40,7 +40,8 @@ int main() {
     protocol.setInsertionRates(insertionRates);
     protocol.setDeletionRates(deletionRates);
 
-    protocol.setSequenceSize(30000);
+    int rootLength = 1000;
+    protocol.setSequenceSize(rootLength);
 
     protocol.setSaveAncestral(false);
 
@@ -55,7 +56,11 @@ int main() {
     std::vector<BlockMap> blockmaps = sim.runSimulator(1);
 
     std::cout << "finished all indel simulations\n";
-    std::vector<MSA> msas = MSA::generateMSAs(blockmaps, tree_.getRoot());
+    // std::vector<MSA> msas = MSA::generateMSAs(blockmaps, tree_.getRoot());
+    int msaLength = rootLength;//msas[0].getMSAlength();
+
+    std::cout << "length of the MSA will be: " << msaLength << "\n";
+    // std::cin.get();
 
     modelFactory mFac(&tree_);
 
@@ -68,18 +73,28 @@ int main() {
     if (!mFac.isModelValid()) return 0;
 
     sim.initSubstitionSim(mFac);
+    std::cout << "initializing subs sim" << "\n";
+    // std::cin.get();
 
-    int msaLength = msas[0].getMSAlength();
 
     // std::cout << "number of nodes to simulate: " << tree_.getNodesNum() - 1 << "\n";
-    std::cout << "length of the MSA will be: " << msaLength << "\n";
-    std::cin.get();
+    std::vector<std::unique_ptr<sequenceContainer>> chunks;
+    for (size_t i = 0; i < 1000; i++)
+    {
+        std::cout << i << "\n";
+        auto seqContainer = sim.simulateSubstitutions(msaLength);
+        chunks.push_back(std::move(seqContainer));
+    }
+    
+    std::cout << "finished all substitutions" << "\n";
+    // std::cin.get();
 
-    std::shared_ptr<sequenceContainer> seqContainer = sim.simulateSubstitutions(msaLength);
-    // q2pt::Pij_t error in function pijt...
-    msas[0].fillSubstitutions(seqContainer);
 
-    msas[0].printFullMsa();
+    // msas[0].fillSubstitutions(seqContainer);
+    // std::cout << "filled MSA" << "\n";
+    // std::cin.get();
+
+    // msas[0].printFullMsa();
     // msas[0].writeFullMsa("/home/elyalab/fasta.fasta");
 
     // blockmaps.clear();

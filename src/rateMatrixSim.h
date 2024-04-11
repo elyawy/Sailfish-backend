@@ -24,7 +24,7 @@ public:
 	void generate_substitution_log(int seqLength);
 	void mutateSeqRecuresively(tree::nodeP currentNode, int seqLength);
 
-	void setSeed(size_t seed);
+	// void setSeed(size_t seed);
 	void setRng(mt19937_64 *rng);
 	// const mt19937_64& getRng();
 
@@ -42,31 +42,29 @@ public:
 
 	tree* gettree() {return _et;}
 	virtual ~rateMatrixSim();
-	sequenceContainer toSeqData();
+	// sequenceContainer toSeqData();
 	std::unique_ptr<sequenceContainer> toSeqDataWithoutInternalNodes();
 	// void generate_rates_continuous_gamma(const int seqLength,const MDOUBLE alpha,Vdouble rates);
-	MDOUBLE getAvgSub() {return _avgSubtitutionsPerSite;}
+	// MDOUBLE getAvgSub() {return _avgSubtitutionsPerSite;}
 	
 private:
 	void generateRootSeq(int seqLength);
 	void mutateSeqAlongBranch(tree::nodeP parentNode, int seqLength);
 	void mutateEntireSeq(tree::nodeP currentNode, int seqLength);
 	void mutateSeqGillespie(tree::nodeP currentNode, int seqLength, MDOUBLE distToParent);
-	void saveSequence(int nodeId, std::string name);
-
-	vector<std::unique_ptr<sequence>> _simulatedSequences; // the sequences (nodes * seqLen)
-	std::shared_ptr<sequence> _rootSequence;
-	// vector<MDOUBLE> _rateVec;
-	vector<size_t> _rateCategories;
+	void saveSequence(const int &nodeId,const std::string &name);
+	// void resetSim();
 
 	tree* _et;
 	std::shared_ptr<const stochasticProcess> _sp;
-	size_t _alphaSize;
-	computePijGam _cpijGam;
-	int _seed;
 	const alphabet* _alph;
-	MDOUBLE _avgSubtitutionsPerSite;
-	MDOUBLE _subtitutionsRatePerSite;
+	computePijGam _cpijGam;
+	sequence _rootSequence;
+	substitutionManager _subManager;
+
+	// vector<MDOUBLE> _rateVec;
+	vector<size_t> _rateCategories;
+	std::unique_ptr<sequenceContainer> _simulatedSequences; // the sequences (nodes * seqLen)
 	std::unique_ptr<DiscreteDistribution> _siteSampler;
 	std::unique_ptr<DiscreteDistribution> _frequencySampler;
 	std::unique_ptr<DiscreteDistribution> _rateSampler;
@@ -74,7 +72,6 @@ private:
 	std::mt19937_64 *_mt_rand;
 
 
-	std::shared_ptr<substitutionManager> _subManager;
 	
 };
 

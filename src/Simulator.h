@@ -166,12 +166,12 @@ private:
         _substitutionSim->setRng(&_mt_rand);
     }
 
-    std::shared_ptr<sequenceContainer> simulateSubstitutions(size_t sequenceLength) {
+    std::unique_ptr<sequenceContainer> simulateSubstitutions(size_t sequenceLength) {
         _substitutionSim->generate_substitution_log(sequenceLength);
 
 
-        std::shared_ptr<sequenceContainer> sharedSeqContainer = std::move(_substitutionSim->toSeqDataWithoutInternalNodes());
-        return sharedSeqContainer;
+        // std::unique_ptr<sequenceContainer> sharedSeqContainer = std::move(_substitutionSim->toSeqDataWithoutInternalNodes());
+        return _substitutionSim->toSeqDataWithoutInternalNodes();
     }
 
 
