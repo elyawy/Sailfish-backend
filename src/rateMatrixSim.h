@@ -27,6 +27,7 @@ public:
 	// void setSeed(size_t seed);
 	void setRng(mt19937_64 *rng);
 	// const mt19937_64& getRng();
+	void setNodesToSaves(std::vector<size_t> nodeIDs);
 
 	// int getSeed();
 
@@ -43,7 +44,7 @@ public:
 	tree* gettree() {return _et;}
 	virtual ~rateMatrixSim();
 	// sequenceContainer toSeqData();
-	std::unique_ptr<sequenceContainer> toSeqDataWithoutInternalNodes();
+	std::unique_ptr<sequenceContainer> getSequenceContainer();
 	// void generate_rates_continuous_gamma(const int seqLength,const MDOUBLE alpha,Vdouble rates);
 	// MDOUBLE getAvgSub() {return _avgSubtitutionsPerSite;}
 	
@@ -53,6 +54,9 @@ private:
 	void mutateEntireSeq(tree::nodeP currentNode, int seqLength);
 	void mutateSeqGillespie(tree::nodeP currentNode, int seqLength, MDOUBLE distToParent);
 	void saveSequence(const int &nodeId,const std::string &name);
+
+	void setSaveStateLeaves(const tree::nodeP &node);
+
 	// void resetSim();
 
 	tree* _et;
@@ -61,6 +65,7 @@ private:
 	computePijGam _cpijGam;
 	sequence _rootSequence;
 	substitutionManager _subManager;
+	std::vector<bool> _nodesToSave;
 
 	// vector<MDOUBLE> _rateVec;
 	vector<size_t> _rateCategories;
@@ -70,7 +75,6 @@ private:
 	std::unique_ptr<DiscreteDistribution> _rateSampler;
 
 	std::mt19937_64 *_mt_rand;
-
 
 	
 };

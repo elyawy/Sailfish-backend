@@ -20,10 +20,13 @@
 
 rateMatrixSim::rateMatrixSim(modelFactory& mFac) : 
 	_et(mFac.getTree()), _sp(mFac.getStochasticProcess()), _alph(mFac.getAlphabet()),
-	_cpijGam(), _rootSequence(mFac.getAlphabet()), _subManager(mFac.getTree()->getNodesNum()) {
+	_cpijGam(), _rootSequence(mFac.getAlphabet()), _subManager(mFac.getTree()->getNodesNum()),
+	_nodesToSave(_et->getNodesNum(), false) {
 		// _et = mFac.getTree();
 		// _sp = mFac.getStochasticProcess();
 		// _alph = mFac.getAlphabet();
+		setSaveStateLeaves(_et->getRoot());
+
 		size_t alphaSize = _sp->alphabetSize();
 
 		// _cpijGam = computePijGam();
@@ -46,6 +49,13 @@ rateMatrixSim::rateMatrixSim(modelFactory& mFac) :
 		_simulatedSequences = std::make_unique<sequenceContainer>();
 
 };
+
+void rateMatrixSim::setSaveStateLeaves(const tree::nodeP &node) {
+	for(auto &node: node->getSons()) {
+		if (node->isLeaf()) _nodesToSave[node->id()] = true;
+		setSaveStateLeaves(node);
+	}
+}
 
 // simulateTree::simulateTree(const tree&  _inEt,
 // 						   const stochasticProcess& sp,
@@ -98,6 +108,7 @@ void rateMatrixSim::generate_substitution_log(int seqLength) {
 	generateRootSeq(seqLength);
 	// std::cout << "starting subs simulation\n";
 	// std::cin.get();
+	if (_nodesToSave[_et->getRoot()->id()]) saveSequence(_et->getRoot()->id(), _et->getRoot()->name());
 
 	mutateSeqRecuresively(_et->getRoot(), seqLength);
 	_subManager.clear();
@@ -109,7 +120,7 @@ void rateMatrixSim::mutateSeqRecuresively(tree::nodeP currentNode, int seqLength
 	for (auto &node: currentNode->getSons()) {
 		mutateSeqAlongBranch(node, seqLength);
 		mutateSeqRecuresively(node, seqLength);
-		if (node->isLeaf()) saveSequence(node->id(), node->name());
+		if (_nodesToSave[node->id()]) saveSequence(node->id(), node->name());
 
 		// std::cout << "Node: " << currentNode->id() << "\n";
 		if (!_subManager.isEmpty(currentNode->id())) {
@@ -120,7 +131,7 @@ void rateMatrixSim::mutateSeqRecuresively(tree::nodeP currentNode, int seqLength
 
 void rateMatrixSim::mutateSeqAlongBranch(tree::nodeP currentNode, int seqLength) {
 	const MDOUBLE distToFather = currentNode->dis2father();
-	if (distToFather > 0.4) {
+	if (distToFather >10.0) {
 		mutateEntireSeq(currentNode, seqLength);
 	} else {
 		mutateSeqGillespie(currentNode, seqLength, distToFather);
@@ -133,7 +144,7 @@ void rateMatrixSim::mutateEntireSeq(tree::nodeP currentNode, int seqLength) {
 	const int parentId = currentNode->father()->id();
 
 	for (size_t site = 0; site < seqLength; ++site) {
-		ALPHACHAR parentChar = _subManager.getCharacter(parentId, site, _rootSequence);
+		ALPHACHAR parentChar = _rootSequence[site];//_subManager.getCharacter(parentId, site, _rootSequence);
 		ALPHACHAR nextChar = _cpijGam.getRandomChar(_rateCategories[site], nodeId, parentChar);
 		if (nextChar != parentChar){
 			_subManager.handleEvent(parentId, site, parentChar, _rateCategories, _sp.get(), _rootSequence);
@@ -163,7 +174,7 @@ void rateMatrixSim::mutateSeqGillespie(tree::nodeP currentNode, int seqLength, M
 		if (waitingTime < 0) errorMsg::reportError("waiting time is negative :(");
 
 		int mutatedSite = _siteSampler->drawSample() - 1;
-		ALPHACHAR parentChar = _subManager.getCharacter(parentId, mutatedSite, _rootSequence);
+		ALPHACHAR parentChar = _rootSequence[mutatedSite];//_subManager.getCharacter(parentId, mutatedSite, _rootSequence);
 		ALPHACHAR nextChar = _cpijGam.getRandomChar(_rateCategories[mutatedSite], nodeId, parentChar);
 		_subManager.handleEvent(parentId, mutatedSite, parentChar, _rateCategories, _sp.get(), _rootSequence);
 		if (currentNode->isLeaf()) {
@@ -213,7 +224,7 @@ void rateMatrixSim::saveSequence(const int &nodeId,const std::string &name) {
 
 
 
-std::unique_ptr<sequenceContainer> rateMatrixSim::toSeqDataWithoutInternalNodes() {
+std::unique_ptr<sequenceContainer> rateMatrixSim::getSequenceContainer() {
 	// std::unique_ptr<sequenceContainer> myseqData = std::make_unique<sequenceContainer>();
 	// // sequenceContainer myseqData;
 	// for (int i=0; i < _simulatedSequences.size(); ++i) {
@@ -225,5 +236,13 @@ std::unique_ptr<sequenceContainer> rateMatrixSim::toSeqDataWithoutInternalNodes(
 	_simulatedSequences = std::make_unique<sequenceContainer>();
 	// 	myseqData->add(*std::move(_simulatedSequences[i]));
 	// }
+
 	return std::move(outputSequences);
+}
+
+void rateMatrixSim::setNodesToSaves(std::vector<size_t> nodeIDs) {
+	std::fill(_nodesToSave.begin(), _nodesToSave.end(), false);
+	for(auto &nodeID: nodeIDs) {
+		_nodesToSave[nodeID] = true;
+	}
 }
