@@ -7,10 +7,10 @@
 
 // takes 10 minutes currently
 int main() {
-    tree tree_("../trees/normalbranches_nLeaves1000.treefile");
+    tree tree_("../trees/normalbranches_nLeaves10000.treefile");
     // tree tree_("(A:0.1,B:0.2);", false);
 
-    tree_.getRoot()->orderSonsByHeight();
+    // tree_.getRoot()->orderSonsByHeight();
     std::time_t t1 = 12;//std::time(0);
     // DiscreteDistribution::setSeed(t1);
     vector<DiscreteDistribution*> insertionDists(tree_.getNodesNum() - 1);
@@ -40,7 +40,8 @@ int main() {
     protocol.setInsertionRates(insertionRates);
     protocol.setDeletionRates(deletionRates);
 
-    protocol.setSequenceSize(30000);
+    int rootLength = 8000;
+    protocol.setSequenceSize(rootLength);
 
     protocol.setSaveAncestral(false);
 
@@ -56,6 +57,10 @@ int main() {
 
     std::cout << "finished all indel simulations\n";
     std::vector<MSA> msas = MSA::generateMSAs(blockmaps, tree_.getRoot());
+    int msaLength = msas[0].getMSAlength();
+
+    std::cout << "length of the MSA will be: " << msaLength << "\n";
+    // std::cin.get();
 
     modelFactory mFac(&tree_);
 
@@ -68,18 +73,31 @@ int main() {
     if (!mFac.isModelValid()) return 0;
 
     sim.initSubstitionSim(mFac);
-
-    int msaLength = msas[0].getMSAlength();
+    std::cout << "initializing subs sim" << "\n";
+    // std::cin.get();
+    
 
     // std::cout << "number of nodes to simulate: " << tree_.getNodesNum() - 1 << "\n";
-    std::cout << "length of the MSA will be: " << msaLength << "\n";
-    std::cin.get();
+    // auto seqContainer = sim.simulateSubstitutions(msaLength);
 
-    std::shared_ptr<sequenceContainer> seqContainer = sim.simulateSubstitutions(msaLength);
-    // q2pt::Pij_t error in function pijt...
-    msas[0].fillSubstitutions(seqContainer);
+    auto fullContainer = sim.simulateSubstitutions(msaLength);
+    // for (size_t i = 0; i < tree_.getLeavesNum(); i++)
+    // {
+    //    std::cout << i << "\n";
+    //    size_t nodeId = (*fullContainer).placeToId(i);
+    //    std::cout << (*fullContainer)[nodeId] << "\n";
+    // }
+    
+    
+    std::cout << "finished all substitutions" << "\n";
+    // std::cin.get();
 
-    msas[0].printFullMsa();
+
+    msas[0].fillSubstitutions(fullContainer);
+    std::cout << "filled MSA" << "\n";
+    // std::cin.get();
+
+    // msas[0].printFullMsa();
     // msas[0].writeFullMsa("/home/elyalab/fasta.fasta");
 
     // blockmaps.clear();

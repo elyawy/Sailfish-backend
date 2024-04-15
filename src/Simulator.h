@@ -167,11 +167,42 @@ private:
     }
 
     std::shared_ptr<sequenceContainer> simulateSubstitutions(size_t sequenceLength) {
-        _substitutionSim->generate_substitution_log(sequenceLength);
+        size_t chunkSize = 1024;
+        size_t numberOfChunks = (size_t)sequenceLength / chunkSize;
+        size_t remainder = sequenceLength % chunkSize; /* Likely uses the result of the division. */
+        // std::cout << "number of chunks: " << numberOfChunks << ", with remainder: " << remainder << "\n"; 
 
+        std::shared_ptr<sequenceContainer> fullSequence;
+        for (size_t i = 0; i < numberOfChunks; i++) {
+            // std::cout << i << "\n";
+            _substitutionSim->generate_substitution_log(chunkSize);
+            auto seqContainer = _substitutionSim->getSequenceContainer();
+            if (i == 0) {
+                fullSequence = std::move(seqContainer);
+                continue;
+            }
+            for (size_t j = 0; j < fullSequence->numberOfSeqs(); ++j) {
+                int idOfSeq = seqContainer->placeToId(j);
+                (*fullSequence)[idOfSeq] += (*seqContainer)[idOfSeq];
+            }
+        }
+        if (remainder == 0) return fullSequence;
 
-        std::shared_ptr<sequenceContainer> sharedSeqContainer = std::move(_substitutionSim->toSeqDataWithoutInternalNodes());
-        return sharedSeqContainer;
+        
+        _substitutionSim->generate_substitution_log(remainder);
+        auto seqContainer = _substitutionSim->getSequenceContainer();
+
+        if (fullSequence == nullptr) {
+            fullSequence = std::move(seqContainer);
+            return fullSequence;
+        }
+        for (size_t j = 0; j < fullSequence->numberOfSeqs(); ++j) {
+            int idOfSeq = seqContainer->placeToId(j);
+            (*fullSequence)[idOfSeq] += (*seqContainer)[idOfSeq];
+        }
+
+        return fullSequence;
+
     }
 
 

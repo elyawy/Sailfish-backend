@@ -8,11 +8,13 @@
 #include "../libs/Phylolib/includes/sequence.h"
 
 
+const unsigned char INVALID_CHAR = 255;
+
 
 class substitutionManager
 {
 private:
-    using changeMap = std::unordered_map<size_t, ALPHACHAR>;
+    using changeMap = std::vector<ALPHACHAR>;
     std::vector<std::unique_ptr<changeMap>> _substitutionVec;
     MDOUBLE _sumOfReactantsXRates;
     // size_t _changeCounter;
@@ -34,10 +36,17 @@ public:
 
     ALPHACHAR getCharacter(const int nodeId, const size_t position, const sequence &rootSeq) {
         if (_substitutionVec[nodeId] == nullptr) return rootSeq[position];
+        
+
         changeMap* currentChanges = (_substitutionVec[nodeId].get());
-        size_t isChanged = (*currentChanges).count(position);
-        ALPHACHAR returnChar =  isChanged ? (*currentChanges)[position] : rootSeq[position];
-        return returnChar;
+        // size_t isChanged = (*currentChanges).count(position);
+        // size_t isChanged = ((*currentChanges)[position] != INVALID_CHAR);
+        size_t isInvalid = ((*currentChanges)[position] == INVALID_CHAR);
+        if (isInvalid) return rootSeq[position];
+        return (*currentChanges)[position];
+
+        // ALPHACHAR returnChar =  isChanged ? (*currentChanges)[position] : rootSeq[position];
+        // return returnChar;
     }
 
     
@@ -48,7 +57,7 @@ public:
         // std::cout << "Change in node: " << nodeId << "\n";
         // std::cout << position << "->" << change << "\n";
         if (_substitutionVec[nodeId] == nullptr) {
-            _substitutionVec[nodeId] = std::make_unique<changeMap>();
+            _substitutionVec[nodeId] = std::make_unique<changeMap>(rootSeq.seqLen(), INVALID_CHAR);
         }
 
         ALPHACHAR previousChar = getCharacter(nodeId,position,rootSeq);
@@ -71,7 +80,8 @@ public:
         std::ofstream o(ss.str());
 
         for (auto &changes: *_substitutionVec[nodeId]) {
-            changeString << changes.first << "-" << changes.second << "\n";
+            // changeString << changes.first << "-" << changes.second << "\n";
+            changeString << changes << "\n";
         }
         o << changeString.str();
 
@@ -85,18 +95,31 @@ public:
         }
         auto nodeChangeMap = getChangeMap(fromNode);
 
-        for (auto &item: *nodeChangeMap) {
-            int currentSite = item.first;
+        // for (auto &item: *nodeChangeMap) {
+        //     int currentSite = item.first;
+        //     ALPHACHAR currentChar = rootSeq[currentSite];
+        //     ALPHACHAR restoredChar = item.second;
+
+        //     MDOUBLE oldFreq = sp->Qij(currentChar, currentChar);
+        //     MDOUBLE newFreq = sp->Qij(restoredChar, restoredChar);
+            
+        //     rootSeq[currentSite] = item.second;
+
+        //     updateReactantsSum(newFreq - oldFreq, sp->rates(rateCategories[currentSite]));
+	    // }
+        for (size_t currentSite; currentSite < rootSeq.seqLen(); ++currentSite) {
+            if ((*nodeChangeMap)[currentSite] == INVALID_CHAR) continue;
             ALPHACHAR currentChar = rootSeq[currentSite];
-            ALPHACHAR restoredChar = item.second;
+            ALPHACHAR restoredChar = (*nodeChangeMap)[currentSite];
 
             MDOUBLE oldFreq = sp->Qij(currentChar, currentChar);
             MDOUBLE newFreq = sp->Qij(restoredChar, restoredChar);
             
-            rootSeq[currentSite] = item.second;
+            rootSeq[currentSite] = restoredChar;
 
             updateReactantsSum(newFreq - oldFreq, sp->rates(rateCategories[currentSite]));
 	    }
+
 
     }
 
@@ -104,14 +127,14 @@ public:
 
     
 
-    ALPHACHAR getChange(const int nodeId, const size_t position) {
-        if ((_substitutionVec[nodeId] == nullptr)) {
-            errorMsg::reportError("Trying to reach removed pointer!");
-            return -1;
-        }
+    // ALPHACHAR getChange(const int nodeId, const size_t position) {
+    //     if ((_substitutionVec[nodeId] == nullptr)) {
+    //         errorMsg::reportError("Trying to reach removed pointer!");
+    //         return -1;
+    //     }
 
-        return (*_substitutionVec[nodeId])[position];
-    }
+    //     return (*_substitutionVec[nodeId])[position];
+    // }
 
     bool isEmpty(const int nodeId) {
 
@@ -132,11 +155,19 @@ public:
     void printSubManager() {
         std::cout << "printing subs...\n";
         for(auto &node: _substitutionVec) {
+            // for(auto &changes: *node){
+            //     std::cout << changes.first << "->" << changes.second << ", ";
+            // }
             for(auto &changes: *node){
-                std::cout << changes.first << "->" << changes.second << ", ";
+                std::cout << changes << ", ";
             }
+
             std::cout << "\n";
         }
+    }
+
+    void clear() {
+        _sumOfReactantsXRates = 0.0;
     }
 
 

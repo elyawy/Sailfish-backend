@@ -55,7 +55,7 @@ def time_me(func):
 
 for num_sequences in trees_map.keys():
     simulator = init_protocol(num_sequences)
-    msa = simulator.simulate()
+    msa = time_me(simulator.simulate)()
     process = psutil.Process()
     print(process.memory_info().rss / 1024**3)  # in bytes 
     # msa.write_msa(f"simulator_tests/msa_{num_sequences}.fasta") 
