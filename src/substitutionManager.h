@@ -167,6 +167,9 @@ public:
     }
 
     void clear() {
+        size_t containerSize = _substitutionVec.size();
+        _substitutionVec.clear();
+        _substitutionVec.resize(containerSize);
         _sumOfReactantsXRates = 0.0;
     }
 

@@ -28,6 +28,7 @@ public:
 	void setRng(mt19937_64 *rng);
 	// const mt19937_64& getRng();
 	void setNodesToSaves(std::vector<size_t> nodeIDs);
+	void setSaveRates(bool saveRates);
 
 	// int getSeed();
 
@@ -42,9 +43,12 @@ public:
 	// void generate_seqWithRateVectorNoStopCodon(const Vdouble& simRates, int seqLength);
 
 	tree* gettree() {return _et;}
+
+
 	virtual ~rateMatrixSim();
 	// sequenceContainer toSeqData();
 	std::unique_ptr<sequenceContainer> getSequenceContainer();
+	std::vector<double> getSiteRates() { return _siteRates;};
 	// void generate_rates_continuous_gamma(const int seqLength,const MDOUBLE alpha,Vdouble rates);
 	// MDOUBLE getAvgSub() {return _avgSubtitutionsPerSite;}
 	
@@ -54,9 +58,8 @@ private:
 	void mutateEntireSeq(tree::nodeP currentNode, int seqLength);
 	void mutateSeqGillespie(tree::nodeP currentNode, int seqLength, MDOUBLE distToParent);
 	void saveSequence(const int &nodeId,const std::string &name);
-
+	void initGillespieSampler();
 	void setSaveStateLeaves(const tree::nodeP &node);
-
 	// void resetSim();
 
 	tree* _et;
@@ -66,9 +69,13 @@ private:
 	sequence _rootSequence;
 	substitutionManager _subManager;
 	std::vector<bool> _nodesToSave;
+	bool _saveRates;
+	std::uniform_real_distribution<double> _biased_coin;
+	std::vector<std::unique_ptr<DiscreteDistribution>> _gillespieSampler;
 
 	// vector<MDOUBLE> _rateVec;
-	vector<size_t> _rateCategories;
+	std::vector<size_t> _rateCategories;
+	std::vector<double> _siteRates;
 	std::unique_ptr<sequenceContainer> _simulatedSequences; // the sequences (nodes * seqLen)
 	std::unique_ptr<DiscreteDistribution> _siteSampler;
 	std::unique_ptr<DiscreteDistribution> _frequencySampler;
