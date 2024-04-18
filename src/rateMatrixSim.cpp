@@ -21,7 +21,7 @@
 rateMatrixSim::rateMatrixSim(modelFactory& mFac) : 
 	_et(mFac.getTree()), _sp(mFac.getStochasticProcess()), _alph(mFac.getAlphabet()),
 	_cpijGam(), _rootSequence(mFac.getAlphabet()), _subManager(mFac.getTree()->getNodesNum()),
-	_nodesToSave(_et->getNodesNum(), false) {
+	_nodesToSave(_et->getNodesNum(), false), _saveRates(false), _biased_coin(0,1) {
 		// _et = mFac.getTree();
 		// _sp = mFac.getStochasticProcess();
 		// _alph = mFac.getAlphabet();
@@ -29,9 +29,8 @@ rateMatrixSim::rateMatrixSim(modelFactory& mFac) :
 
 		size_t alphaSize = _sp->alphabetSize();
 
-		// _cpijGam = computePijGam();
 		_cpijGam.fillPij(*_et, *_sp);
-		// _rootSequence = sequence(_alph);
+		initGillespieSampler();
 		
 
 		std::vector<MDOUBLE> rateProbs;
@@ -57,6 +56,26 @@ void rateMatrixSim::setSaveStateLeaves(const tree::nodeP &node) {
 	}
 }
 
+void rateMatrixSim::setSaveRates(bool saveRates) {
+	_saveRates = saveRates;
+}
+
+void rateMatrixSim::initGillespieSampler() {
+	_gillespieSampler.resize(_alph->size());
+	for (size_t i = 0; i < _alph->size(); ++i) {
+		std::vector<double> qRates(_alph->size(), 0.0);
+		double sum = -_sp->Qij(i,i);
+		double normalizer = 1.0 / sum;
+		for (size_t j = 0; j < _alph->size(); ++j) {
+			if (i==j) continue;
+			qRates[j] = _sp->Qij(i,j) * normalizer;
+			// std::cout << i << j << "->" << qRates[j] << ",";
+		}
+		// std::cout << "\n" << i << " " << sum << "\n";
+		_gillespieSampler[i] = std::make_unique<DiscreteDistribution>(qRates);
+	}
+}
+
 // simulateTree::simulateTree(const tree&  _inEt,
 // 						   const stochasticProcess& sp,
 // 						   const alphabet* alph) : _sp(sp) {
@@ -78,16 +97,13 @@ void rateMatrixSim::setRng(mt19937_64 *rng) {
 	_mt_rand = rng;
 }
 
+
 // const mt19937_64& rateMatrixSim::getRng(){
 // 	return *_mt_rand;
 // }
 
 
 void rateMatrixSim::generate_substitution_log(int seqLength) {
-	using nodeP = tree::nodeP;
-	// generateRootLog(seqLength);
-	// _rootSequence = sequence(_alph);
-
 	std::vector<MDOUBLE> ratesVec(seqLength);
 
 	// _rateVec.resize(seqLength);
@@ -99,6 +115,7 @@ void rateMatrixSim::generate_substitution_log(int seqLength) {
 		ratesVec[h] = _sp->rates(selectedRandomCategory);
 		sumOfRatesAcrossSites += ratesVec[h];
 	}
+	if (_saveRates) _siteRates.insert(_siteRates.end(), ratesVec.begin(), ratesVec.end());
 	MDOUBLE sumOfRatesNoramlizingFactor = 1.0 / sumOfRatesAcrossSites;
 
 	_siteSampler = std::make_unique<DiscreteDistribution>(ratesVec, sumOfRatesNoramlizingFactor);
@@ -131,7 +148,7 @@ void rateMatrixSim::mutateSeqRecuresively(tree::nodeP currentNode, int seqLength
 
 void rateMatrixSim::mutateSeqAlongBranch(tree::nodeP currentNode, int seqLength) {
 	const MDOUBLE distToFather = currentNode->dis2father();
-	if (distToFather >10.0) {
+	if (distToFather > 0.5) {
 		mutateEntireSeq(currentNode, seqLength);
 	} else {
 		mutateSeqGillespie(currentNode, seqLength, distToFather);
@@ -174,8 +191,12 @@ void rateMatrixSim::mutateSeqGillespie(tree::nodeP currentNode, int seqLength, M
 		if (waitingTime < 0) errorMsg::reportError("waiting time is negative :(");
 
 		int mutatedSite = _siteSampler->drawSample() - 1;
-		ALPHACHAR parentChar = _rootSequence[mutatedSite];//_subManager.getCharacter(parentId, mutatedSite, _rootSequence);
-		ALPHACHAR nextChar = _cpijGam.getRandomChar(_rateCategories[mutatedSite], nodeId, parentChar);
+		ALPHACHAR parentChar = _rootSequence[mutatedSite];
+		int charOffset = parentChar - _alph->size();
+		ALPHACHAR nextChar = _gillespieSampler[parentChar]->drawSample() - 1;
+
+		//_subManager.getCharacter(parentId, mutatedSite, _rootSequence);
+		// ALPHACHAR nextChar = _cpijGam.getRandomChar(_rateCategories[mutatedSite], nodeId, parentChar);
 		_subManager.handleEvent(parentId, mutatedSite, parentChar, _rateCategories, _sp.get(), _rootSequence);
 		if (currentNode->isLeaf()) {
 			_subManager.handleEvent(nodeId, mutatedSite, nextChar, _rateCategories, _sp.get(), _rootSequence);
@@ -188,6 +209,8 @@ void rateMatrixSim::mutateSeqGillespie(tree::nodeP currentNode, int seqLength, M
 
 	}
 }
+
+
 
 
 void rateMatrixSim::generateRootSeq(int seqLength) {	
@@ -208,10 +231,10 @@ void rateMatrixSim::generateRootSeq(int seqLength) {
 
 
 void rateMatrixSim::saveSequence(const int &nodeId,const std::string &name) {
-	std::unique_ptr<sequence> temp = std::make_unique<sequence>(_rootSequence);
-	temp->setName(name);
-	temp->setID(nodeId);
-	_simulatedSequences->add(*std::move(temp));
+	sequence temp(_rootSequence);
+	temp.setName(name);
+	temp.setID(nodeId);
+	_simulatedSequences->add(temp);
 }
 
 // sequenceContainer rateMatrixSim::toSeqData() {

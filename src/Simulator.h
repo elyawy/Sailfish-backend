@@ -21,7 +21,7 @@ private:
     std::uniform_real_distribution<double> _biased_coin;
     // std::uniform_int_distribution<int> _fair_die;
 
-    public:
+public:
     using BlockMap = std::map<std::string, BlockTree>;
     Simulator(SimulationProtocol* protocol): _protocol(protocol),
     _seed(protocol->getSeed()), _mt_rand(protocol->getSeed()),
@@ -166,6 +166,19 @@ private:
         _substitutionSim->setRng(&_mt_rand);
     }
 
+    std::vector<double> getSiteRates() {
+        std::vector<double> temp = _substitutionSim->getSiteRates();
+        _substitutionSim->clearRatesVec();
+        return temp;
+    }
+
+
+    void setSaveRates(bool saveRates) {
+        _substitutionSim->setSaveRates(saveRates);
+    }
+
+
+
     std::shared_ptr<sequenceContainer> simulateSubstitutions(size_t sequenceLength) {
         size_t chunkSize = 1024;
         size_t numberOfChunks = (size_t)sequenceLength / chunkSize;
@@ -200,6 +213,7 @@ private:
             int idOfSeq = seqContainer->placeToId(j);
             (*fullSequence)[idOfSeq] += (*seqContainer)[idOfSeq];
         }
+        
 
         return fullSequence;
 

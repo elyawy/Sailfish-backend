@@ -131,7 +131,9 @@ PYBIND11_MODULE(_Sailfish, m) {
         .def("gen_indels", &Simulator::generateSimulation)
         .def("run_sim", &Simulator::runSimulator)
         .def("init_substitution_sim", &Simulator::initSubstitionSim)
-        .def("gen_substitutions", &Simulator::simulateSubstitutions);
+        .def("gen_substitutions", &Simulator::simulateSubstitutions)
+        .def("save_site_rates", &Simulator::setSaveRates)
+        .def("get_site_rates", &Simulator::getSiteRates);
 
 
     py::class_<MSA>(m, "Msa")

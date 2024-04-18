@@ -7,7 +7,7 @@
 
 // takes 10 minutes currently
 int main() {
-    tree tree_("../trees/normalbranches_nLeaves10000.treefile");
+    tree tree_("../trees/normalbranches_nLeaves10.treefile");
     // tree tree_("(A:0.1,B:0.2);", false);
 
     // tree_.getRoot()->orderSonsByHeight();
@@ -27,8 +27,8 @@ int main() {
     vector<double> insertionRates(tree_.getNodesNum() - 1);
     vector<double> deletionRates(tree_.getNodesNum() - 1);
 
-    fill(insertionRates.begin(), insertionRates.end(), 0.03);
-    fill(deletionRates.begin(), deletionRates.end(), 0.09);
+    fill(insertionRates.begin(), insertionRates.end(), 0.0);
+    fill(deletionRates.begin(), deletionRates.end(), 0.0);
     // fill(insertionRates.begin(), insertionRates.end(), 0.01);
     // fill(deletionRates.begin(), deletionRates.end(), 0.01);
 
@@ -40,7 +40,7 @@ int main() {
     protocol.setInsertionRates(insertionRates);
     protocol.setDeletionRates(deletionRates);
 
-    int rootLength = 8000;
+    int rootLength = 1050;
     protocol.setSequenceSize(rootLength);
 
     protocol.setSaveAncestral(false);
@@ -68,19 +68,24 @@ int main() {
     mFac.setReplacementModel(modelCode::NUCJC);
     // mFac.setModelParameters({0.25,0.25,0.25,0.25,0.1});
 
-    mFac.setGammaParameters(1.0, 1); // TODO: ALLOW 1 CATEGORY!
+    mFac.setGammaParameters(1.0, 1000); // TODO: ALLOW 1 CATEGORY!
 
     if (!mFac.isModelValid()) return 0;
 
     sim.initSubstitionSim(mFac);
     std::cout << "initializing subs sim" << "\n";
-    // std::cin.get();
     
-
+    sim.setSaveRates(true);
     // std::cout << "number of nodes to simulate: " << tree_.getNodesNum() - 1 << "\n";
     // auto seqContainer = sim.simulateSubstitutions(msaLength);
 
+
     auto fullContainer = sim.simulateSubstitutions(msaLength);
+
+
+    std::vector<double> rates = sim.getSiteRates();
+    std::cout << rates << "\n";
+
     // for (size_t i = 0; i < tree_.getLeavesNum(); i++)
     // {
     //    std::cout << i << "\n";
@@ -95,9 +100,8 @@ int main() {
 
     msas[0].fillSubstitutions(fullContainer);
     std::cout << "filled MSA" << "\n";
-    // std::cin.get();
 
-    // msas[0].printFullMsa();
+    msas[0].printFullMsa();
     // msas[0].writeFullMsa("/home/elyalab/fasta.fasta");
 
     // blockmaps.clear();
