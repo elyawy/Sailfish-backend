@@ -29,7 +29,7 @@ public:
 	// const mt19937_64& getRng();
 	void setNodesToSaves(std::vector<size_t> nodeIDs);
 	void setSaveRates(bool saveRates);
-
+	void clearRatesVec() { _siteRates.clear();}
 	// int getSeed();
 
 	// This function generates the sequences not using the discrete gamma, but rather,

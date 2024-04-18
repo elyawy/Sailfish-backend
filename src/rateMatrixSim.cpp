@@ -104,10 +104,6 @@ void rateMatrixSim::setRng(mt19937_64 *rng) {
 
 
 void rateMatrixSim::generate_substitution_log(int seqLength) {
-	using nodeP = tree::nodeP;
-	// generateRootLog(seqLength);
-	// _rootSequence = sequence(_alph);
-
 	std::vector<MDOUBLE> ratesVec(seqLength);
 
 	// _rateVec.resize(seqLength);
@@ -152,7 +148,7 @@ void rateMatrixSim::mutateSeqRecuresively(tree::nodeP currentNode, int seqLength
 
 void rateMatrixSim::mutateSeqAlongBranch(tree::nodeP currentNode, int seqLength) {
 	const MDOUBLE distToFather = currentNode->dis2father();
-	if (distToFather >10.0) {
+	if (distToFather > 0.5) {
 		mutateEntireSeq(currentNode, seqLength);
 	} else {
 		mutateSeqGillespie(currentNode, seqLength, distToFather);
@@ -235,10 +231,10 @@ void rateMatrixSim::generateRootSeq(int seqLength) {
 
 
 void rateMatrixSim::saveSequence(const int &nodeId,const std::string &name) {
-	std::unique_ptr<sequence> temp = std::make_unique<sequence>(_rootSequence);
-	temp->setName(name);
-	temp->setID(nodeId);
-	_simulatedSequences->add(*std::move(temp));
+	sequence temp(_rootSequence);
+	temp.setName(name);
+	temp.setID(nodeId);
+	_simulatedSequences->add(temp);
 }
 
 // sequenceContainer rateMatrixSim::toSeqData() {

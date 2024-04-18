@@ -167,7 +167,9 @@ public:
     }
 
     std::vector<double> getSiteRates() {
-        return _substitutionSim->getSiteRates();
+        std::vector<double> temp = _substitutionSim->getSiteRates();
+        _substitutionSim->clearRatesVec();
+        return temp;
     }
 
 
@@ -181,7 +183,7 @@ public:
         size_t chunkSize = 1024;
         size_t numberOfChunks = (size_t)sequenceLength / chunkSize;
         size_t remainder = sequenceLength % chunkSize; /* Likely uses the result of the division. */
-        std::cout << "number of chunks: " << numberOfChunks << ", with remainder: " << remainder << "\n"; 
+        // std::cout << "number of chunks: " << numberOfChunks << ", with remainder: " << remainder << "\n"; 
 
         std::shared_ptr<sequenceContainer> fullSequence;
         for (size_t i = 0; i < numberOfChunks; i++) {

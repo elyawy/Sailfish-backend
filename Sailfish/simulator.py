@@ -500,7 +500,7 @@ class Simulator:
         return self._simulator.gen_substitutions(length)
     
     # @profile
-    def simulate(self, times: int = 1) -> List[Msa]:
+    def simulate(self, times: int = 1) -> List[Msa] | Msa:
         Msas = []
         for idx in range(times):
             blocktree = self.gen_indels()
@@ -513,3 +513,9 @@ class Simulator:
                 return msa
             Msas.append(msa)
         return Msas
+    
+    def save_rates(self, is_save: bool) -> None:
+        self._simulator.save_site_rates(is_save)
+    
+    def get_rates(self) -> List[float]:
+        return self._simulator.get_site_rates()
