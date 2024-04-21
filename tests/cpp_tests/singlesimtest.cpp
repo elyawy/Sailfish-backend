@@ -7,8 +7,8 @@
 
 // takes 10 minutes currently
 int main() {
-    tree tree_("../trees/normalbranches_nLeaves10.treefile");
-    // tree tree_("(A:0.1,B:0.2);", false);
+    // tree tree_("../trees/normalbranches_nLeaves10.treefile");
+    tree tree_("((A:0.1,B:0.2):0.3,C:0.4);", false);
 
     // tree_.getRoot()->orderSonsByHeight();
     std::time_t t1 = 12;//std::time(0);
@@ -27,10 +27,10 @@ int main() {
     vector<double> insertionRates(tree_.getNodesNum() - 1);
     vector<double> deletionRates(tree_.getNodesNum() - 1);
 
-    fill(insertionRates.begin(), insertionRates.end(), 0.0);
-    fill(deletionRates.begin(), deletionRates.end(), 0.0);
-    // fill(insertionRates.begin(), insertionRates.end(), 0.01);
-    // fill(deletionRates.begin(), deletionRates.end(), 0.01);
+    // fill(insertionRates.begin(), insertionRates.end(), 0.0);
+    // fill(deletionRates.begin(), deletionRates.end(), 0.0);
+    fill(insertionRates.begin(), insertionRates.end(), 0.05);
+    fill(deletionRates.begin(), deletionRates.end(), 0.05);
 
     SimulationProtocol protocol(&tree_);
 
@@ -40,7 +40,7 @@ int main() {
     protocol.setInsertionRates(insertionRates);
     protocol.setDeletionRates(deletionRates);
 
-    int rootLength = 1050;
+    int rootLength = 100;
     protocol.setSequenceSize(rootLength);
 
     protocol.setSaveAncestral(false);
@@ -50,12 +50,14 @@ int main() {
     Simulator sim(&protocol);
 
     // sim.initSimulator();
-    using BlockMap = std::map<std::string, BlockTree>;
-
 
     std::vector<BlockMap> blockmaps = sim.runSimulator(1);
 
-    std::cout << "finished all indel simulations\n";
+
+    auto rootblock = std::get<0>(blockmaps[0].at(3));
+
+
+
     std::vector<MSA> msas = MSA::generateMSAs(blockmaps, tree_.getRoot());
     int msaLength = msas[0].getMSAlength();
 
@@ -68,23 +70,18 @@ int main() {
     mFac.setReplacementModel(modelCode::NUCJC);
     // mFac.setModelParameters({0.25,0.25,0.25,0.25,0.1});
 
-    mFac.setGammaParameters(1.0, 1000); // TODO: ALLOW 1 CATEGORY!
+    mFac.setGammaParameters(1.0, 1); // TODO: ALLOW 1 CATEGORY!
 
     if (!mFac.isModelValid()) return 0;
 
     sim.initSubstitionSim(mFac);
     std::cout << "initializing subs sim" << "\n";
-    
-    sim.setSaveRates(true);
-    // std::cout << "number of nodes to simulate: " << tree_.getNodesNum() - 1 << "\n";
+        // std::cout << "number of nodes to simulate: " << tree_.getNodesNum() - 1 << "\n";
     // auto seqContainer = sim.simulateSubstitutions(msaLength);
 
 
     auto fullContainer = sim.simulateSubstitutions(msaLength);
 
-
-    std::vector<double> rates = sim.getSiteRates();
-    std::cout << rates << "\n";
 
     // for (size_t i = 0; i < tree_.getLeavesNum(); i++)
     // {
@@ -98,10 +95,10 @@ int main() {
     // std::cin.get();
 
 
-    msas[0].fillSubstitutions(fullContainer);
+    // msas[0].fillSubstitutions(fullContainer);
     std::cout << "filled MSA" << "\n";
 
-    msas[0].printFullMsa();
+    // msas[0].printFullMsa();
     // msas[0].writeFullMsa("/home/elyalab/fasta.fasta");
 
     // blockmaps.clear();

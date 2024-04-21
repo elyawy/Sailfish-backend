@@ -45,7 +45,7 @@ public:
         }
     }
 
-    void generateSequence (BlockTree &blockTree, Sequence &parentSeq) {
+    void generateSequence (const BlockList &blocklist, Sequence &parentSeq) {
 
         size_t position;
         size_t length;
@@ -55,10 +55,12 @@ public:
 
         // size_t positionInParentSeq = 0;
 
-        for (auto it = blockTree.begin(); it != blockTree.end(); ++it) {
-            position = (&it)->key();
-            length = (*it).length;
-            insertion = (*it).insertion;
+        for (auto it = blocklist.begin(); it != blocklist.end(); ++it) {
+            position = (*it)[static_cast<int>(BLOCK::POSITION)];//(&it)->key();
+            length = (*it)[static_cast<int>(BLOCK::LENGTH)];//(*it).length;
+            insertion = (*it)[static_cast<int>(BLOCK::INSERTION)];//(*it).insertion;
+
+            std::cout << "current Block is: " << position <<"|" << length << "|" << insertion << "\n";
 
             if (position==0 && length==1 && insertion==0) continue;
 
@@ -67,31 +69,39 @@ public:
             } else {
                 length--;
             }
+            std::cout << "a\n";
 
             for (size_t i = 0; i < length; i++) {
                 if (_isLeafSequence) {
                     _superSequence->referencePosition(parentSeq._sequence[position+i]);
                 } 
+                std::cout << "a1\n";
                 _sequence.push_back(parentSeq._sequence[position+i]);
             }
-            
+            std::cout << "b\n";
+
             auto superSeqIterator = parentSeq._sequence[position];
             if (!_sequence.empty()) {
                 superSeqIterator = parentSeq._sequence[position+length-1];
                 superSeqIterator++;
             }
             
+            std::cout << "c\n";
 
-            for (size_t i = 0; i < insertion; i++)
-            {
+            for (size_t i = 0; i < insertion; i++) {
+                std::cout << "c1\n";
                 superSeqIterator = _superSequence->insertItemAtPosition(superSeqIterator, randomPos, _isLeafSequence);
                 _sequence.push_back(superSeqIterator);
+                std::cout << "c2\n";
+
                 superSeqIterator++;
                 randomPos = _superSequence->incrementRandomSequencePosition();
-            }
-            
+                std::cout << "c3\n";
 
+            }
         }
+        std::cout << "d\n";
+
         if (_isLeafSequence) _superSequence->incrementLeafNum();
         parentSeq.decrementReference();
     }
