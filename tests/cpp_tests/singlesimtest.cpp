@@ -7,7 +7,7 @@
 
 // takes 10 minutes currently
 int main() {
-    tree tree_("../trees/normalbranches_nLeaves500000.treefile");
+    tree tree_("../trees/normalbranches_nLeaves100000.treefile");
     // tree tree_("((A:0.1,B:0.2):0.3,C:0.4);", false);
 
     // tree_.getRoot()->orderSonsByHeight();
@@ -40,7 +40,7 @@ int main() {
     protocol.setInsertionRates(insertionRates);
     protocol.setDeletionRates(deletionRates);
 
-    int rootLength = 30000;
+    int rootLength = 10000;
     protocol.setSequenceSize(rootLength);
 
     protocol.setSaveAncestral(false);
@@ -65,7 +65,7 @@ int main() {
     int msaLength = msas[0].getMSAlength();
 
     std::cout << "length of the MSA will be: " << msaLength << "\n";
-    // std::cin.get();
+    std::cin.get();
 
     modelFactory mFac(&tree_);
 
@@ -95,13 +95,13 @@ int main() {
     
     
     std::cout << "finished all substitutions" << "\n";
-    // std::cin.get();
+    std::cin.get();
 
 
     msas[0].fillSubstitutions(fullContainer);
     std::cout << "filled MSA" << "\n";
 
-    msas[0].printFullMsa();
+    // msas[0].printFullMsa();
     // msas[0].writeFullMsa("/home/elyalab/fasta.fasta");
 
     // blockmaps.clear();
