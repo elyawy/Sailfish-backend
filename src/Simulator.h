@@ -61,7 +61,7 @@ public:
         std::array<size_t, 3> rootBlock = {0,sequenceSize + 1, 0};
         rootBlockList.push_back(rootBlock);
         nodeToBlockMap[rootNode->id()] = std::make_tuple(rootBlockList, sequenceSize + 1);
-        generateIndelsRecursively(nodeToBlockMap, *rootNode, sequenceSize);
+        generateIndelsRecursively(nodeToBlockMap, *rootNode);
 
         // size_t nodePosition = 0;
         // while (!nodes.empty()) {
@@ -84,19 +84,18 @@ public:
         return nodeToBlockMap;
     }
 
-    void generateIndelsRecursively(BlockMap &blockmap,const tree::TreeNode &currentNode, size_t seqLength) {
-        size_t newSeqLength = seqLength;
-        if (!currentNode.isRoot()) {
-            auto blockTuple = simulateAlongBranch(seqLength, currentNode.dis2father(), currentNode.id());
-            blockmap[currentNode.id()] = blockTuple;
-            newSeqLength = std::get<static_cast<int>(BLOCKLIST::LENGTH)>(blockTuple);
-        }
+    void generateIndelsRecursively(BlockMap &blockmap,const tree::TreeNode &currentNode) {
         if (currentNode.isLeaf()) return;
-        
-        for(auto &node: currentNode.getSons()){
-            generateIndelsRecursively(blockmap, *node, newSeqLength);
-        }
+        auto blockTuple = blockmap.at(currentNode.id());
+        size_t seqLength = std::get<static_cast<int>(BLOCKLIST::LENGTH)>(blockTuple);
+        size_t correctedSeqLength = seqLength - 1;
 
+        for (size_t i = 0; i < currentNode.getNumberOfSons(); i++) {
+            tree::TreeNode* childNode =  currentNode.getSon(i);
+            auto newBlockTuple = simulateAlongBranch(correctedSeqLength, childNode->dis2father(), childNode->id());
+            blockmap[childNode->id()] = newBlockTuple;
+            generateIndelsRecursively(blockmap, *(currentNode.getSon(i)));
+        }
     }
 
 
@@ -173,8 +172,8 @@ public:
             waitingTime = distribution(_mt_rand);
 
         }
-        std::cout << blocks.length() << "\n";
-        std::cout << blocks.printTree() << "\n";
+        // std::cout << blocks.length() << "\n";
+        // std::cout << blocks.printTree() << "\n";
         
         return std::make_tuple(blocks.getBlockList(), blocks.length());
     }

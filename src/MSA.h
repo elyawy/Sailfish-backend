@@ -36,7 +36,7 @@ public:
 
     MSA (const BlockMap &blockmap,const tree::nodeP rootNode) {
         size_t sequenceSize = std::get<static_cast<int>(BLOCKLIST::LENGTH)>(blockmap.at(rootNode->id()))-1;
-        std::cout << sequenceSize << "\n";
+        // std::cout << sequenceSize << "\n";
 
         SuperSequence superSequence(sequenceSize, rootNode->getNumberLeaves());
         Sequence rootSequence(superSequence, rootNode->getNumberOfSons(), false);
@@ -52,18 +52,17 @@ public:
                              const BlockMap &blockmap,const tree::TreeNode &parrentNode,
                              SuperSequence &superSequence, Sequence &parentSequence) {
         if (parrentNode.isLeaf()) {
-            std::cout << "saved leaf\n";
             finalSequences.push_back(parentSequence);
             return;
         }
-        for(auto &node: parrentNode.getSons()) {
-            Sequence currentSequence(superSequence, node->getNumberOfSons(), node->isLeaf());
-            auto blocks = std::get<static_cast<int>(BLOCKLIST::BLOCKS)>(blockmap.at(node->id()));//simulateAlongBranch(sequences.top().size(), currentNode->dis2father(), nodePosition);
-            std::cout << "generating seq: " << node->id() << "\n";
+        for (size_t i = 0; i < parrentNode.getNumberOfSons(); i++) {
+            tree::TreeNode* childNode = parrentNode.getSon(i);
+            Sequence currentSequence(superSequence, childNode->getNumberOfSons(), childNode->isLeaf());
+            auto blocks = std::get<static_cast<int>(BLOCKLIST::BLOCKS)>(blockmap.at(childNode->id()));//simulateAlongBranch(sequences.top().size(), currentNode->dis2father(), nodePosition);
             currentSequence.generateSequence(blocks, parentSequence);
-            std::cout << "generated seq: " << node->id() << "\n";
-            buildMsaRecursively(finalSequences, blockmap, *node, superSequence, currentSequence);
+            buildMsaRecursively(finalSequences, blockmap, *childNode, superSequence, currentSequence);
         }
+        
     }
 
     void fillMSA(vector<Sequence> &sequences, SuperSequence &superSeq) {

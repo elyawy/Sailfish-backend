@@ -60,7 +60,7 @@ public:
             length = (*it)[static_cast<int>(BLOCK::LENGTH)];//(*it).length;
             insertion = (*it)[static_cast<int>(BLOCK::INSERTION)];//(*it).insertion;
 
-            std::cout << "current Block is: " << position <<"|" << length << "|" << insertion << "\n";
+            // std::cout << "current Block is: " << position <<"|" << length << "|" << insertion << "\n";
 
             if (position==0 && length==1 && insertion==0) continue;
 
@@ -69,16 +69,17 @@ public:
             } else {
                 length--;
             }
-            std::cout << "a\n";
+            // std::cout << "a\n";
 
             for (size_t i = 0; i < length; i++) {
                 if (_isLeafSequence) {
                     _superSequence->referencePosition(parentSeq._sequence[position+i]);
                 } 
-                std::cout << "a1\n";
+                // std::cout << "a1\n";
+                // std::cout << parentSeq._sequence.size() << "\n";
                 _sequence.push_back(parentSeq._sequence[position+i]);
             }
-            std::cout << "b\n";
+            // std::cout << "b\n";
 
             auto superSeqIterator = parentSeq._sequence[position];
             if (!_sequence.empty()) {
@@ -86,21 +87,21 @@ public:
                 superSeqIterator++;
             }
             
-            std::cout << "c\n";
+            // std::cout << "c\n";
 
             for (size_t i = 0; i < insertion; i++) {
-                std::cout << "c1\n";
+                // std::cout << "c1\n";
                 superSeqIterator = _superSequence->insertItemAtPosition(superSeqIterator, randomPos, _isLeafSequence);
                 _sequence.push_back(superSeqIterator);
-                std::cout << "c2\n";
+                // std::cout << "c2\n";
 
                 superSeqIterator++;
                 randomPos = _superSequence->incrementRandomSequencePosition();
-                std::cout << "c3\n";
+                // std::cout << "c3\n";
 
             }
         }
-        std::cout << "d\n";
+        // std::cout << "d\n";
 
         if (_isLeafSequence) _superSequence->incrementLeafNum();
         parentSeq.decrementReference();
