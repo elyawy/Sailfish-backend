@@ -38,20 +38,6 @@ public:
         }
     }
 
-    void referencePosition(SequenceType::iterator startPosition, SequenceType::iterator endPosition ) {
-        for(auto position = startPosition; position != endPosition; position++){
-            if (!(*position).isColumn) {
-                (*position).isColumn = true;
-                ++_leafSeqLength;
-            }
-        }
-        if (!(*endPosition).isColumn) {
-                (*endPosition).isColumn = true;
-                ++_leafSeqLength;
-        }
-
-    }
-
     void setAbsolutePositions() {
         size_t i = 0;
         for (auto &column: _sequence) {
