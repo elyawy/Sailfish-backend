@@ -209,6 +209,9 @@ class Tree:
     def get_num_nodes(self) -> int:
         return self._tree.num_nodes
 
+    def get_num_leaves(self) -> int:
+        return self._tree.root.num_leaves
+
     def _get_Sailfish_tree(self) -> _Sailfish.Tree:
         return self._tree
     
@@ -219,11 +222,13 @@ class SimProtocol:
     '''
     The simulator protocol, sets the different distribution, tree and root length.
     '''
-    def __init__(self, tree = None, 
+    def __init__(self, tree = None,
+                 root_seq_size: int = 100,
                  deletion_rate: float = 0.0, 
                  insertion_rate: float = 0.0,
                  deletion_dist: Distribution = ZipfDistribution(1.7, 50),
                  insertion_dist: Distribution = ZipfDistribution(1.7, 50),
+                 seed: int = 0,
         ):
         if isinstance(tree, Tree):
             self._tree = tree
@@ -234,8 +239,10 @@ class SimProtocol:
         
         self._num_branches = self._tree.get_num_nodes() - 1
         self._sim = _Sailfish.SimProtocol(self._tree._get_Sailfish_tree())
-        self._seed = 0
-        self._root_seq_size = 0
+        self.set_seed(seed)
+        self.set_sequence_size(root_seq_size)
+        self._is_deletion_rate_zero = not deletion_rate
+        self._is_insertion_rate_zero = not insertion_rate
         self.set_deletion_rates(deletion_rate=deletion_rate)
         self.set_insertion_rates(insertion_rate=insertion_rate)
         self.set_deletion_length_distributions(deletion_dist=deletion_dist)
@@ -270,10 +277,15 @@ class SimProtocol:
     def set_insertion_rates(self, insertion_rate: Optional[float] = None, insertion_rates: Optional[List[float]] = None) -> None:
         if insertion_rate is not None:
             self.insertion_rates = [insertion_rate] * self._num_branches
+            if insertion_rate:
+                self._is_insertion_rate_zero = False
         elif insertion_rates:
             if not len(insertion_rates) == self._num_branches:
                 raise ValueError(f"The length of the insertaion rates should be equal to the number of branches in the tree. The insertion_rates length is {len(insertion_rates)} and the number of branches is {self._num_branches}. You can pass a single value as insertion_rate which will be used for all branches.")
             self.insertion_rates = insertion_rates
+            for insertion_rate in insertion_rates:
+                if insertion_rate:
+                    self._is_insertion_rate_zero = False
         else:
             raise ValueError(f"please provide one of the following: insertion_rate (a single value used for all branches), or a insertion_rates (a list of values, each corresponding to a different branch)")
         
@@ -290,10 +302,15 @@ class SimProtocol:
     def set_deletion_rates(self, deletion_rate: Optional[float] = None, deletion_rates: Optional[List[float]] = None) -> None:
         if deletion_rate is not None:
             self.deletion_rates = [deletion_rate] * self._num_branches
+            if deletion_rate:
+                self._is_deletion_rate_zero = False
         elif deletion_rates:
             if not len(deletion_rates) == self._num_branches:
                 raise ValueError(f"The length of the deletion rates should be equal to the number of branches in the tree. The deletion_rates length is {len(deletion_rates)} and the number of branches is {self._num_branches}. You can pass a single value as deletion_rate which will be used for all branches.")
             self.deletion_rates = deletion_rates
+            for deletion_rate in deletion_rates:
+                if deletion_rate:
+                    self._is_deletion_rate_zero = False
         else:
             raise ValueError(f"please provide one of the following: deletion_rate (a single value used for all branches), or a deletion_rates (a list of values, each corresponding to a different branch)")
         
@@ -309,13 +326,10 @@ class SimProtocol:
     
     def set_insertion_length_distributions(self, insertion_dist: Optional[Distribution] = None, insertion_dists: Optional[List[Distribution]] = None) -> None:
         if insertion_dist:
-            insertion_dist.set_seed(self.get_seed())
             self.insertion_dists = [insertion_dist] * self._num_branches
         elif insertion_dists:
             if not len(insertion_dists) == self._num_branches:
                 raise ValueError(f"The length of the insertion dists should be equal to the number of branches in the tree. The insertion_dists length is {len(insertion_dists)} and the number of branches is {self._num_branches}. You can pass a single value as insertion_dist which will be used for all branches.")
-            for dist in insertion_dists:
-                dist.set_seed(self.get_seed())
             self.insertion_dists = insertion_dists
         else:
             raise ValueError(f"please provide one of the following: deletion_rate (a single value used for all branches), or a deletion_rates (a list of values, each corresponding to a different branch)")
@@ -332,13 +346,10 @@ class SimProtocol:
     
     def set_deletion_length_distributions(self, deletion_dist: Optional[Distribution] = None, deletion_dists: Optional[List[Distribution]] = None) -> None:
         if deletion_dist:
-            deletion_dist.set_seed(self.get_seed())
             self.deletion_dists = [deletion_dist] * self._num_branches
         elif deletion_dists:
             if not len(deletion_dists) == self._num_branches:
                 raise ValueError(f"The length of the deletion dists should be equal to the number of branches in the tree. The deletion_dists length is {len(deletion_dists)} and the number of branches is {self._num_branches}. You can pass a single value as deletion_dist which will be used for all branches.")
-            for dist in deletion_dists:
-                dist.set_seed(self.get_seed())
             self.deletion_dists = deletion_dists
         else:
             raise ValueError(f"please provide one of the following: deletion_rate (a single value used for all branches), or a deletion_rates (a list of values, each corresponding to a different branch)")
@@ -500,19 +511,24 @@ class Simulator:
         return self._simulator.gen_substitutions(length)
     
     # @profile
-    def simulate(self, times: int = 1) -> List[Msa] | Msa:
+    def simulate(self, times: int = 1) -> List[Msa]:
         Msas = []
-        for idx in range(times):
-            blocktree = self.gen_indels()
-            msa = Msa(blocktree._get_Sailfish_blocks(), self._simProtocol._get_root())
+        for _ in range(times):
+            if self._simProtocol._is_insertion_rate_zero and self._simProtocol._is_deletion_rate_zero:
+                msa = Msa(self._simProtocol.get_tree().get_num_leaves(), self._simProtocol.get_sequence_size())
+            else:
+                blocktree = self.gen_indels()
+                msa = Msa(blocktree._get_Sailfish_blocks(), self._simProtocol._get_root())
+
             # sim.init_substitution_sim(mFac)
             substitutions = self.gen_substitutions(msa.get_length())
             msa.fill_substitutions(substitutions)
 
-            if times == 1:
-                return msa
             Msas.append(msa)
         return Msas
+    
+    def __call__(self) -> Msa:
+        return self.simulate(1)[0]
     
     def save_rates(self, is_save: bool) -> None:
         self._simulator.save_site_rates(is_save)

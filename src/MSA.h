@@ -41,10 +41,13 @@ public:
         SuperSequence superSequence(sequenceSize, rootNode->getNumberLeaves());
         Sequence rootSequence(superSequence, rootNode->getNumberOfSons(), false);
         rootSequence.initSequence();
+        std::cout << "initialized root\n";
+        // std::cin.get();
 
         std::vector<Sequence> finalSequences;
         buildMsaRecursively(finalSequences, blockmap, *rootNode, superSequence, rootSequence);
         std::cout << "built scaffold MSA\n";
+
         std::cin.get();
         fillMSA(finalSequences, superSequence);
     }
@@ -112,7 +115,6 @@ public:
             totalSize = 0;
 			rowInMSA++;
         }
-
     };
 
 
@@ -120,11 +122,7 @@ public:
         _substitutions = _seqContainer;
     }
 
-
-	MSA(){
-		_numberOfSequences = 0;
-		_msaLength = 0;
-	};
+	MSA(size_t numSequences, size_t msaLength): _numberOfSequences(numSequences), _msaLength(msaLength) {};
 
 	MSA(const MSA &msa){
 		_numberOfSequences = msa._numberOfSequences;
@@ -161,7 +159,11 @@ public:
             // std::cout << id << "\n";
             msaString << ">" << _substitutions->name(id) << "\n";
             std::string currentSeq = (*_substitutions)[id].toString();
-
+            if (_alignedSequence.empty()) {
+                msaString << currentSeq;
+                msaString << "\n";
+                continue;
+            }
             // std::cout << currentSeq << "\n";
             for (size_t col = 0; col < _alignedSequence[row].size(); col++) {
                 int strSize = _alignedSequence[row][col];
@@ -206,13 +208,13 @@ public:
 	}
 
 private:
+	size_t _numberOfSequences; // NUMBER OF SEQUENCES IN THE MSA
+    size_t _msaLength; // Length of the MSA
+    std::shared_ptr<sequenceContainer> _substitutions;
 
 	SuperSequence* _originalAlignedSeqs; //The aligned sequences
 
-    std::shared_ptr<sequenceContainer> _substitutions;
 	std::vector<vector<int>> _alignedSequence;
-    size_t _msaLength; // Length of the MSA
-	size_t _numberOfSequences; // NUMBER OF SEQUENCES IN THE MSA
 
 };
 #endif

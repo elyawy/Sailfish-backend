@@ -35,7 +35,7 @@ PYBIND11_MODULE(_Sailfish, m) {
     py::class_<BlockTree>(m, "BlockTree")
         .def(py::init<int>())
         .def("print_tree", &BlockTree::printTree)
-        .def("block_list", &BlockTree::blockList);
+        .def("block_list", &BlockTree::getBlockList);
 
     py::enum_<event>(m, "event")
         .value("Insertion", event::INSERTION)
@@ -137,7 +137,8 @@ PYBIND11_MODULE(_Sailfish, m) {
 
 
     py::class_<MSA>(m, "Msa")
-        .def(py::init<std::map<std::string, BlockTree>&, tree::TreeNode*>())
+        .def(py::init<size_t, size_t>())
+        .def(py::init<BlockMap, tree::TreeNode*>())
         .def("generate_msas", &MSA::generateMSAs)
         .def("length", &MSA::getMSAlength)
         .def("num_sequences", &MSA::getNumberOfSequences)

@@ -19,21 +19,19 @@ class Sequence
 
 private:
     SuperSequence* _superSequence;
-    size_t _referenceCounter;
+    bool _isLeafSequence;
     SequenceType _sequence;
     // size_t _numLeaf;
-    bool _isLeafSequence;
 public:
 
     Sequence(SuperSequence& superSeq, size_t numReferences, bool isLeaf) : 
-        _superSequence(&superSeq), _referenceCounter(numReferences), _isLeafSequence(isLeaf) {}
+        _superSequence(&superSeq), _isLeafSequence(isLeaf) {}
 
     Sequence(const Sequence &seq) {
         for (size_t i = 0; i < seq._sequence.size(); i++) {
             _sequence.push_back(seq._sequence[i]);
         }
         _superSequence = seq._superSequence;
-        _referenceCounter = seq._referenceCounter;
     }
 
     void initSequence() {
@@ -104,7 +102,6 @@ public:
         // std::cout << "d\n";
 
         if (_isLeafSequence) _superSequence->incrementLeafNum();
-        parentSeq.decrementReference();
     }
 
     SuperSequence* getSuperSequence() {
@@ -153,22 +150,14 @@ public:
         return true;
     }
 
-    size_t getReferenceCount() {
-        return _referenceCounter;
-    }
 
-    void decrementReference() {
-        if (_referenceCounter == 0) return;
-        // std::cout << "decrementing reference counter " << _referenceCounter << "\n"; 
-        _referenceCounter--;
+    void clear() {
+        _sequence.clear();
     }
-
 
 
 
     ~Sequence() {
-        _sequence.clear();
-
     }
 };
 

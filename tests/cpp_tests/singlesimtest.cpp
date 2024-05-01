@@ -9,7 +9,6 @@
 int main() {
     tree tree_("../trees/normalbranches_nLeaves100000.treefile");
     // tree tree_("((A:0.1,B:0.2):0.3,C:0.4);", false);
-
     // tree_.getRoot()->orderSonsByHeight();
     std::time_t t1 = 12;//std::time(0);
     // DiscreteDistribution::setSeed(t1);
@@ -29,8 +28,8 @@ int main() {
 
     // fill(insertionRates.begin(), insertionRates.end(), 0.0);
     // fill(deletionRates.begin(), deletionRates.end(), 0.0);
-    fill(insertionRates.begin(), insertionRates.end(), 0.03);
-    fill(deletionRates.begin(), deletionRates.end(), 0.09);
+    fill(insertionRates.begin(), insertionRates.end(), 0.0);
+    fill(deletionRates.begin(), deletionRates.end(), 0.0);
 
     SimulationProtocol protocol(&tree_);
 
@@ -40,7 +39,7 @@ int main() {
     protocol.setInsertionRates(insertionRates);
     protocol.setDeletionRates(deletionRates);
 
-    int rootLength = 10000;
+    int rootLength = 1000;
     protocol.setSequenceSize(rootLength);
 
     protocol.setSaveAncestral(false);
@@ -50,7 +49,7 @@ int main() {
     Simulator sim(&protocol);
 
     // sim.initSimulator();
-
+    MSA msa(tree_.getLeavesNum(), rootLength);
     std::vector<BlockMap> blockmaps = sim.runSimulator(1);
     std::cout << "simulated Blocks\n";
 
@@ -59,10 +58,9 @@ int main() {
 
     // auto rootblock = std::get<0>(blockmaps[0].at(3));
 
-
-
-    std::vector<MSA> msas = MSA::generateMSAs(blockmaps, tree_.getRoot());
-    int msaLength = msas[0].getMSAlength();
+    std::vector<MSA> msas;
+    // std::vector<MSA> msas = MSA::generateMSAs(blockmaps, tree_.getRoot());
+    int msaLength = rootLength;//msas[0].getMSAlength();
 
     std::cout << "length of the MSA will be: " << msaLength << "\n";
     std::cin.get();
@@ -95,13 +93,13 @@ int main() {
     
     
     std::cout << "finished all substitutions" << "\n";
-    std::cin.get();
+    // std::cin.get();
 
 
-    msas[0].fillSubstitutions(fullContainer);
+    msa.fillSubstitutions(fullContainer);
     std::cout << "filled MSA" << "\n";
 
-    // msas[0].printFullMsa();
+    msa.printFullMsa();
     // msas[0].writeFullMsa("/home/elyalab/fasta.fasta");
 
     // blockmaps.clear();

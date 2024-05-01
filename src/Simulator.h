@@ -108,7 +108,6 @@ public:
 
         double insertionRate = _protocol->getInsertionRate(nodePosition);
         double deletionRate = _protocol->getDeletionRate(nodePosition);
-
         // std::cout << "insertionRate=" << insertionRate << "\n";
         // std::cout << "deletionRate=" << deletionRate << "\n";
 
