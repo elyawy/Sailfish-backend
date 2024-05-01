@@ -11,6 +11,7 @@
 #include "rateMatrixSim.h"
 #include "modelFactory.h"
 
+
 class Simulator
 {
 private:
@@ -22,7 +23,6 @@ private:
     // std::uniform_int_distribution<int> _fair_die;
 
 public:
-    using BlockMap = std::map<std::string, BlockTree>;
     Simulator(SimulationProtocol* protocol): _protocol(protocol),
     _seed(protocol->getSeed()), _mt_rand(protocol->getSeed()),
     _biased_coin(0,1) {
@@ -52,38 +52,54 @@ public:
         return msaPrecursors;
     }
 
-    std::map<std::string, BlockTree> generateSimulation() {
-        using nodeP = tree::nodeP;
-
+    BlockMap generateSimulation() {
         size_t sequenceSize = _protocol->getSequenceSize();
-        std::stack<nodeP> nodes;
-        nodes.push(_protocol->getTree()->getRoot());
-        nodeP currentNode = nodes.top();
+        tree::TreeNode *rootNode = _protocol->getTree()->getRoot();
 
         BlockMap nodeToBlockMap;
-        nodeToBlockMap[currentNode->name()] = BlockTree(sequenceSize);
-        size_t nodePosition = 0;
-        while (!nodes.empty()) {
-            nodes.pop();
-            if (!currentNode->isLeaf()) {
-                for (auto node: currentNode->getSons()) {
-                    nodes.push(node);
-                }
-            } else {
-                if (nodes.empty()) break;
-            }
-            currentNode = nodes.top();
-            sequenceSize = nodeToBlockMap[currentNode->father()->name()].length() - 1;
-            BlockTree blocks = simulateAlongBranch(sequenceSize, currentNode->dis2father(), nodePosition);
-            nodeToBlockMap[currentNode->name()] = blocks;
+        BlockList rootBlockList;
+        std::array<size_t, 3> rootBlock = {0,sequenceSize + 1, 0};
+        rootBlockList.push_back(rootBlock);
+        nodeToBlockMap[rootNode->id()] = std::make_tuple(rootBlockList, sequenceSize + 1);
+        generateIndelsRecursively(nodeToBlockMap, *rootNode);
 
-            ++nodePosition;
-        }
+        // size_t nodePosition = 0;
+        // while (!nodes.empty()) {
+        //     nodes.pop();
+        //     if (!currentNode->isLeaf()) {
+        //         for (auto node: currentNode->getSons()) {
+        //             nodes.push(node);
+        //         }
+        //     } else {
+        //         if (nodes.empty()) break;
+        //     }
+        //     currentNode = nodes.top();
+        //     sequenceSize = nodeToBlockMap[currentNode->father()->name()].length() - 1;
+        //     BlockTree blocks = simulateAlongBranch(sequenceSize, currentNode->dis2father(), nodePosition);
+        //     nodeToBlockMap[currentNode->name()] = blocks;
+
+        //     ++nodePosition;
+        // }
 
         return nodeToBlockMap;
     }
 
-    BlockTree simulateAlongBranch(size_t seqSize, double branchLength, size_t nodePosition) {
+    void generateIndelsRecursively(BlockMap &blockmap,const tree::TreeNode &currentNode) {
+        if (currentNode.isLeaf()) return;
+        auto blockTuple = blockmap.at(currentNode.id());
+        size_t seqLength = std::get<static_cast<int>(BLOCKLIST::LENGTH)>(blockTuple);
+        size_t correctedSeqLength = seqLength - 1;
+
+        for (size_t i = 0; i < currentNode.getNumberOfSons(); i++) {
+            tree::TreeNode* childNode =  currentNode.getSon(i);
+            auto newBlockTuple = simulateAlongBranch(correctedSeqLength, childNode->dis2father(), childNode->id());
+            blockmap[childNode->id()] = newBlockTuple;
+            generateIndelsRecursively(blockmap, *(currentNode.getSon(i)));
+        }
+    }
+
+
+    std::tuple<BlockList, size_t> simulateAlongBranch(size_t seqSize, double branchLength, size_t nodePosition) {
         size_t sequenceSize = seqSize;
 
         // std::cout << "sequenceSize=" << sequenceSize << "\n";
@@ -92,7 +108,6 @@ public:
 
         double insertionRate = _protocol->getInsertionRate(nodePosition);
         double deletionRate = _protocol->getDeletionRate(nodePosition);
-
         // std::cout << "insertionRate=" << insertionRate << "\n";
         // std::cout << "deletionRate=" << deletionRate << "\n";
 
@@ -156,8 +171,10 @@ public:
             waitingTime = distribution(_mt_rand);
 
         }
+        // std::cout << blocks.length() << "\n";
+        // std::cout << blocks.printTree() << "\n";
         
-        return blocks;
+        return std::make_tuple(blocks.getBlockList(), blocks.length());
     }
 
     void initSubstitionSim(modelFactory& mFac) {

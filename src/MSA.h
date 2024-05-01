@@ -21,11 +21,10 @@ class MSA
 {
 public:
 	using iteratorType = std::list<SuperSequence::columnContainer>::iterator;
-    using BlockMap = std::map<std::string, BlockTree>;
 
 	// MSA(const vector<string> & seqArray) : _originalAlignedSeqs(seqArray), _numberOfSequences(seqArray.size()) {};
 
-    static std::vector<MSA> generateMSAs(std::vector<BlockMap> &blockmaps, tree::nodeP rootNode) {
+    static std::vector<MSA> generateMSAs(const std::vector<BlockMap> &blockmaps, tree::nodeP rootNode) {
         std::vector<MSA> msas;
 
         for(auto &blockmap: blockmaps) {
@@ -35,43 +34,39 @@ public:
         return msas;
     }
 
-    MSA (BlockMap &blockmap, tree::nodeP rootNode) {
-        size_t sequenceSize = blockmap[rootNode->name()].length()-1;
-        std::stack<tree::nodeP> nodes;
-        nodes.push(rootNode);
-        tree::nodeP currentNode = nodes.top();
+    MSA (const BlockMap &blockmap,const tree::nodeP rootNode) {
+        size_t sequenceSize = std::get<static_cast<int>(BLOCKLIST::LENGTH)>(blockmap.at(rootNode->id()))-1;
+        // std::cout << sequenceSize << "\n";
 
         SuperSequence superSequence(sequenceSize, rootNode->getNumberLeaves());
-        Sequence rootSequence(superSequence, currentNode->getNumberOfSons(), false);
+        Sequence rootSequence(superSequence, rootNode->getNumberOfSons(), false);
         rootSequence.initSequence();
+        std::cout << "initialized root\n";
+        // std::cin.get();
 
-        std::stack<Sequence> sequences;
-        sequences.push(rootSequence);
         std::vector<Sequence> finalSequences;
+        buildMsaRecursively(finalSequences, blockmap, *rootNode, superSequence, rootSequence);
+        std::cout << "built scaffold MSA\n";
 
-        size_t nodePosition = 0;
-        while (!nodes.empty()) {
-            nodes.pop();
-            if (!currentNode->isLeaf()) {
-                for (auto node: currentNode->getSons()) {
-                    nodes.push(node);
-                }
-            } else {
-                finalSequences.push_back(sequences.top());
-                sequences.pop();
-                while (!sequences.empty() && sequences.top().getReferenceCount() == 0) sequences.pop();
-                if (nodes.empty()) break;
-            }
-            currentNode = nodes.top();
-            auto blocks = blockmap[currentNode->name()];//simulateAlongBranch(sequences.top().size(), currentNode->dis2father(), nodePosition);
-            Sequence currentSequence(superSequence, currentNode->getNumberOfSons(), currentNode->isLeaf());
-            currentSequence.generateSequence(blocks, sequences.top());
-            // std::cout << "block length " << blocks.length() - 1 << "\n";
-            sequences.push(currentSequence);
-
-            ++nodePosition;
-        }
+        std::cin.get();
         fillMSA(finalSequences, superSequence);
+    }
+
+    void buildMsaRecursively(std::vector<Sequence> &finalSequences,
+                             const BlockMap &blockmap,const tree::TreeNode &parrentNode,
+                             SuperSequence &superSequence, Sequence &parentSequence) {
+        if (parrentNode.isLeaf()) {
+            finalSequences.push_back(parentSequence);
+            return;
+        }
+        for (size_t i = 0; i < parrentNode.getNumberOfSons(); i++) {
+            tree::TreeNode* childNode = parrentNode.getSon(i);
+            Sequence currentSequence(superSequence, childNode->getNumberOfSons(), childNode->isLeaf());
+            auto blocks = std::get<static_cast<int>(BLOCKLIST::BLOCKS)>(blockmap.at(childNode->id()));//simulateAlongBranch(sequences.top().size(), currentNode->dis2father(), nodePosition);
+            currentSequence.generateSequence(blocks, parentSequence);
+            buildMsaRecursively(finalSequences, blockmap, *childNode, superSequence, currentSequence);
+        }
+        
     }
 
     void fillMSA(vector<Sequence> &sequences, SuperSequence &superSeq) {
@@ -120,7 +115,6 @@ public:
             totalSize = 0;
 			rowInMSA++;
         }
-
     };
 
 
@@ -128,11 +122,7 @@ public:
         _substitutions = _seqContainer;
     }
 
-
-	MSA(){
-		_numberOfSequences = 0;
-		_msaLength = 0;
-	};
+	MSA(size_t numSequences, size_t msaLength): _numberOfSequences(numSequences), _msaLength(msaLength) {};
 
 	MSA(const MSA &msa){
 		_numberOfSequences = msa._numberOfSequences;
@@ -169,7 +159,11 @@ public:
             // std::cout << id << "\n";
             msaString << ">" << _substitutions->name(id) << "\n";
             std::string currentSeq = (*_substitutions)[id].toString();
-
+            if (_alignedSequence.empty()) {
+                msaString << currentSeq;
+                msaString << "\n";
+                continue;
+            }
             // std::cout << currentSeq << "\n";
             for (size_t col = 0; col < _alignedSequence[row].size(); col++) {
                 int strSize = _alignedSequence[row][col];
@@ -214,13 +208,13 @@ public:
 	}
 
 private:
+	size_t _numberOfSequences; // NUMBER OF SEQUENCES IN THE MSA
+    size_t _msaLength; // Length of the MSA
+    std::shared_ptr<sequenceContainer> _substitutions;
 
 	SuperSequence* _originalAlignedSeqs; //The aligned sequences
 
-    std::shared_ptr<sequenceContainer> _substitutions;
 	std::vector<vector<int>> _alignedSequence;
-    size_t _msaLength; // Length of the MSA
-	size_t _numberOfSequences; // NUMBER OF SEQUENCES IN THE MSA
 
 };
 #endif

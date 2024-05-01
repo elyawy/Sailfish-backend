@@ -5,11 +5,25 @@
 
 #include "AvlTree.h"
 
+typedef std::unordered_map<size_t, std::tuple<BlockList, size_t>> BlockMap;
+
+
+enum class BLOCK {
+  POSITION = 0,
+  LENGTH = 1,
+  INSERTION = 2
+};
+
+enum class BLOCKLIST {
+    BLOCKS = 0,
+    LENGTH = 1
+};
+
 class BlockTree
 {
 private:
  // consider creating different sized avl_arrays to reduce ram usage.
-  using TreeType = avl_array<int, std::uint32_t, 100000U, true>;
+  using TreeType = avl_array<std::uint32_t, std::uint32_t, 1000000U, true>;
   std::shared_ptr<TreeType> _avlTree;
 public:
   BlockTree(int first_block_size) {
@@ -28,7 +42,7 @@ public:
     return _avlTree->print_avl();
   }
 
-  std::vector<std::tuple<int, int, int>> blockList () {
+  BlockList getBlockList () {
     return _avlTree->get_blocklist();
   }
 

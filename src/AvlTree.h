@@ -52,6 +52,9 @@ struct Block {
     size_t insertion;
 };
 
+typedef std::vector<std::array<size_t, 3>> BlockList;
+
+
 enum event {
   INSERTION,
   DELETION
@@ -1189,10 +1192,12 @@ bool handle_event(event ev, size_t event_position, size_t event_size) {
 }
 
 
-std::vector<std::tuple<int, int, int>> get_blocklist() {
-    std::vector<std::tuple<int, int, int>> blocklist;
+
+BlockList get_blocklist() {
+    BlockList blocklist;
     for (auto it = this->begin(); it != this->end(); ++it) {
-        std::tuple<int, int, int> current_block ((&it)->key(), (*it).length, (*it).insertion);
+        std::array<size_t,3> current_block =  {(&it)->key(), (*it).length, (*it).insertion};
+        // std::tuple<int, int, int> current_block ((&it)->key(), (*it).length, (*it).insertion);
         blocklist.push_back(current_block);
     }
     return blocklist;
