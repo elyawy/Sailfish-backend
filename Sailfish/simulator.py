@@ -164,7 +164,7 @@ class BlockTreePython:
     def __init__(self, branch_block_dict: Dict[str, _Sailfish.Block]):
         self._branch_block_dict = branch_block_dict
         # dictionary of {str: List of blocks}
-        self._branch_block_dict_python = {i: x.block_list() for i, x in branch_block_dict.items()}
+        self._branch_block_dict_python = {i: x for i, x in branch_block_dict.items()}
     
     def _get_Sailfish_blocks(self) -> Dict[str, _Sailfish.Block]:
         return self._branch_block_dict
