@@ -41,14 +41,11 @@ public:
         SuperSequence superSequence(sequenceSize, rootNode->getNumberLeaves());
         Sequence rootSequence(superSequence, rootNode->getNumberOfSons(), false);
         rootSequence.initSequence();
-        std::cout << "initialized root\n";
         // std::cin.get();
 
         std::vector<Sequence> finalSequences;
         buildMsaRecursively(finalSequences, blockmap, *rootNode, superSequence, rootSequence);
-        std::cout << "built scaffold MSA\n";
 
-        std::cin.get();
         fillMSA(finalSequences, superSequence);
     }
 
