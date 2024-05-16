@@ -192,11 +192,8 @@ void rateMatrixSim::mutateSeqGillespie(tree::nodeP currentNode, int seqLength, M
 
 		int mutatedSite = _siteSampler->drawSample() - 1;
 		ALPHACHAR parentChar = _rootSequence[mutatedSite];
-		int charOffset = parentChar - _alph->size();
 		ALPHACHAR nextChar = _gillespieSampler[parentChar]->drawSample() - 1;
 
-		//_subManager.getCharacter(parentId, mutatedSite, _rootSequence);
-		// ALPHACHAR nextChar = _cpijGam.getRandomChar(_rateCategories[mutatedSite], nodeId, parentChar);
 		_subManager.handleEvent(parentId, mutatedSite, parentChar, _rateCategories, _sp.get(), _rootSequence);
 		if (currentNode->isLeaf()) {
 			_subManager.handleEvent(nodeId, mutatedSite, nextChar, _rateCategories, _sp.get(), _rootSequence);
@@ -221,7 +218,7 @@ void rateMatrixSim::generateRootSeq(int seqLength) {
 		size_t rateCategory = _rateCategories[i];
 		if(qii > 0) errorMsg::reportError("Qii is positive!");
 		if(rateCategory < 0) errorMsg::reportError("rate category is negative!");
-		_subManager.updateReactantsSum((_sp->Qij(newChar, newChar)),_sp->rates(rateCategory));
+		_subManager.updateReactantsSum(qii, _sp->rates(rateCategory));
      }
 
 	_rootSequence.setAlphabet(_alph);
