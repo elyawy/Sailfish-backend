@@ -27,6 +27,7 @@ public:
 
     void updateReactantsSum(MDOUBLE Qii, MDOUBLE siteRate) {
         _sumOfReactantsXRates += (-Qii*siteRate);
+        if (_sumOfReactantsXRates < 0) _sumOfReactantsXRates = 0.0;
     }
 
     MDOUBLE getReactantsSum() {
@@ -64,7 +65,9 @@ public:
 
         MDOUBLE previousQii = sp->Qij(previousChar, previousChar);
 		MDOUBLE newQii = sp->Qij(change, change);
-		updateReactantsSum(newQii - previousQii, sp->rates(rateCategories[position]));
+		updateReactantsSum(-previousQii, sp->rates(rateCategories[position]));
+        updateReactantsSum(newQii, sp->rates(rateCategories[position]));
+
 
         (*_substitutionVec[nodeId])[position] = change;
         rootSeq[position] = change;
@@ -95,18 +98,7 @@ public:
         }
         auto nodeChangeMap = getChangeMap(fromNode);
 
-        // for (auto &item: *nodeChangeMap) {
-        //     int currentSite = item.first;
-        //     ALPHACHAR currentChar = rootSeq[currentSite];
-        //     ALPHACHAR restoredChar = item.second;
 
-        //     MDOUBLE oldFreq = sp->Qij(currentChar, currentChar);
-        //     MDOUBLE newFreq = sp->Qij(restoredChar, restoredChar);
-            
-        //     rootSeq[currentSite] = item.second;
-
-        //     updateReactantsSum(newFreq - oldFreq, sp->rates(rateCategories[currentSite]));
-	    // }
         for (size_t currentSite; currentSite < rootSeq.seqLen(); ++currentSite) {
             if ((*nodeChangeMap)[currentSite] == INVALID_CHAR) continue;
             ALPHACHAR currentChar = rootSeq[currentSite];
@@ -117,7 +109,9 @@ public:
             
             rootSeq[currentSite] = restoredChar;
 
-            updateReactantsSum(newFreq - oldFreq, sp->rates(rateCategories[currentSite]));
+            updateReactantsSum(-oldFreq, sp->rates(rateCategories[currentSite]));
+            updateReactantsSum(newFreq, sp->rates(rateCategories[currentSite]));
+
 	    }
 
 
