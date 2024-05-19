@@ -60,6 +60,7 @@ private:
 	void saveSequence(const int &nodeId,const std::string &name);
 	void initGillespieSampler();
 	void setSaveStateLeaves(const tree::nodeP &node);
+	bool testSumOfRates();
 	// void resetSim();
 
 	tree* _et;

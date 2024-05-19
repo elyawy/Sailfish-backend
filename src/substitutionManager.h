@@ -26,8 +26,7 @@ public:
     }
 
     void updateReactantsSum(MDOUBLE Qii, MDOUBLE siteRate) {
-        _sumOfReactantsXRates += (-Qii*siteRate);
-        if (_sumOfReactantsXRates < 0) _sumOfReactantsXRates = 0.0;
+        _sumOfReactantsXRates += Qii*siteRate;
     }
 
     MDOUBLE getReactantsSum() {
@@ -38,25 +37,35 @@ public:
     ALPHACHAR getCharacter(const int nodeId, const size_t position, const sequence &rootSeq) {
         if (_substitutionVec[nodeId] == nullptr) return rootSeq[position];
         
-
         changeMap* currentChanges = (_substitutionVec[nodeId].get());
-        // size_t isChanged = (*currentChanges).count(position);
-        // size_t isChanged = ((*currentChanges)[position] != INVALID_CHAR);
         size_t isInvalid = ((*currentChanges)[position] == INVALID_CHAR);
         if (isInvalid) return rootSeq[position];
         return (*currentChanges)[position];
-
-        // ALPHACHAR returnChar =  isChanged ? (*currentChanges)[position] : rootSeq[position];
-        // return returnChar;
     }
 
-    
+    void handleRootSequence(size_t sequenceLength,
+                            const vector<size_t> &rateCategories, 
+                            const stochasticProcess *sp,
+                            sequence &rootSeq) {
+        _substitutionVec[0] = std::make_unique<changeMap>(sequenceLength, INVALID_CHAR);
+        for (size_t site = 0; site < sequenceLength; site++) {
+            ALPHACHAR currentChar = rootSeq[site];
+            size_t rateCategory = rateCategories[site];
+		    MDOUBLE qii = sp->Qij(currentChar, currentChar);
+            if(qii > 0) errorMsg::reportError("Qii is positive!");
+		    if(rateCategory < 0) errorMsg::reportError("rate category is negative!");
+
+            (*_substitutionVec[0])[site] = currentChar;
+            updateReactantsSum(qii, sp->rates(rateCategory));
+        }
+        
+    }
 
     void handleEvent(const int nodeId, const size_t position, const ALPHACHAR change,
                      const vector<size_t> &rateCategories, const stochasticProcess *sp,
                     sequence &rootSeq) {
-        // std::cout << "Change in node: " << nodeId << "\n";
-        // std::cout << position << "->" << change << "\n";
+        // std::cout << "Change in node=" << nodeId << " in position=" << position << "\n";
+
         if (_substitutionVec[nodeId] == nullptr) {
             _substitutionVec[nodeId] = std::make_unique<changeMap>(rootSeq.seqLen(), INVALID_CHAR);
         }
@@ -97,10 +106,11 @@ public:
             errorMsg::reportError("Trying to reach removed pointer!");
         }
         auto nodeChangeMap = getChangeMap(fromNode);
-
+        // std::cout << "Recovering subs from node=" << fromNode << "\n";
 
         for (size_t currentSite; currentSite < rootSeq.seqLen(); ++currentSite) {
             if ((*nodeChangeMap)[currentSite] == INVALID_CHAR) continue;
+
             ALPHACHAR currentChar = rootSeq[currentSite];
             ALPHACHAR restoredChar = (*nodeChangeMap)[currentSite];
 
@@ -117,18 +127,6 @@ public:
 
     }
 
-
-
-    
-
-    // ALPHACHAR getChange(const int nodeId, const size_t position) {
-    //     if ((_substitutionVec[nodeId] == nullptr)) {
-    //         errorMsg::reportError("Trying to reach removed pointer!");
-    //         return -1;
-    //     }
-
-    //     return (*_substitutionVec[nodeId])[position];
-    // }
 
     bool isEmpty(const int nodeId) {
 
@@ -149,9 +147,6 @@ public:
     void printSubManager() {
         std::cout << "printing subs...\n";
         for(auto &node: _substitutionVec) {
-            // for(auto &changes: *node){
-            //     std::cout << changes.first << "->" << changes.second << ", ";
-            // }
             for(auto &changes: *node){
                 std::cout << changes << ", ";
             }
