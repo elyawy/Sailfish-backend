@@ -7,11 +7,9 @@
 
 // takes 10 minutes currently
 int main() {
-    tree tree_("../trees/normalbranches_nLeaves10.treefile");
-    // tree tree_("((A:0.1,B:0.2):0.3,C:0.4);", false);
-    // tree_.getRoot()->orderSonsByHeight();
-    std::time_t t1 = 123;//std::time(0);
-    // DiscreteDistribution::setSeed(t1);
+    // tree tree_("../trees/normalbranches_nLeaves10.treefile");
+    tree tree_("(A:0.5,B:0.5);", false);
+    std::time_t t1 = 16;//std::time(0);
     vector<DiscreteDistribution*> insertionDists(tree_.getNodesNum() - 1);
     vector<DiscreteDistribution*> deletionDists(tree_.getNodesNum() - 1);
 
@@ -37,7 +35,7 @@ int main() {
     protocol.setInsertionRates(insertionRates);
     protocol.setDeletionRates(deletionRates);
 
-    int rootLength = 100;
+    int rootLength = 1000;
     protocol.setSequenceSize(rootLength);
 
     protocol.setSaveAncestral(false);
@@ -56,7 +54,7 @@ int main() {
 
 
     size_t counter = 0;
-    while (counter++ < 10) {
+    while (counter++ < 1000) {
         auto blockmap = sim.generateSimulation();
 
         auto msa = MSA(blockmap, tree_.getRoot());

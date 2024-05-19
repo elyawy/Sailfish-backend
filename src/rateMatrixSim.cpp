@@ -106,7 +106,6 @@ void rateMatrixSim::setRng(mt19937_64 *rng) {
 void rateMatrixSim::generate_substitution_log(int seqLength) {
 	std::vector<MDOUBLE> ratesVec(seqLength);
 
-	// _rateVec.resize(seqLength);
 	MDOUBLE sumOfRatesAcrossSites = 0.0;
 	_rateCategories.resize(seqLength);
 	for (int h = 0; h < seqLength; h++)  {
@@ -119,17 +118,13 @@ void rateMatrixSim::generate_substitution_log(int seqLength) {
 	MDOUBLE sumOfRatesNoramlizingFactor = 1.0 / sumOfRatesAcrossSites;
 
 	_siteSampler = std::make_unique<DiscreteDistribution>(ratesVec, sumOfRatesNoramlizingFactor);
-	// _siteSampler->setSeed(_seed);
 
 	_rootSequence.resize(seqLength);
 	generateRootSeq(seqLength);
-	// std::cout << "starting subs simulation\n";
-	// std::cin.get();
 	if (_nodesToSave[_et->getRoot()->id()]) saveSequence(_et->getRoot()->id(), _et->getRoot()->name());
 
 	mutateSeqRecuresively(_et->getRoot(), seqLength);
 	_subManager.clear();
-	// _subManager.printSubManager();
 }
 
 void rateMatrixSim::mutateSeqRecuresively(tree::nodeP currentNode, int seqLength) {
@@ -153,6 +148,7 @@ void rateMatrixSim::mutateSeqAlongBranch(tree::nodeP currentNode, int seqLength)
 	} else {
 		mutateSeqGillespie(currentNode, seqLength, distToFather);
 	}
+	// testSumOfRates();
 }
 
 
@@ -164,10 +160,7 @@ void rateMatrixSim::mutateEntireSeq(tree::nodeP currentNode, int seqLength) {
 		ALPHACHAR parentChar = _rootSequence[site];//_subManager.getCharacter(parentId, site, _rootSequence);
 		ALPHACHAR nextChar = _cpijGam.getRandomChar(_rateCategories[site], nodeId, parentChar);
 		if (nextChar != parentChar){
-			_subManager.handleEvent(parentId, site, parentChar, _rateCategories, _sp.get(), _rootSequence);
-			if (currentNode->isLeaf()) {
-				_subManager.handleEvent(nodeId, site, nextChar, _rateCategories, _sp.get(), _rootSequence);
-			}
+			_subManager.handleEvent(nodeId, site, nextChar, _rateCategories, _sp.get(), _rootSequence);
 		}
 	}
 }
@@ -181,27 +174,27 @@ void rateMatrixSim::mutateSeqGillespie(tree::nodeP currentNode, int seqLength, M
 	MDOUBLE branchLength = distToParent;
 
 	double lambdaParam = _subManager.getReactantsSum();
-	std::exponential_distribution<double> distribution(lambdaParam);
+	std::exponential_distribution<double> distribution(-lambdaParam);
 	double waitingTime = distribution(*_mt_rand);
 	if (waitingTime < 0) {
 		std::cout << branchLength << " " << lambdaParam << " " << waitingTime << "\n";
 		errorMsg::reportError("waiting time is negative :(");
 	}
 	while (waitingTime < branchLength) {
-		if (waitingTime < 0) errorMsg::reportError("waiting time is negative :(");
+		if (waitingTime < 0) {
+			std::cout << branchLength << " " << lambdaParam << " " << waitingTime << "\n";
+			errorMsg::reportError("waiting time is negative :(");
+		}
 
 		int mutatedSite = _siteSampler->drawSample() - 1;
 		ALPHACHAR parentChar = _rootSequence[mutatedSite];
 		ALPHACHAR nextChar = _gillespieSampler[parentChar]->drawSample() - 1;
-
-		_subManager.handleEvent(parentId, mutatedSite, parentChar, _rateCategories, _sp.get(), _rootSequence);
-		if (currentNode->isLeaf()) {
-			_subManager.handleEvent(nodeId, mutatedSite, nextChar, _rateCategories, _sp.get(), _rootSequence);
-		}
+		// std::cout << (int)parentChar << "->" << (int)nextChar << "\n";
+		_subManager.handleEvent(nodeId, mutatedSite, nextChar, _rateCategories, _sp.get(), _rootSequence);
 
 		lambdaParam = _subManager.getReactantsSum();
 		branchLength = branchLength - waitingTime;
-		std::exponential_distribution<double> distribution(lambdaParam);
+		std::exponential_distribution<double> distribution(-lambdaParam);
 		waitingTime = distribution(*_mt_rand);
 
 	}
@@ -210,16 +203,15 @@ void rateMatrixSim::mutateSeqGillespie(tree::nodeP currentNode, int seqLength, M
 
 
 
-void rateMatrixSim::generateRootSeq(int seqLength) {	
+void rateMatrixSim::generateRootSeq(int seqLength) {
+	size_t rootID = _et->getRoot()->id();
 	for (int i = 0; i < seqLength; i++) {
 		ALPHACHAR newChar = _frequencySampler->drawSample() - 1;
 		_rootSequence[i] =  newChar;
-		MDOUBLE qii = _sp->Qij(newChar, newChar);
-		size_t rateCategory = _rateCategories[i];
-		if(qii > 0) errorMsg::reportError("Qii is positive!");
-		if(rateCategory < 0) errorMsg::reportError("rate category is negative!");
-		_subManager.updateReactantsSum(qii, _sp->rates(rateCategory));
      }
+	// std::cout << ">Root-sequence\n" << _rootSequence  <<  "\n";
+	_subManager.handleRootSequence(seqLength, _rateCategories, _sp.get(), _rootSequence);
+
 
 	_rootSequence.setAlphabet(_alph);
 	_rootSequence.setName(_et->getRoot()->name());
@@ -265,4 +257,24 @@ void rateMatrixSim::setNodesToSaves(std::vector<size_t> nodeIDs) {
 	for(auto &nodeID: nodeIDs) {
 		_nodesToSave[nodeID] = true;
 	}
+}
+
+bool rateMatrixSim::testSumOfRates() {
+	MDOUBLE sumOfRates = 0.0;
+	for (size_t i = 0; i < _rootSequence.seqLen(); i++) {
+		ALPHACHAR currentChar = _rootSequence[i];
+		MDOUBLE currentQii = _sp->Qij(currentChar, currentChar);
+		MDOUBLE currentRate = _sp->rates(_rateCategories[i]);
+		sumOfRates += (currentQii*currentRate);
+	}
+	MDOUBLE preCalculatedSum = _subManager.getReactantsSum();
+	if (abs(preCalculatedSum - sumOfRates) > 1e-6) {
+		std::cout << "preCalculatedSum=" << preCalculatedSum << " "
+				  << "sumOfRates=" << sumOfRates;
+		errorMsg::reportError("Error in sum of rates calculation!");
+	}
+	std::cout << "preCalculatedSum is correct\n" << "preCalculatedSum=" << preCalculatedSum << " "
+				  << "sumOfRates=" << sumOfRates << "\n";
+
+	return true;
 }
