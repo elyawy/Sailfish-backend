@@ -8,7 +8,7 @@ from datetime import datetime
 
 now = datetime.datetime.now()
 
-__version__ = f"{now.year}.{now.month}.{now.day}.{now.hour}.{now.minute}"
+__version__ = f"{now.year}.{now.month}.{now.day}{now.hour}{now.minute}"
 
 # The main interface is through Pybind11Extension.
 # * You can add cxx_std=11/14/17, and then build_ext can be removed.
