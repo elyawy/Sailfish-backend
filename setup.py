@@ -38,11 +38,11 @@ ext_modules = [
 
 
 setup(
-    name="Sailfish",
+    name="msasim",
     version=__version__,
     author="Elya Wygoda",
     author_email="elya.wygoda@gmail.com",
-    url="https://github.com/elyawy/Sailfish",
+    url="https://github.com/elyawy/Sailfish-backend",
     description="A fast MSA simulator",
     long_description="Sailfish is a performant multiple sequence alignment simulator, written in C++, allowing fast generation of large simualted datasets.",
     ext_modules=ext_modules,
