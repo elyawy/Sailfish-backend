@@ -44,7 +44,7 @@ setup(
     author_email="elya.wygoda@gmail.com",
     url="https://github.com/elyawy/Sailfish",
     description="A fast MSA simulator",
-    long_description="",
+    long_description="Sailfish is a performant multiple sequence alignment simulator, written in C++, allowing fast generation of large simualted datasets.",
     ext_modules=ext_modules,
     extras_require={"test": "pytest"},
     cmdclass={"build_ext": build_ext},
