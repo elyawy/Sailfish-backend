@@ -6,7 +6,7 @@ from setuptools import setup, find_packages
 
 from datetime import datetime
 
-now = datetime.datetime.now()
+now = datetime.now()
 
 __version__ = f"{now.year}.{now.month}.{now.day}{now.hour}{now.minute}"
 
