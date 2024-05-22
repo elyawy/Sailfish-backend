@@ -1,5 +1,8 @@
-from Sailfish import simulator as sim
-from Sailfish.simulator import MODEL_CODES
+# import sys, pathlib, time
+# sys.path.insert(0,str(pathlib.Path(".").resolve()))
+
+from msasim import sailfish as sim
+from msasim.sailfish import MODEL_CODES
 
 ROOT_SEQUENCE_LENGTH = 1000
 
@@ -11,4 +14,4 @@ simulation = sim.Simulator(sim_protocol, simulation_type=sim.SIMULATION_TYPE.DNA
 simulation.set_replacement_model(model=MODEL_CODES.NUCJC)
 msa = simulation()
 
-# msa.print_msa()
+msa.print_msa()

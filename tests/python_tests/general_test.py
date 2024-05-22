@@ -1,6 +1,6 @@
 import sys, pathlib, warnings
 sys.path.insert(0,str(pathlib.Path(".").resolve()))
-from Sailfish import simulator as sim
+from msasim import sailfish as sim
 print(sim.__file__)
 warnings.filterwarnings("ignore")
 
@@ -72,7 +72,7 @@ print(tree.get_num_nodes())
 simulator = sim.Simulator()
 #block_tree = simulator.gen_indels()
 #block_tree.print_branches()
-msa = simulator.simulate(times=1)
+msa = simulator()
 
 msa.print_msa()
 # msa.write_msa("this.fasta")

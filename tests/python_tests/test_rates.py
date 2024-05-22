@@ -1,6 +1,6 @@
 import sys, pathlib, time
 sys.path.insert(0,str(pathlib.Path(".").resolve()))
-from Sailfish import simulator as sim
+from msasim import sailfish as sim
 print(sim.__file__)
 
 
@@ -17,10 +17,10 @@ simulator.set_replacement_model(model=sim.MODEL_CODES.NUCJC,
 
 simulator.save_rates(True)
 
-msa = simulator.simulate()
+msa = simulator()
 print(simulator.get_rates()) # after calling this function the list is emptied
 print(simulator.get_rates()) # this is empty []
 
-msa = simulator.simulate() # filled rates back with new simulation.
+msa = simulator() # filled rates back with new simulation.
 msa.print_msa()
 print(simulator.get_rates())

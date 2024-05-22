@@ -1,7 +1,10 @@
+import sys, pathlib, time
+sys.path.insert(0,str(pathlib.Path(".").resolve()))
+
 import numpy as np
 
-from Sailfish import simulator as sim
-from Sailfish.simulator import MODEL_CODES
+from msasim import sailfish as sim
+from msasim.sailfish import MODEL_CODES
 
 ROOT_SEQUENCE_LENGTH = 1000
 NUMBER_OF_MSAS_TO_SIMULATE = 100000

@@ -1,6 +1,6 @@
 import sys, pathlib, time
 sys.path.insert(0,str(pathlib.Path(".").resolve()))
-from Sailfish import simulator as sim
+from msasim import sailfish as sim
 print(sim.__file__)
 
 
