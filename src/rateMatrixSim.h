@@ -11,6 +11,7 @@
 
 #include "modelFactory.h"
 #include "substitutionManager.h"
+#include "DynamicProposalArray.hpp"
 
 //class sequenceData; // to be able to go to simulate data.
 
@@ -53,7 +54,7 @@ public:
 	// MDOUBLE getAvgSub() {return _avgSubtitutionsPerSite;}
 	
 private:
-	void generateRootSeq(int seqLength);
+	void generateRootSeq(int seqLength, std::vector<MDOUBLE>& ratesVec);
 	void mutateSeqAlongBranch(tree::nodeP parentNode, int seqLength);
 	void mutateEntireSeq(tree::nodeP currentNode, int seqLength);
 	void mutateSeqGillespie(tree::nodeP currentNode, int seqLength, MDOUBLE distToParent);
@@ -78,7 +79,7 @@ private:
 	std::vector<size_t> _rateCategories;
 	std::vector<double> _siteRates;
 	std::unique_ptr<sequenceContainer> _simulatedSequences; // the sequences (nodes * seqLen)
-	std::unique_ptr<DiscreteDistribution> _siteSampler;
+	std::unique_ptr<sampling::DynamicProposalArray> _siteSampler;
 	std::unique_ptr<DiscreteDistribution> _frequencySampler;
 	std::unique_ptr<DiscreteDistribution> _rateSampler;
 

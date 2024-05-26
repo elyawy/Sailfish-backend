@@ -115,12 +115,12 @@ void rateMatrixSim::generate_substitution_log(int seqLength) {
 		sumOfRatesAcrossSites += ratesVec[h];
 	}
 	if (_saveRates) _siteRates.insert(_siteRates.end(), ratesVec.begin(), ratesVec.end());
-	MDOUBLE sumOfRatesNoramlizingFactor = 1.0 / sumOfRatesAcrossSites;
+	// MDOUBLE sumOfRatesNoramlizingFactor = 1.0 / sumOfRatesAcrossSites;
 
-	_siteSampler = std::make_unique<DiscreteDistribution>(ratesVec, sumOfRatesNoramlizingFactor);
+	// _siteSampler = std::make_unique<DiscreteDistribution>(ratesVec, sumOfRatesNoramlizingFactor);
 
 	_rootSequence.resize(seqLength);
-	generateRootSeq(seqLength);
+	generateRootSeq(seqLength, ratesVec);
 	if (_nodesToSave[_et->getRoot()->id()]) saveSequence(_et->getRoot()->id(), _et->getRoot()->name());
 
 	mutateSeqRecuresively(_et->getRoot(), seqLength);
@@ -186,11 +186,13 @@ void rateMatrixSim::mutateSeqGillespie(tree::nodeP currentNode, int seqLength, M
 			errorMsg::reportError("waiting time is negative :(");
 		}
 
-		int mutatedSite = _siteSampler->drawSample() - 1;
+		int mutatedSite = _siteSampler->sample(*_mt_rand);
 		ALPHACHAR parentChar = _rootSequence[mutatedSite];
 		ALPHACHAR nextChar = _gillespieSampler[parentChar]->drawSample() - 1;
 		// std::cout << (int)parentChar << "->" << (int)nextChar << "\n";
 		_subManager.handleEvent(nodeId, mutatedSite, nextChar, _rateCategories, _sp.get(), _rootSequence);
+		MDOUBLE newWeight = (-_sp->Qij(nextChar,nextChar))*_sp->rates(_rateCategories[mutatedSite]);
+		_siteSampler->update(mutatedSite, newWeight);
 
 		lambdaParam = _subManager.getReactantsSum();
 		branchLength = branchLength - waitingTime;
@@ -203,16 +205,19 @@ void rateMatrixSim::mutateSeqGillespie(tree::nodeP currentNode, int seqLength, M
 
 
 
-void rateMatrixSim::generateRootSeq(int seqLength) {
+void rateMatrixSim::generateRootSeq(int seqLength, std::vector<MDOUBLE>& ratesVec) {
 	size_t rootID = _et->getRoot()->id();
 	for (int i = 0; i < seqLength; i++) {
 		ALPHACHAR newChar = _frequencySampler->drawSample() - 1;
+		ratesVec[i] = ratesVec[i]*(-_sp->Qij(newChar, newChar));
 		_rootSequence[i] =  newChar;
      }
 	// std::cout << ">Root-sequence\n" << _rootSequence  <<  "\n";
+	// std::cout << ">Rates\n" << ratesVec;
 	_subManager.handleRootSequence(seqLength, _rateCategories, _sp.get(), _rootSequence);
 
-
+	_siteSampler = std::make_unique<sampling::DynamicProposalArray>(ratesVec);
+	
 	_rootSequence.setAlphabet(_alph);
 	_rootSequence.setName(_et->getRoot()->name());
 	_rootSequence.setID(_et->getRoot()->id());
