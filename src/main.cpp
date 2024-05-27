@@ -133,12 +133,13 @@ PYBIND11_MODULE(_Sailfish, m) {
         .def("init_substitution_sim", &Simulator::initSubstitionSim)
         .def("gen_substitutions", &Simulator::simulateSubstitutions)
         .def("save_site_rates", &Simulator::setSaveRates)
-        .def("get_site_rates", &Simulator::getSiteRates);
+        .def("get_site_rates", &Simulator::getSiteRates)
+        .def("get_saved_nodes_list", &Simulator::getNodesSaveList);
 
 
     py::class_<MSA>(m, "Msa")
         .def(py::init<size_t, size_t>())
-        .def(py::init<BlockMap, tree::TreeNode*>())
+        .def(py::init<BlockMap, tree::TreeNode*, const std::vector<bool>&>())
         .def("generate_msas", &MSA::generateMSAs)
         .def("length", &MSA::getMSAlength)
         .def("num_sequences", &MSA::getNumberOfSequences)

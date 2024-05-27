@@ -252,11 +252,34 @@ std::unique_ptr<sequenceContainer> rateMatrixSim::getSequenceContainer() {
 	return std::move(outputSequences);
 }
 
-void rateMatrixSim::setNodesToSaves(std::vector<size_t> nodeIDs) {
+void rateMatrixSim::setNodesToSave(std::vector<size_t> nodeIDs) {
 	std::fill(_nodesToSave.begin(), _nodesToSave.end(), false);
 	for(auto &nodeID: nodeIDs) {
 		_nodesToSave[nodeID] = true;
 	}
+}
+
+void rateMatrixSim::setSaveAllNodes() {
+	for (size_t i = 0; i < _nodesToSave.size(); i++) {
+		_nodesToSave[i] = true;
+	}
+}
+
+void rateMatrixSim::setSaveRoot() {
+	_nodesToSave[0] = true;
+}
+
+
+void rateMatrixSim::changeNodeSaveState(size_t nodeID) {
+	_nodesToSave[nodeID] = !_nodesToSave[nodeID];
+}
+
+bool rateMatrixSim::getNodeSaveState(size_t nodeID) {
+	return _nodesToSave[nodeID];
+}
+
+const std::vector<bool>& rateMatrixSim::getNodesSaveList() {
+	return _nodesToSave;
 }
 
 bool rateMatrixSim::testSumOfRates() {

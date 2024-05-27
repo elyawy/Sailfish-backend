@@ -79,6 +79,8 @@ public:
 		updateReactantsSum(-previousQii, sp->rates(rateCategories[position]));
         updateReactantsSum(newQii, sp->rates(rateCategories[position]));
 
+        MDOUBLE newWeight = (-newQii)*sp->rates(rateCategories[position]);
+        _siteSampler->update(position, newWeight);
 
         (*_substitutionVec[nodeId])[position] = change;
         rootSeq[position] = change;
@@ -117,17 +119,21 @@ public:
 
         for (size_t currentSite; currentSite < rootSeq.seqLen(); ++currentSite) {
             if ((*nodeChangeMap)[currentSite] == INVALID_CHAR) continue;
+            if ((*nodeChangeMap)[currentSite] == rootSeq[currentSite]) continue;
 
             ALPHACHAR currentChar = rootSeq[currentSite];
             ALPHACHAR restoredChar = (*nodeChangeMap)[currentSite];
 
             MDOUBLE oldFreq = sp->Qij(currentChar, currentChar);
             MDOUBLE newFreq = sp->Qij(restoredChar, restoredChar);
-            
+
             rootSeq[currentSite] = restoredChar;
 
             updateReactantsSum(-oldFreq, sp->rates(rateCategories[currentSite]));
             updateReactantsSum(newFreq, sp->rates(rateCategories[currentSite]));
+
+            MDOUBLE newWeight = (-newFreq)*sp->rates(rateCategories[currentSite]);
+            _siteSampler->update(currentSite, newWeight);
 
 	    }
 
