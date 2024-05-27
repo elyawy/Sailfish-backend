@@ -3,6 +3,7 @@
 #include <functional>
 #include <random>
 #include <vector>
+#include <numeric>
 
 namespace sampling {
 
