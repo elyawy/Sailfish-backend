@@ -62,25 +62,6 @@ public:
         rootBlockList.push_back(rootBlock);
         nodeToBlockMap[rootNode->id()] = std::make_tuple(rootBlockList, sequenceSize + 1);
         generateIndelsRecursively(nodeToBlockMap, *rootNode);
-
-        // size_t nodePosition = 0;
-        // while (!nodes.empty()) {
-        //     nodes.pop();
-        //     if (!currentNode->isLeaf()) {
-        //         for (auto node: currentNode->getSons()) {
-        //             nodes.push(node);
-        //         }
-        //     } else {
-        //         if (nodes.empty()) break;
-        //     }
-        //     currentNode = nodes.top();
-        //     sequenceSize = nodeToBlockMap[currentNode->father()->name()].length() - 1;
-        //     BlockTree blocks = simulateAlongBranch(sequenceSize, currentNode->dis2father(), nodePosition);
-        //     nodeToBlockMap[currentNode->name()] = blocks;
-
-        //     ++nodePosition;
-        // }
-
         return nodeToBlockMap;
     }
 
@@ -194,7 +175,21 @@ public:
         _substitutionSim->setSaveRates(saveRates);
     }
 
+    void setSaveNode(size_t nodeID) {
+        _substitutionSim->changeNodeSaveState(nodeID);
+    }
 
+    void setSaveAllNodes() {
+        _substitutionSim->setSaveAllNodes();
+    }
+
+    void setSaveRoot() {
+        _substitutionSim->setSaveRoot();
+    }
+
+    const std::vector<bool>& getNodesSaveList() {
+        return _substitutionSim->getNodesSaveList();
+    }
 
     std::shared_ptr<sequenceContainer> simulateSubstitutions(size_t sequenceLength) {
         size_t chunkSize = 1024;

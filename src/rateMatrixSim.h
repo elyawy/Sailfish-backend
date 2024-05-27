@@ -11,6 +11,7 @@
 
 #include "modelFactory.h"
 #include "substitutionManager.h"
+#include "DynamicProposalArray.hpp"
 
 //class sequenceData; // to be able to go to simulate data.
 
@@ -27,7 +28,14 @@ public:
 	// void setSeed(size_t seed);
 	void setRng(mt19937_64 *rng);
 	// const mt19937_64& getRng();
-	void setNodesToSaves(std::vector<size_t> nodeIDs);
+	void setNodesToSave(std::vector<size_t> nodeIDs);
+	void changeNodeSaveState(size_t nodeID);
+	void setSaveAllNodes();
+	void setSaveRoot();
+
+	bool getNodeSaveState(size_t nodeID);
+	const std::vector<bool>& getNodesSaveList();
+
 	void setSaveRates(bool saveRates);
 	void clearRatesVec() { _siteRates.clear();}
 	// int getSeed();
@@ -53,7 +61,7 @@ public:
 	// MDOUBLE getAvgSub() {return _avgSubtitutionsPerSite;}
 	
 private:
-	void generateRootSeq(int seqLength);
+	void generateRootSeq(int seqLength, std::vector<MDOUBLE>& ratesVec);
 	void mutateSeqAlongBranch(tree::nodeP parentNode, int seqLength);
 	void mutateEntireSeq(tree::nodeP currentNode, int seqLength);
 	void mutateSeqGillespie(tree::nodeP currentNode, int seqLength, MDOUBLE distToParent);
@@ -78,7 +86,6 @@ private:
 	std::vector<size_t> _rateCategories;
 	std::vector<double> _siteRates;
 	std::unique_ptr<sequenceContainer> _simulatedSequences; // the sequences (nodes * seqLen)
-	std::unique_ptr<DiscreteDistribution> _siteSampler;
 	std::unique_ptr<DiscreteDistribution> _frequencySampler;
 	std::unique_ptr<DiscreteDistribution> _rateSampler;
 

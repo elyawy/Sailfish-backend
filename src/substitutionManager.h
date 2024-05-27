@@ -5,6 +5,7 @@
 #include <iostream>
 #include <fstream>
 
+#include "DynamicProposalArray.hpp"
 #include "../libs/Phylolib/includes/sequence.h"
 
 
@@ -16,6 +17,7 @@ class substitutionManager
 private:
     using changeMap = std::vector<ALPHACHAR>;
     std::vector<std::unique_ptr<changeMap>> _substitutionVec;
+    std::unique_ptr<sampling::DynamicProposalArray> _siteSampler;
     MDOUBLE _sumOfReactantsXRates;
     // size_t _changeCounter;
 public:
@@ -44,21 +46,21 @@ public:
     }
 
     void handleRootSequence(size_t sequenceLength,
-                            const vector<size_t> &rateCategories, 
+                            std::vector<MDOUBLE> &gammaSiteRates, 
                             const stochasticProcess *sp,
                             sequence &rootSeq) {
         _substitutionVec[0] = std::make_unique<changeMap>(sequenceLength, INVALID_CHAR);
         for (size_t site = 0; site < sequenceLength; site++) {
             ALPHACHAR currentChar = rootSeq[site];
-            size_t rateCategory = rateCategories[site];
 		    MDOUBLE qii = sp->Qij(currentChar, currentChar);
             if(qii > 0) errorMsg::reportError("Qii is positive!");
-		    if(rateCategory < 0) errorMsg::reportError("rate category is negative!");
+		    if(gammaSiteRates[site] < 0) errorMsg::reportError("rate category is negative!");
 
             (*_substitutionVec[0])[site] = currentChar;
-            updateReactantsSum(qii, sp->rates(rateCategory));
+            updateReactantsSum(qii, gammaSiteRates[site]);
+            gammaSiteRates[site] = gammaSiteRates[site]*(-qii);
         }
-        
+        _siteSampler = std::make_unique<sampling::DynamicProposalArray>(gammaSiteRates);
     }
 
     void handleEvent(const int nodeId, const size_t position, const ALPHACHAR change,
@@ -77,9 +79,16 @@ public:
 		updateReactantsSum(-previousQii, sp->rates(rateCategories[position]));
         updateReactantsSum(newQii, sp->rates(rateCategories[position]));
 
+        MDOUBLE newWeight = (-newQii)*sp->rates(rateCategories[position]);
+        _siteSampler->update(position, newWeight);
 
         (*_substitutionVec[nodeId])[position] = change;
         rootSeq[position] = change;
+    }
+
+    template <typename Generator>
+    size_t sampleSite(Generator&& gen) {
+        return _siteSampler->sample(gen);
     }
 
     void dumpSubstitutionLog(const int nodeId) {
@@ -110,17 +119,21 @@ public:
 
         for (size_t currentSite; currentSite < rootSeq.seqLen(); ++currentSite) {
             if ((*nodeChangeMap)[currentSite] == INVALID_CHAR) continue;
+            if ((*nodeChangeMap)[currentSite] == rootSeq[currentSite]) continue;
 
             ALPHACHAR currentChar = rootSeq[currentSite];
             ALPHACHAR restoredChar = (*nodeChangeMap)[currentSite];
 
             MDOUBLE oldFreq = sp->Qij(currentChar, currentChar);
             MDOUBLE newFreq = sp->Qij(restoredChar, restoredChar);
-            
+
             rootSeq[currentSite] = restoredChar;
 
             updateReactantsSum(-oldFreq, sp->rates(rateCategories[currentSite]));
             updateReactantsSum(newFreq, sp->rates(rateCategories[currentSite]));
+
+            MDOUBLE newWeight = (-newFreq)*sp->rates(rateCategories[currentSite]);
+            _siteSampler->update(currentSite, newWeight);
 
 	    }
 

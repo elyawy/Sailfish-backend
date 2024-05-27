@@ -8,8 +8,8 @@
 // takes 10 minutes currently
 int main() {
     // tree tree_("../trees/normalbranches_nLeaves10.treefile");
-    tree tree_("(A:0.5,B:0.5);", false);
-    std::time_t t1 = 16;//std::time(0);
+    tree tree_("((A:0.1,B:1.0):0.05,(C:0.2):0.01);", false);
+    std::time_t t1 = 23;//std::time(0);
     vector<DiscreteDistribution*> insertionDists(tree_.getNodesNum() - 1);
     vector<DiscreteDistribution*> deletionDists(tree_.getNodesNum() - 1);
 
@@ -35,7 +35,7 @@ int main() {
     protocol.setInsertionRates(insertionRates);
     protocol.setDeletionRates(deletionRates);
 
-    int rootLength = 1000;
+    int rootLength = 100;
     protocol.setSequenceSize(rootLength);
 
     protocol.setSaveAncestral(false);
@@ -46,18 +46,25 @@ int main() {
     modelFactory mFac(&tree_);
 
     mFac.setAlphabet(alphabetCode::AMINOACID);
-    mFac.setReplacementModel(modelCode::WAG);
+    mFac.setReplacementModel(modelCode::JONES);
     // mFac.setModelParameters({0.25,0.25,0.25,0.25,0.1,0.2,0.3,0.4,0.5,0.6});
     mFac.setGammaParameters(1.0, 4);
     if (!mFac.isModelValid()) return 0;
     sim.initSubstitionSim(mFac);
+    // sim.setSaveAllNodes();
+    sim.setSaveAllNodes();
+    // sim.setSaveNode(1);
 
+    // sim.setSaveNode(1);
+    // std::cout << "hey\n";
+    auto saveList = sim.getNodesSaveList();
+    // sim.setSaveRates(true);
 
     size_t counter = 0;
-    while (counter++ < 1000) {
+    while (counter++ < 1) {
         auto blockmap = sim.generateSimulation();
 
-        auto msa = MSA(blockmap, tree_.getRoot());
+        auto msa = MSA(blockmap, tree_.getRoot(), saveList);
         int msaLength = msa.getMSAlength();
         
         auto fullContainer = sim.simulateSubstitutions(msaLength);

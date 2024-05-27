@@ -20,18 +20,21 @@ class Sequence
 private:
     SuperSequence* _superSequence;
     bool _isLeafSequence;
+    size_t _nodeID;
     SequenceType _sequence;
     // size_t _numLeaf;
 public:
 
-    Sequence(SuperSequence& superSeq, size_t numReferences, bool isLeaf) : 
-        _superSequence(&superSeq), _isLeafSequence(isLeaf) {}
+    Sequence(SuperSequence& superSeq, bool isLeaf, size_t nodeID) : 
+        _superSequence(&superSeq), _isLeafSequence(isLeaf), _nodeID(nodeID) {}
 
     Sequence(const Sequence &seq) {
         for (size_t i = 0; i < seq._sequence.size(); i++) {
             _sequence.push_back(seq._sequence[i]);
         }
         _superSequence = seq._superSequence;
+        _isLeafSequence = seq._isLeafSequence;
+        _nodeID = seq._nodeID;
     }
 
     void initSequence() {
@@ -148,6 +151,10 @@ public:
             }
         }
         return true;
+    }
+
+    size_t getSequenceNodeID() {
+        return _nodeID;
     }
 
 
