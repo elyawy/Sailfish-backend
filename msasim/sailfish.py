@@ -368,8 +368,8 @@ class Msa:
     '''
     The MSA class from the simulator
     '''
-    def __init__(self, species_dict: Dict[str, BlockTree], root_node):
-        self._msa = _Sailfish.Msa(species_dict, root_node)
+    def __init__(self, species_dict: Dict[str, BlockTree], root_node, save_list: List[bool]):
+        self._msa = _Sailfish.Msa(species_dict, root_node, save_list)
     
     def generate_msas(self, node):
         self._msa.generate_msas(node)
@@ -504,7 +504,15 @@ class Simulator:
     def gen_indels(self) -> BlockTreePython:
         return BlockTreePython(self._simulator.gen_indels())
     
+    def get_sequences_to_save(self) -> List[bool]:
+        return self._simulator.get_saved_nodes_mask()
     
+    def save_root_sequence(self):
+        self._simulator.save_root_sequence()
+    
+    def save_all_nodes_sequences(self):
+        self._simulator.save_all_nodes_sequences()
+
     def gen_substitutions(self, length: int):
         if not self._is_sub_model_init:
             self._init_sub_model()
@@ -515,10 +523,14 @@ class Simulator:
         Msas = []
         for _ in range(times):
             if self._simProtocol._is_insertion_rate_zero and self._simProtocol._is_deletion_rate_zero:
-                msa = Msa(self._simProtocol.get_tree().get_num_leaves(), self._simProtocol.get_sequence_size())
+                msa = Msa(sum(self.get_sequences_to_save()),
+                          self._simProtocol.get_sequence_size(),
+                          self.get_sequences_to_save())
             else:
                 blocktree = self.gen_indels()
-                msa = Msa(blocktree._get_Sailfish_blocks(), self._simProtocol._get_root())
+                msa = Msa(blocktree._get_Sailfish_blocks(),
+                          self._simProtocol._get_root(),
+                          self.get_sequences_to_save())
 
             # sim.init_substitution_sim(mFac)
             substitutions = self.gen_substitutions(msa.get_length())

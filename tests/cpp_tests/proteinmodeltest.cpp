@@ -7,8 +7,8 @@
 
 // takes 10 minutes currently
 int main() {
-    tree tree_("../trees/normalbranches_nLeaves10.treefile");
-    // tree tree_("((A:0.1,B:1.3):0.5,C:0.2);", false);
+    // tree tree_("../trees/normalbranches_nLeaves10.treefile");
+    tree tree_("((A:0.1,B:1.0):0.05,(C:0.2):0.01);", false);
     std::time_t t1 = 23;//std::time(0);
     vector<DiscreteDistribution*> insertionDists(tree_.getNodesNum() - 1);
     vector<DiscreteDistribution*> deletionDists(tree_.getNodesNum() - 1);
@@ -52,7 +52,7 @@ int main() {
     if (!mFac.isModelValid()) return 0;
     sim.initSubstitionSim(mFac);
     // sim.setSaveAllNodes();
-
+    sim.setSaveAllNodes();
     // sim.setSaveNode(1);
 
     // sim.setSaveNode(1);

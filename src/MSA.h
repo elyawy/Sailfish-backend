@@ -126,7 +126,8 @@ public:
         _substitutions = _seqContainer;
     }
 
-	MSA(size_t numSequences, size_t msaLength): _numberOfSequences(numSequences), _msaLength(msaLength) {};
+	MSA(size_t numSequences, size_t msaLength, const std::vector<bool> &nodesToSave): 
+        _numberOfSequences(numSequences), _msaLength(msaLength) {};
 
 	MSA(const MSA &msa){
 		_numberOfSequences = msa._numberOfSequences;

@@ -127,13 +127,13 @@ void rateMatrixSim::generate_substitution_log(int seqLength) {
 }
 
 void rateMatrixSim::mutateSeqRecuresively(tree::nodeP currentNode, int seqLength) {
+	if (currentNode->isLeaf()) return;
 
 	for (auto &node: currentNode->getSons()) {
 		mutateSeqAlongBranch(node, seqLength);
-		mutateSeqRecuresively(node, seqLength);
 		if (_nodesToSave[node->id()]) saveSequence(node->id(), node->name());
+		mutateSeqRecuresively(node, seqLength);
 
-		// std::cout << "Node: " << currentNode->id() << "\n";
 		if (!_subManager.isEmpty(currentNode->id())) {
 			_subManager.undoSubs(currentNode->id(), _rootSequence, _rateCategories, _sp.get());
 		}
@@ -223,6 +223,7 @@ void rateMatrixSim::saveSequence(const int &nodeId,const std::string &name) {
 	sequence temp(_rootSequence);
 	temp.setName(name);
 	temp.setID(nodeId);
+	// std::cout << temp << "\n";
 	_simulatedSequences->add(temp);
 }
 
