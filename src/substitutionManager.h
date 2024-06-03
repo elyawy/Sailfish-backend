@@ -5,9 +5,8 @@
 #include <iostream>
 #include <fstream>
 
-#include "DynamicProposalArray.hpp"
 #include "../libs/Phylolib/includes/sequence.h"
-
+#include "FastRejectionSampler.h"
 
 const unsigned char INVALID_CHAR = 255;
 
@@ -17,7 +16,7 @@ class substitutionManager
 private:
     using changeMap = std::vector<ALPHACHAR>;
     std::vector<std::unique_ptr<changeMap>> _substitutionVec;
-    std::unique_ptr<sampling::DynamicProposalArray> _siteSampler;
+    std::unique_ptr<FastRejectionSampler> _siteSampler;
     MDOUBLE _sumOfReactantsXRates;
     // size_t _changeCounter;
 public:
@@ -60,7 +59,7 @@ public:
             updateReactantsSum(qii, gammaSiteRates[site]);
             gammaSiteRates[site] = gammaSiteRates[site]*(-qii);
         }
-        _siteSampler = std::make_unique<sampling::DynamicProposalArray>(gammaSiteRates);
+        _siteSampler = std::make_unique<FastRejectionSampler>(gammaSiteRates);
     }
 
     void handleEvent(const int nodeId, const size_t position, const ALPHACHAR change,
@@ -80,7 +79,7 @@ public:
         updateReactantsSum(newQii, sp->rates(rateCategories[position]));
 
         MDOUBLE newWeight = (-newQii)*sp->rates(rateCategories[position]);
-        _siteSampler->update(position, newWeight);
+        _siteSampler->updateWeight(position, newWeight);
 
         (*_substitutionVec[nodeId])[position] = change;
         rootSeq[position] = change;
@@ -133,7 +132,7 @@ public:
             updateReactantsSum(newFreq, sp->rates(rateCategories[currentSite]));
 
             MDOUBLE newWeight = (-newFreq)*sp->rates(rateCategories[currentSite]);
-            _siteSampler->update(currentSite, newWeight);
+            _siteSampler->updateWeight(currentSite, newWeight);
 
 	    }
 

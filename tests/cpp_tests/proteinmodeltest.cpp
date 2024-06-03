@@ -52,7 +52,7 @@ int main() {
     if (!mFac.isModelValid()) return 0;
     sim.initSubstitionSim(mFac);
     // sim.setSaveAllNodes();
-    sim.setSaveAllNodes();
+    // sim.setSaveAllNodes();
     // sim.setSaveNode(1);
 
     // sim.setSaveNode(1);
@@ -61,7 +61,7 @@ int main() {
     // sim.setSaveRates(true);
 
     size_t counter = 0;
-    while (counter++ < 1) {
+    while (counter++ < 1000) {
         auto blockmap = sim.generateSimulation();
 
         auto msa = MSA(blockmap, tree_.getRoot(), saveList);
