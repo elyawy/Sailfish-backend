@@ -5,9 +5,8 @@
 #include <iostream>
 #include <fstream>
 
-#include "DynamicProposalArray.hpp"
 #include "../libs/Phylolib/includes/sequence.h"
-
+#include "FastRejectionSampler.h"
 
 const unsigned char INVALID_CHAR = 255;
 
@@ -17,7 +16,7 @@ class substitutionManager
 private:
     using changeMap = std::vector<ALPHACHAR>;
     std::vector<std::unique_ptr<changeMap>> _substitutionVec;
-    std::unique_ptr<sampling::DynamicProposalArray> _siteSampler;
+    std::unique_ptr<FastRejectionSampler> _siteSampler;
     MDOUBLE _sumOfReactantsXRates;
     // size_t _changeCounter;
 public:
@@ -60,7 +59,26 @@ public:
             updateReactantsSum(qii, gammaSiteRates[site]);
             gammaSiteRates[site] = gammaSiteRates[site]*(-qii);
         }
-        _siteSampler = std::make_unique<sampling::DynamicProposalArray>(gammaSiteRates);
+        MDOUBLE minQii = std::numeric_limits<MDOUBLE>::max();
+        MDOUBLE maxQii = 0.0;
+        for (size_t i = 0; i < sp->alphabetSize(); i++) {
+            // std::cout << "Q" << i << i << "=" << -sp->Qij(i,i) << "\n";
+
+            minQii = std::min<MDOUBLE>(-sp->Qij(i,i), minQii);
+            maxQii = std::max<MDOUBLE>(-sp->Qij(i,i), maxQii);
+        }
+        MDOUBLE minRate = std::numeric_limits<MDOUBLE>::max();
+        MDOUBLE maxRate = 0.0;
+
+        for (size_t i = 0; i < sp->categories(); i++) {
+            // std::cout << "rate=" << sp->rates(i) << "\n";
+            minRate = std::min<MDOUBLE>(sp->rates(i), minRate);
+            maxRate = std::max<MDOUBLE>(sp->rates(i), maxRate);
+        }
+
+        minRate = (minRate * minQii) / 2.0;
+        maxRate = (maxRate * maxQii) * 2.0;
+        _siteSampler = std::make_unique<FastRejectionSampler>(gammaSiteRates, minRate, maxRate);
     }
 
     void handleEvent(const int nodeId, const size_t position, const ALPHACHAR change,
@@ -80,7 +98,8 @@ public:
         updateReactantsSum(newQii, sp->rates(rateCategories[position]));
 
         MDOUBLE newWeight = (-newQii)*sp->rates(rateCategories[position]);
-        _siteSampler->update(position, newWeight);
+        _siteSampler->updateWeight(position, newWeight);
+
 
         (*_substitutionVec[nodeId])[position] = change;
         rootSeq[position] = change;
@@ -133,7 +152,8 @@ public:
             updateReactantsSum(newFreq, sp->rates(rateCategories[currentSite]));
 
             MDOUBLE newWeight = (-newFreq)*sp->rates(rateCategories[currentSite]);
-            _siteSampler->update(currentSite, newWeight);
+            _siteSampler->updateWeight(currentSite, newWeight);
+
 
 	    }
 

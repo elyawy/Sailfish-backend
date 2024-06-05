@@ -11,7 +11,6 @@
 
 #include "modelFactory.h"
 #include "substitutionManager.h"
-#include "DynamicProposalArray.hpp"
 
 //class sequenceData; // to be able to go to simulate data.
 
