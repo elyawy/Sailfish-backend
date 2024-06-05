@@ -5,61 +5,53 @@
 #include <random>
 #include <algorithm>
 
+#include <iostream>
+
 class FastRejectionSampler
 {
 private:
 
-    std::uniform_real_distribution<double> _biasedCoin;
     std::vector<double> _weights;
-    std::unordered_map<int, std::pair<double, std::vector<size_t>>> _levelToWeights;
+    double _minWeight;
+    double _maxWeight;
+    std::uniform_real_distribution<double> _biasedCoin;
+    double _totalWeightsSum;
+
+    std::vector<std::vector<size_t>> _levelToWeights;
     std::unordered_map<size_t, size_t> _weightIndexToBin;
 
-    double _totalWeightsSum;
     int _minWeightLevel;
     int _maxWeightLevel;
 
     std::vector<double> _levelsWeights;
 
 public:
-    FastRejectionSampler(const std::vector<double> &weights): _biasedCoin(0.0,1.0) {
-        double minWeight = MAXFLOAT;
-        double maxWeight = 0.0;
-        _totalWeightsSum = 0.0;
-
-        _weights.resize(weights.size());
-
-        for(size_t i = 0; i < weights.size(); ++i) {
-            if (weights[i] < minWeight) minWeight = weights[i];
-            if (weights[i] > maxWeight) maxWeight = weights[i];
-            _weights[i] = weights[i];
-        }
+    FastRejectionSampler(const std::vector<double> &weights, double minWeight, double maxWeight): 
+        _weights(weights), _minWeight(minWeight), _maxWeight(maxWeight) , _biasedCoin(0.0,1.0), _totalWeightsSum(0.0) {
 
         _minWeightLevel = static_cast<int>(std::log2(minWeight));
         if (_minWeightLevel >= 0) _minWeightLevel += 1;
         _maxWeightLevel = static_cast<int>(std::log2(maxWeight)) + 1;
         size_t numLevels = _maxWeightLevel - _minWeightLevel + 1;
 
-
-        _levelToWeights.reserve(numLevels);
+        _levelToWeights.resize(numLevels);
         _levelsWeights.resize(numLevels, 0.0);
-
-        for (int i = _minWeightLevel; i <= _maxWeightLevel; ++i) {
-            _levelToWeights[i] = std::make_pair<double, std::vector<size_t>>(0, {});
-        }
 
 
         for(size_t i=0; i < _weights.size(); ++i) {
             _totalWeightsSum += _weights[i];
             int level = static_cast<int>(std::log2(_weights[i]));
             if (level >= 0) level += 1;
-            // std::cout << "index=" << i << " is in level=" <<level<<"\n";
-            _levelToWeights.at(level).first += _weights[i];
-            size_t innerIndex = _levelToWeights.at(level).second.size();
-            _levelToWeights.at(level).second.push_back(i);
+            level -= _minWeightLevel;
+            _levelsWeights[level] += _weights[i];
+            size_t innerIndex = _levelToWeights.at(level).size();
+            _levelToWeights.at(level).push_back(i);
             _weightIndexToBin[i] = innerIndex;
 
-            _levelsWeights[level - _minWeightLevel] = _levelToWeights.at(level).first;
         }
+
+
+
     }
     
     template <typename Generator>
@@ -71,15 +63,15 @@ public:
 
         for (int i = 0; i < _levelsWeights.size(); i++) {
             cumulativeWeight += _levelsWeights[i];
-            // std::cout << "level=" << i << " _levelsWeights=" << _levelsWeights[i] << "\n";  
             selectedLevel = i;
             if (levelSampler < cumulativeWeight) break;
         }
 
         int correctedLevel =  selectedLevel + _minWeightLevel;
         double levelConversion = 1.0 / std::pow(2, correctedLevel);
-        auto binsInSelectedLevel = _levelToWeights.at(correctedLevel).second;
+        auto binsInSelectedLevel = _levelToWeights.at(selectedLevel);
 
+        
         auto binSampler = std::uniform_int_distribution<int>(0, binsInSelectedLevel.size() - 1);
 
         // rejection sampling:
@@ -96,49 +88,48 @@ public:
 
 
     void updateWeight(int weightIndex, double newWeight) {
+        if ((newWeight > _maxWeight) || (newWeight < _minWeight)) {
+            std::cout << "new weight is out of bounds\n";
+            abort();
+        }
         double oldWeight = _weights[weightIndex];
         int oldLevel = static_cast<int>(std::log2(_weights[weightIndex]));
         size_t oldBinIndex = _weightIndexToBin.at(weightIndex);
-
-
         if (oldLevel >= 0) oldLevel += 1;
+        int oldLevelIndex = oldLevel - _minWeightLevel;
 
         int newLevel = static_cast<int>(std::log2(newWeight));
         if (newLevel >= 0) newLevel += 1;
+        int newLevelIndex = newLevel - _minWeightLevel;
 
         _totalWeightsSum -= oldWeight;
         _totalWeightsSum += newWeight;
 
+
         if (oldLevel == newLevel) {
-            _levelToWeights.at(newLevel).first -= oldWeight;
-            _levelToWeights.at(newLevel).first += newWeight;
-            _levelsWeights[newLevel - _minWeightLevel] = _levelToWeights.at(newLevel).first;
+            _levelsWeights[newLevelIndex] -= oldWeight;
+            _levelsWeights[newLevelIndex] += newWeight;
 
             _weights[weightIndex] = newWeight;
             return;
         }
 
         // remove weight from old level
-        _levelToWeights.at(oldLevel).first -= oldWeight;
-        _levelsWeights[oldLevel - _minWeightLevel] = _levelToWeights.at(oldLevel).first;
-        size_t numberOfBins = _levelToWeights.at(oldLevel).second.size();
+        _levelsWeights[oldLevelIndex] -= oldWeight;
+        size_t numberOfBins = _levelToWeights.at(oldLevelIndex).size();
         if (numberOfBins > 1) {
-            size_t weightIndexOfLastBin = _levelToWeights.at(oldLevel).second[numberOfBins - 1];
-            _levelToWeights.at(oldLevel).second[oldBinIndex] = weightIndexOfLastBin;
+            size_t weightIndexOfLastBin = _levelToWeights.at(oldLevelIndex)[numberOfBins - 1];
+            _levelToWeights.at(oldLevelIndex)[oldBinIndex] = weightIndexOfLastBin;
             _weightIndexToBin[weightIndexOfLastBin] = oldBinIndex;
+        } else {
+            _levelsWeights[oldLevelIndex] = 0.0;
         }
-        _levelToWeights.at(oldLevel).second.pop_back();
+        _levelToWeights.at(oldLevelIndex).pop_back();
 
-        // add to new level or create new level and add
-        if (_levelToWeights.count(newLevel) == 0) {
-            _levelToWeights[newLevel];
-            _levelsWeights.push_back(0.0);
-        }
-
-        _levelToWeights.at(newLevel).first += newWeight;
-        _weightIndexToBin[weightIndex] = _levelToWeights.at(newLevel).second.size();
-        _levelToWeights.at(newLevel).second.push_back(weightIndex);
-        _levelsWeights[newLevel - _minWeightLevel] = _levelToWeights.at(newLevel).first;
+        // add to new level
+        _levelsWeights[newLevelIndex] += newWeight;
+        _weightIndexToBin[weightIndex] = _levelToWeights.at(newLevelIndex).size();
+        _levelToWeights.at(newLevelIndex).push_back(weightIndex);
 
         // update weight in the original weights vector
         _weights[weightIndex] = newWeight;
@@ -151,15 +142,33 @@ public:
 
 
     double getLevelWeight(int level) {
-        return std::get<0>(_levelToWeights.at(level));
+        return _levelsWeights.at(level);
+    }
+
+    double getSumOfWeights() {
+        return _totalWeightsSum;
     }
 
     int getLevelBin(int level) {
         return level + _minWeightLevel;
     }
 
+    bool checkValidity(){
+        double epsilon = 1e-10;
+        double sum = 0.0;
+        for(size_t i=0; i < _weights.size(); ++i) {
+            sum += _weights[i];
+        }
+        if (abs(sum - _totalWeightsSum) > epsilon) return false;
 
+        sum = 0.0;
+        for (size_t i = 0; i < _levelsWeights.size(); i++) {
+            sum += _levelsWeights[i];
+        }
+        if (abs(sum - _totalWeightsSum) > epsilon) return false;
 
+        return true;
+    }
 
     ~FastRejectionSampler(){};
 };

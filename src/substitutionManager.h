@@ -59,7 +59,26 @@ public:
             updateReactantsSum(qii, gammaSiteRates[site]);
             gammaSiteRates[site] = gammaSiteRates[site]*(-qii);
         }
-        _siteSampler = std::make_unique<FastRejectionSampler>(gammaSiteRates);
+        MDOUBLE minQii = std::numeric_limits<MDOUBLE>::max();
+        MDOUBLE maxQii = 0.0;
+        for (size_t i = 0; i < sp->alphabetSize(); i++) {
+            // std::cout << "Q" << i << i << "=" << -sp->Qij(i,i) << "\n";
+
+            minQii = std::min<MDOUBLE>(-sp->Qij(i,i), minQii);
+            maxQii = std::max<MDOUBLE>(-sp->Qij(i,i), maxQii);
+        }
+        MDOUBLE minRate = std::numeric_limits<MDOUBLE>::max();
+        MDOUBLE maxRate = 0.0;
+
+        for (size_t i = 0; i < sp->categories(); i++) {
+            // std::cout << "rate=" << sp->rates(i) << "\n";
+            minRate = std::min<MDOUBLE>(sp->rates(i), minRate);
+            maxRate = std::max<MDOUBLE>(sp->rates(i), maxRate);
+        }
+
+        minRate = (minRate * minQii) / 2.0;
+        maxRate = (maxRate * maxQii) * 2.0;
+        _siteSampler = std::make_unique<FastRejectionSampler>(gammaSiteRates, minRate, maxRate);
     }
 
     void handleEvent(const int nodeId, const size_t position, const ALPHACHAR change,
@@ -80,6 +99,7 @@ public:
 
         MDOUBLE newWeight = (-newQii)*sp->rates(rateCategories[position]);
         _siteSampler->updateWeight(position, newWeight);
+
 
         (*_substitutionVec[nodeId])[position] = change;
         rootSeq[position] = change;
@@ -133,6 +153,7 @@ public:
 
             MDOUBLE newWeight = (-newFreq)*sp->rates(rateCategories[currentSite]);
             _siteSampler->updateWeight(currentSite, newWeight);
+
 
 	    }
 

@@ -8,8 +8,9 @@
 // takes 10 minutes currently
 int main() {
     // tree tree_("../trees/normalbranches_nLeaves10.treefile");
+    // tree tree_("(A:0.5,B:0.5);", false);
     tree tree_("((A:0.1,B:1.0):0.05,(C:0.2):0.01);", false);
-    std::time_t t1 = 23;//std::time(0);
+    std::time_t t1 = 100;//std::time(0);
     vector<DiscreteDistribution*> insertionDists(tree_.getNodesNum() - 1);
     vector<DiscreteDistribution*> deletionDists(tree_.getNodesNum() - 1);
 
@@ -25,7 +26,7 @@ int main() {
     vector<double> deletionRates(tree_.getNodesNum() - 1);
 
     fill(insertionRates.begin(), insertionRates.end(), 0.01);
-    fill(deletionRates.begin(), deletionRates.end(), 0.01);
+    fill(deletionRates.begin(), deletionRates.end(), 0.1);
 
     SimulationProtocol protocol(&tree_);
 
@@ -53,6 +54,7 @@ int main() {
     sim.initSubstitionSim(mFac);
     // sim.setSaveAllNodes();
     // sim.setSaveAllNodes();
+    sim.setSaveRoot();
     // sim.setSaveNode(1);
 
     // sim.setSaveNode(1);
@@ -61,7 +63,7 @@ int main() {
     // sim.setSaveRates(true);
 
     size_t counter = 0;
-    while (counter++ < 1000) {
+    while (counter++ < 10) {
         auto blockmap = sim.generateSimulation();
 
         auto msa = MSA(blockmap, tree_.getRoot(), saveList);
@@ -69,7 +71,7 @@ int main() {
         
         auto fullContainer = sim.simulateSubstitutions(msaLength);
         msa.fillSubstitutions(fullContainer);
-
+        // std::cout << counter  << "\n";
         msa.printFullMsa();
     }
     
