@@ -28,9 +28,8 @@ def print_sources(sources):
 ext_modules = [
     Pybind11Extension("_Sailfish",
         sources = sorted(print_sources(glob("src/*.cpp"))),
-        cxx_std = "14",
+        cxx_std = "17",
         extra_objects=[str(x) for x in Path(".").resolve().glob("libs/*") if x.is_file()],
-        extra_link_args = ['/NODEFAULTLIB:LIBCMT.LIB'],
         # extra_compile_args=["-g"],
         # Example: passing in the version to the compiled code
         define_macros = [('VERSION_INFO', __version__)],
