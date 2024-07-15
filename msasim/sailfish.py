@@ -5,14 +5,6 @@ from typing import List, Optional, Dict
 from re import split
 from enum import Enum
 
-# print(_Sailfish.Tree)
-# print(_Sailfish.Simulator)
-# print(_Sailfish.SimProtocol)
-# print(_Sailfish.Msa)
-# print(_Sailfish.DiscreteDistribution)
-# print(_Sailfish.modelFactory)
-# print(_Sailfish.alphabetCode)
-# print(_Sailfish.modelCode)
 
 
 MODEL_CODES = _Sailfish.modelCode
@@ -390,7 +382,7 @@ class Msa:
         return self._msa.print_indels()
     
     def get_msa(self) -> str:
-        return self._msa.get_msa()
+        return self._msa.get_msa_string()
     
     def write_msa(self, file_path) -> None:
         self._msa.write_msa(file_path)
