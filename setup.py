@@ -8,6 +8,7 @@ from datetime import datetime
 
 now = datetime.now()
 
+
 __version__ = f"{now.year % 100}.{now.month+1}.0"
 
 # The main interface is through Pybind11Extension.
