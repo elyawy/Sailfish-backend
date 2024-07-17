@@ -28,6 +28,7 @@ before-all = [
     "cmake --build . --config Release",
     "ls .",
     "cp Release/Phylolib.lib ../",
+    "ls ./Release/",
 ]
 
 [tool.cibuildwheel.macos]
