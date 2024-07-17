@@ -382,7 +382,7 @@ class Msa:
         return self._msa.print_indels()
     
     def get_msa(self) -> str:
-        return self._msa.get_msa()
+        return self._msa.get_msa_string()
     
     def write_msa(self, file_path) -> None:
         self._msa.write_msa(file_path)
