@@ -26,8 +26,7 @@ before-all = [
 before-all = [
     "cd libs/Phylolib",
     "cmake -DCMAKE_BUILD_TYPE=Release .",
-    "cmake -DMSVC_RUNTIME_LIBRARY=MultiThreaded .",
-    "cmake --build . --config Release --verbose",
+    "MSVC_RUNTIME_LIBRARY=MultiThreadedDLL cmake --build . --config Release --verbose",
     "ls .",
     "cp Release/Phylolib.lib ../",
     "ls ./Release/",
