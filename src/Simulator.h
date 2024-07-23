@@ -66,7 +66,9 @@ public:
     }
 
     void generateIndelsRecursively(BlockMap &blockmap,const tree::TreeNode &currentNode) {
-        if (currentNode.isLeaf()) return;
+        if (currentNode.isLeaf()) {
+            return;
+        }
         auto blockTuple = blockmap.at(currentNode.id());
         size_t seqLength = std::get<static_cast<int>(BLOCKLIST::LENGTH)>(blockTuple);
         size_t correctedSeqLength = seqLength - 1;
@@ -137,9 +139,16 @@ public:
                 }
                 eventType = event::DELETION;
             }
-            // std::cout << "event type " << eventType << "\tposition " << eventIndex << "\tlength " << eventLength << "\n";
-            blocks.handleEvent(eventType, eventIndex, eventLength);                
+            blocks.handleEvent(eventType, eventIndex, eventLength);
 
+            // if (!blocks.checkLength()){
+            //     std::cout << blocks.printTree() << "\n";
+            //     std::cout << "eventType=" << eventType
+            //               << " eventIndex=" << eventIndex
+            //               << " sequenceSize=" << sequenceSize
+            //               << " eventLength=" << eventLength << "\n";
+            //     errorMsg::reportError("length error!");
+            // }
 
             sequenceSize = blocks.length() - 1;
 
@@ -152,9 +161,6 @@ public:
             waitingTime = distribution(_mt_rand);
 
         }
-        // std::cout << blocks.length() << "\n";
-        // std::cout << blocks.printTree() << "\n";
-        
         return std::make_tuple(blocks.getBlockList(), blocks.length());
     }
 

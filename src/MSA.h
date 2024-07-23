@@ -105,6 +105,7 @@ public:
                     totalSize += (cumulatedDifference + positionDifference);
                     cumulatedDifference = 1;
                 }
+                if (totalSize > _msaLength) errorMsg::reportError("sequence lengths mismatch in fillMSA");
 
                 lastPosition = currentPosition;
 
@@ -170,19 +171,14 @@ public:
                 msaString << "\n";
                 continue;
             }
-            // std::cout << currentSeq << "\n";
-            
             for (size_t col = 0; col < _alignedSequence[id].size(); col++) {
                 int strSize = _alignedSequence[id][col];
-
                 if (strSize < 0) {
                     strSize = -strSize;
                     msaString << std::string(strSize, '-');
                 } else {
                     msaString << currentSeq.substr(passedSeq, strSize);
                 }
-                // std::cout << strSize << " ";
-
                 passedSeq += strSize;
             }
             msaString << "\n";

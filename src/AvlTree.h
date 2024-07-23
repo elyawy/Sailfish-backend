@@ -45,6 +45,7 @@
 #include <cstdint>
 #include <sstream>
 #include <vector>
+#include <array>
 #include <tuple>
 
 struct Block {
@@ -370,8 +371,11 @@ public:
       current_node = child_[current_node].right;
     }
     current_node = get_parent(block_index);
-    if (child_[current_node].right == block_index) return current_node;
-    
+    size_type right_child_node = child_[current_node].right;
+    // if (child_[current_node].right == block_index) return current_node;
+    if (right_child_node != INVALID_IDX &&
+        key_[right_child_node] == key_[block_index]) return current_node;
+
     size_type previous_node = current_node;
     current_node = get_parent(previous_node);
     while (current_node != INVALID_IDX) {

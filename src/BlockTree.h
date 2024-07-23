@@ -2,8 +2,10 @@
 #define _BLOCK_TREE_H_
 
 #include <memory>
-
+#include <unordered_map>
+#include <tuple>
 #include "AvlTree.h"
+
 
 typedef std::unordered_map<size_t, std::tuple<BlockList, size_t>> BlockMap;
 
@@ -60,6 +62,10 @@ public:
 
   size_t memoryUsage() {
     return _avlTree->memoryUsage();
+  }
+
+  bool checkLength() {
+    return _avlTree->checkLength();
   }
 
 
