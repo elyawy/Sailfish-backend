@@ -2,7 +2,7 @@
 
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
-
+#include <memory>
 
 #include "./Simulator.h"
 
@@ -80,6 +80,7 @@ PYBIND11_MODULE(_Sailfish, m) {
         .def(py::init<>());
 
     py::enum_<alphabetCode>(m, "alphabetCode")
+        .value("NULLCODE", alphabetCode::NULLCODE)
         .value("NUCLEOTIDE", alphabetCode::NUCLEOTIDE)
         .value("AMINOACID", alphabetCode::AMINOACID)
         .export_values();
@@ -140,8 +141,8 @@ PYBIND11_MODULE(_Sailfish, m) {
 
 
     py::class_<MSA>(m, "Msa")
-        .def(py::init<size_t, size_t, const std::vector<bool>&>())
-        .def(py::init<BlockMap, tree::TreeNode*, const std::vector<bool>&>())
+        .def(py::init<size_t, size_t, const std::vector<bool>& >())
+        .def(py::init<BlockMap, tree::TreeNode*, const std::vector<bool>& >())
         .def("generate_msas", &MSA::generateMSAs)
         .def("length", &MSA::getMSAlength)
         .def("num_sequences", &MSA::getNumberOfSequences)

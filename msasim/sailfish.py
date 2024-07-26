@@ -10,6 +10,7 @@ from enum import Enum
 MODEL_CODES = _Sailfish.modelCode
 
 class SIMULATION_TYPE(Enum):
+    NOSUBS = 0
     DNA = 1
     PROTEIN = 2
 
@@ -413,13 +414,15 @@ class Simulator:
             raise ValueError(f"failed to verify simProtocol")
         
         if not simulation_type:
-            warnings.warn(f"simulation type not provided -> running protein simulation")
-            simulation_type = SIMULATION_TYPE.PROTEIN
+            warnings.warn(f"simulation type not provided -> running indel only simulation")
+            simulation_type = SIMULATION_TYPE.NOSUBS
         
         if simulation_type == SIMULATION_TYPE.PROTEIN:
             self._alphabet = _Sailfish.alphabetCode.AMINOACID
         elif simulation_type == SIMULATION_TYPE.DNA:
             self._alphabet = _Sailfish.alphabetCode.NUCLEOTIDE
+        elif simulation_type == SIMULATION_TYPE.NOSUBS:
+            self._alphabet = _Sailfish.alphabetCode.NULLCODE
         else:
             raise ValueError(f"unknown simulation type, please provde one of the following: {[e.name for e in SIMULATION_TYPE]}")
         
@@ -525,8 +528,9 @@ class Simulator:
                           self.get_sequences_to_save())
 
             # sim.init_substitution_sim(mFac)
-            substitutions = self.gen_substitutions(msa.get_length())
-            msa.fill_substitutions(substitutions)
+            if self._simulation_type != SIMULATION_TYPE.NOSUBS:
+                substitutions = self.gen_substitutions(msa.get_length())
+                msa.fill_substitutions(substitutions)
 
             Msas.append(msa)
         return Msas

@@ -20,6 +20,7 @@ private:
     size_t _seed;
 	std::mt19937_64 _mt_rand;
     std::uniform_real_distribution<double> _biased_coin;
+    std::shared_ptr<std::vector<bool>> _nodesToSave;
     // std::uniform_int_distribution<int> _fair_die;
 
 public:
@@ -28,6 +29,8 @@ public:
     _biased_coin(0,1) {
         // std::cout << "simulator ready!\n";
         DiscreteDistribution::setSeed(_seed);
+        _nodesToSave = std::make_shared<std::vector<bool>>(_protocol->getTree()->getNodesNum(), false);
+        setSaveStateLeaves(_protocol->getTree()->getRoot());
     }
 
     void initSimulator() {
@@ -165,7 +168,7 @@ public:
     }
 
     void initSubstitionSim(modelFactory& mFac) {
-        _substitutionSim = std::make_unique<rateMatrixSim>(mFac);
+        _substitutionSim = std::make_unique<rateMatrixSim>(mFac, _nodesToSave);
         // _substitutionSim->setSeed(_seed);
         _substitutionSim->setRng(&_mt_rand);
     }
@@ -177,25 +180,47 @@ public:
     }
 
 
+    void setNodesToSave(std::vector<size_t> nodeIDs) {
+        std::fill(_nodesToSave->begin(), _nodesToSave->end(), false);
+        for(auto &nodeID: nodeIDs) {
+            (*_nodesToSave)[nodeID] = true;
+        }
+    }
+
+    void setSaveAllNodes() {
+        for (size_t i = 0; i < _nodesToSave->size(); i++) {
+            (*_nodesToSave)[i] = true;
+        }
+    }
+
+    void setSaveRoot() {
+        (*_nodesToSave)[0] = true;
+    }
+
+
+    void changeNodeSaveState(size_t nodeID) {
+        (*_nodesToSave)[nodeID] = !(*_nodesToSave)[nodeID];
+    }
+
+    bool getNodeSaveState(size_t nodeID) {
+        return (*_nodesToSave)[nodeID];
+    }
+
+    const std::vector<bool> getNodesSaveList() {
+        return (*_nodesToSave);
+    }
+
+    void setSaveStateLeaves(const tree::nodeP &node) {
+        for(auto &node: node->getSons()) {
+            if (node->isLeaf()) (*_nodesToSave)[node->id()] = true;
+            setSaveStateLeaves(node);
+        }
+    }
+
     void setSaveRates(bool saveRates) {
         _substitutionSim->setSaveRates(saveRates);
     }
 
-    void setSaveNode(size_t nodeID) {
-        _substitutionSim->changeNodeSaveState(nodeID);
-    }
-
-    void setSaveAllNodes() {
-        _substitutionSim->setSaveAllNodes();
-    }
-
-    void setSaveRoot() {
-        _substitutionSim->setSaveRoot();
-    }
-
-    const std::vector<bool>& getNodesSaveList() {
-        return _substitutionSim->getNodesSaveList();
-    }
 
     std::shared_ptr<sequenceContainer> simulateSubstitutions(size_t sequenceLength) {
         size_t chunkSize = 1024;

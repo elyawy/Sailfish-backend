@@ -18,14 +18,13 @@
 // 	_et(_inEt), _sp(sp),_alph(alph),_avgSubtitutionsPerSite(0.0) {
 // 	};
 
-rateMatrixSim::rateMatrixSim(modelFactory& mFac) : 
+rateMatrixSim::rateMatrixSim(modelFactory& mFac, std::shared_ptr<std::vector<bool>> nodesToSave) : 
 	_et(mFac.getTree()), _sp(mFac.getStochasticProcess()), _alph(mFac.getAlphabet()),
 	_cpijGam(), _rootSequence(mFac.getAlphabet()), _subManager(mFac.getTree()->getNodesNum()),
-	_nodesToSave(_et->getNodesNum(), false), _saveRates(false), _biased_coin(0,1) {
+	_nodesToSave(nodesToSave), _saveRates(false), _biased_coin(0,1) {
 		// _et = mFac.getTree();
 		// _sp = mFac.getStochasticProcess();
 		// _alph = mFac.getAlphabet();
-		setSaveStateLeaves(_et->getRoot());
 
 		size_t alphaSize = _sp->alphabetSize();
 
@@ -48,13 +47,6 @@ rateMatrixSim::rateMatrixSim(modelFactory& mFac) :
 		_simulatedSequences = std::make_unique<sequenceContainer>();
 
 };
-
-void rateMatrixSim::setSaveStateLeaves(const tree::nodeP &node) {
-	for(auto &node: node->getSons()) {
-		if (node->isLeaf()) _nodesToSave[node->id()] = true;
-		setSaveStateLeaves(node);
-	}
-}
 
 void rateMatrixSim::setSaveRates(bool saveRates) {
 	_saveRates = saveRates;
@@ -120,7 +112,7 @@ void rateMatrixSim::generate_substitution_log(int seqLength) {
 	// _siteSampler = std::make_unique<DiscreteDistribution>(ratesVec, sumOfRatesNoramlizingFactor);
 	_rootSequence.resize(seqLength);
 	generateRootSeq(seqLength, ratesVec);
-	if (_nodesToSave[_et->getRoot()->id()]) saveSequence(_et->getRoot()->id(), _et->getRoot()->name());
+	if ((*_nodesToSave)[_et->getRoot()->id()]) saveSequence(_et->getRoot()->id(), _et->getRoot()->name());
 
 	mutateSeqRecuresively(_et->getRoot(), seqLength);
 	_subManager.clear();
@@ -131,7 +123,7 @@ void rateMatrixSim::mutateSeqRecuresively(tree::nodeP currentNode, int seqLength
 
 	for (auto &node: currentNode->getSons()) {
 		mutateSeqAlongBranch(node, seqLength);
-		if (_nodesToSave[node->id()]) saveSequence(node->id(), node->name());
+		if ((*_nodesToSave)[node->id()]) saveSequence(node->id(), node->name());
 		mutateSeqRecuresively(node, seqLength);
 
 		if (!_subManager.isEmpty(currentNode->id())) {
@@ -253,35 +245,6 @@ std::unique_ptr<sequenceContainer> rateMatrixSim::getSequenceContainer() {
 	return std::move(outputSequences);
 }
 
-void rateMatrixSim::setNodesToSave(std::vector<size_t> nodeIDs) {
-	std::fill(_nodesToSave.begin(), _nodesToSave.end(), false);
-	for(auto &nodeID: nodeIDs) {
-		_nodesToSave[nodeID] = true;
-	}
-}
-
-void rateMatrixSim::setSaveAllNodes() {
-	for (size_t i = 0; i < _nodesToSave.size(); i++) {
-		_nodesToSave[i] = true;
-	}
-}
-
-void rateMatrixSim::setSaveRoot() {
-	_nodesToSave[0] = true;
-}
-
-
-void rateMatrixSim::changeNodeSaveState(size_t nodeID) {
-	_nodesToSave[nodeID] = !_nodesToSave[nodeID];
-}
-
-bool rateMatrixSim::getNodeSaveState(size_t nodeID) {
-	return _nodesToSave[nodeID];
-}
-
-const std::vector<bool>& rateMatrixSim::getNodesSaveList() {
-	return _nodesToSave;
-}
 
 bool rateMatrixSim::testSumOfRates() {
 	MDOUBLE sumOfRates = 0.0;

@@ -18,7 +18,7 @@ class rateMatrixSim {
 public:
 	// explicit simulateTree(tree*  _inEt,const stochasticProcess* sp,
 	// 	const alphabet* alph);
-	explicit rateMatrixSim(modelFactory& mFac);
+	explicit rateMatrixSim(modelFactory& mFac, std::shared_ptr<std::vector<bool>> nodesToSave);
 
 	// void generate_seq(int seqLength);
 	void generate_substitution_log(int seqLength);
@@ -27,13 +27,6 @@ public:
 	// void setSeed(size_t seed);
 	void setRng(mt19937_64 *rng);
 	// const mt19937_64& getRng();
-	void setNodesToSave(std::vector<size_t> nodeIDs);
-	void changeNodeSaveState(size_t nodeID);
-	void setSaveAllNodes();
-	void setSaveRoot();
-
-	bool getNodeSaveState(size_t nodeID);
-	const std::vector<bool>& getNodesSaveList();
 
 	void setSaveRates(bool saveRates);
 	void clearRatesVec() { _siteRates.clear();}
@@ -76,7 +69,7 @@ private:
 	computePijGam _cpijGam;
 	sequence _rootSequence;
 	substitutionManager _subManager;
-	std::vector<bool> _nodesToSave;
+	std::shared_ptr<std::vector<bool>> _nodesToSave;
 	bool _saveRates;
 	std::uniform_real_distribution<double> _biased_coin;
 	std::vector<std::unique_ptr<DiscreteDistribution>> _gillespieSampler;

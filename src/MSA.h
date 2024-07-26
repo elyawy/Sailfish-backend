@@ -25,7 +25,7 @@ public:
 	// MSA(const vector<string> & seqArray) : _originalAlignedSeqs(seqArray), _numberOfSequences(seqArray.size()) {};
 
     static std::vector<MSA> generateMSAs(const std::vector<BlockMap> &blockmaps, tree::nodeP rootNode,
-                                         const std::vector<bool> &nodesToSave) {
+                                        const std::vector<bool>& nodesToSave) {
         std::vector<MSA> msas;
 
         for(auto &blockmap: blockmaps) {
@@ -35,13 +35,16 @@ public:
         return msas;
     }
 
-    MSA (const BlockMap &blockmap,const tree::nodeP rootNode, const std::vector<bool> &nodesToSave) {
+    MSA (const BlockMap &blockmap,const tree::nodeP rootNode, const std::vector<bool>& nodesToSave) {
         size_t sequenceSize = std::get<static_cast<int>(BLOCKLIST::LENGTH)>(blockmap.at(rootNode->id()))-1;
         // std::cout << sequenceSize << "\n";
         size_t numberOfSeqs = 0;
-        for (auto flag: nodesToSave) {
-            numberOfSeqs += flag;
+        _sequencesToSave.clear();
+        for (size_t i=0; i < (nodesToSave).size(); i++) {
+            numberOfSeqs += (nodesToSave)[i];
+            if ((nodesToSave)[i]) _sequencesToSave.push_back(i);
         }
+
         // SuperSequence superSequence(sequenceSize, rootNode->getNumberLeaves());
         SuperSequence superSequence(sequenceSize, numberOfSeqs);
 
@@ -57,8 +60,8 @@ public:
     void buildMsaRecursively(std::vector<Sequence> &finalSequences,
                              const BlockMap &blockmap,const tree::TreeNode &parrentNode,
                              SuperSequence &superSequence, Sequence &parentSequence, 
-                             const std::vector<bool> &nodesToSave) {
-        if (nodesToSave[parrentNode.id()]) finalSequences.push_back(parentSequence);
+                             const std::vector<bool>& nodesToSave) {
+        if ((nodesToSave)[parrentNode.id()]) finalSequences.push_back(parentSequence);
         if (parrentNode.isLeaf()) return;
         for (size_t i = 0; i < parrentNode.getNumberOfSons(); i++) {
             tree::TreeNode* childNode = parrentNode.getSon(i);
@@ -105,7 +108,7 @@ public:
                     totalSize += (cumulatedDifference + positionDifference);
                     cumulatedDifference = 1;
                 }
-                if (totalSize > _msaLength) errorMsg::reportError("sequence lengths mismatch in fillMSA");
+                // if (totalSize > _msaLength) errorMsg::reportError("sequence lengths mismatch in fillMSA");
 
                 lastPosition = currentPosition;
 
@@ -127,8 +130,13 @@ public:
         _substitutions = _seqContainer;
     }
 
-	MSA(size_t numSequences, size_t msaLength, const std::vector<bool> &nodesToSave): 
-        _numberOfSequences(numSequences), _msaLength(msaLength) {};
+	MSA(size_t numSequences, size_t msaLength,const std::vector<bool>& nodesToSave): 
+        _numberOfSequences(numSequences), _msaLength(msaLength) {
+        _sequencesToSave.clear();
+        for (size_t i=0; i < (nodesToSave).size(); i++) {
+            if ((nodesToSave)[i]) _sequencesToSave.push_back(i);
+        }
+    };
 
 	MSA(const MSA &msa){
 		_numberOfSequences = msa._numberOfSequences;
@@ -156,8 +164,25 @@ public:
 		}
 	}
 
+    std::string generateMsaStringWithoutSubs() {
+        std::stringstream msaString;
+        for (auto id: _sequencesToSave) {
+            for (size_t col = 0; col < _alignedSequence[id].size(); col++) {
+                int strSize = _alignedSequence[id][col];
+                if (strSize < 0) {
+                    strSize = -strSize;
+                    msaString << std::string(strSize, '-');
+                } else {
+                    msaString << std::string(strSize, 'A');
+                }
+            }
+            msaString << "\n";
+        }
+        return msaString.str();
+    }
 
     std::string generateMsaString() {
+        if (_substitutions == nullptr) return generateMsaStringWithoutSubs();
         std::stringstream msaString;
         for (size_t row = 0; row < _numberOfSequences; row++) {
             int passedSeq = 0;
@@ -218,7 +243,7 @@ private:
 	SuperSequence* _originalAlignedSeqs; //The aligned sequences
 
 	std::unordered_map<size_t, std::vector<int>> _alignedSequence;
-    std::shared_ptr<bool> _sequencesToSave;
+    std::vector<size_t> _sequencesToSave;
 
 
 };
