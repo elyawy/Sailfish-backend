@@ -1,4 +1,4 @@
-
+#include <sstream>
 
 #include "../libs/Phylolib/includes/tree.h"
 #include "../libs/Phylolib/includes/DiscreteDistribution.h"
@@ -9,6 +9,7 @@ class SimulationProtocol
 {
 private:
     tree* _tree;
+    size_t _numberOfBranches;
     size_t _sequenceSize;
     size_t _seed;
     std::vector<DiscreteDistribution*> _insertionLengthDistributions;
@@ -18,37 +19,79 @@ private:
     bool _isSaveAncestral;
 
 public:
-    SimulationProtocol(tree* phylotree) : _tree(phylotree) {}
+    SimulationProtocol(tree* phylotree) : _tree(phylotree),
+                                          _numberOfBranches(phylotree->getNodesNum()-1) {}
 
     void setInsertionLengthDistributions(std::vector<DiscreteDistribution*> lengthDistributions) {
+        if (lengthDistributions.size() != _numberOfBranches) {
+            std::stringstream errorstr;
+            errorstr << "Number of insertion length distributions and branches mismatch:\n";
+            errorstr << "lengthDistributions.size()=" << lengthDistributions.size() << "\n";
+            errorstr << "_numberOfBranches=" << _numberOfBranches << "\n";
+            errorMsg::reportError(errorstr.str());
+        }
         _insertionLengthDistributions = lengthDistributions;
     }
 
     DiscreteDistribution* getInsertionDistribution(size_t position) {
+        if (_insertionLengthDistributions[position] == nullptr) {
+            errorMsg::reportError("Null insertion length distribution accessed\n");
+        }
         return _insertionLengthDistributions[position];
     }
 
     void setDeletionLengthDistributions(std::vector<DiscreteDistribution*> lengthDistributions) {
+        if (lengthDistributions.size() != _numberOfBranches) {
+            std::stringstream errorstr;
+            errorstr << "Number of deletion legnth distributions and branches mismatch:\n";
+            errorstr << "lengthDistributions.size()=" << lengthDistributions.size() << "\n";
+            errorstr << "_numberOfBranches=" << _numberOfBranches << "\n";
+            errorMsg::reportError(errorstr.str());
+        }
         _deletionLengthDistributions = lengthDistributions;
     }
 
     DiscreteDistribution* getDeletionDistribution(size_t position) {
+        if (_deletionLengthDistributions[position] == nullptr) {
+            errorMsg::reportError("Null deletion length distribution accessed\n");
+        }
         return _deletionLengthDistributions[position];
     }
 
-    void setInsertionRates(std::vector<double> rates) {
+    void setInsertionRates(std::vector<double> rates)
+     {
+        if (rates.size() != _numberOfBranches) {
+            std::stringstream errorstr;
+            errorstr << "Number of insertion rates and branches mismatch:\n";
+            errorstr << "rates.size()=" << rates.size() << "\n";
+            errorstr << "_numberOfBranches=" << _numberOfBranches << "\n";
+            errorMsg::reportError(errorstr.str());
+        }
         _insertionRates = rates;
     }
 
     double getInsertionRate(size_t position) {
+        if (position >= _insertionRates.size()) {
+            errorMsg::reportError("Null insertion rate accessed\n");
+        }
         return _insertionRates[position];
     }
 
     void setDeletionRates(std::vector<double> rates) {
+        if (rates.size() != _numberOfBranches) {
+            std::stringstream errorstr;
+            errorstr << "Number of deletion rates and branches mismatch:\n";
+            errorstr << "rates.size()=" << rates.size() << "\n";
+            errorstr << "_numberOfBranches=" << _numberOfBranches << "\n";
+            errorMsg::reportError(errorstr.str());
+        }
         _deletionRates = rates;
     }
 
     double getDeletionRate(size_t position) {
+        if (position >= _deletionRates.size()) {
+            errorMsg::reportError("Null deletion rate accessed\n");
+        }
         return _deletionRates[position];
     }
 
