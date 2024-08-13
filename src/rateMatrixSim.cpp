@@ -19,7 +19,8 @@
 // 	};
 
 rateMatrixSim::rateMatrixSim(modelFactory& mFac, std::shared_ptr<std::vector<bool>> nodesToSave) : 
-	_et(mFac.getTree()), _sp(mFac.getStochasticProcess()), _alph(mFac.getAlphabet()),
+	_et(mFac.getTree()), _sp(mFac.getStochasticProcess()), _alph(mFac.getAlphabet()), 
+	_invariantSitesProportion(mFac.getInvariantSitesProportion()),
 	_cpijGam(), _rootSequence(mFac.getAlphabet()), _subManager(mFac.getTree()->getNodesNum()),
 	_nodesToSave(nodesToSave), _saveRates(false), _biased_coin(0,1) {
 		// _et = mFac.getTree();
@@ -34,8 +35,12 @@ rateMatrixSim::rateMatrixSim(modelFactory& mFac, std::shared_ptr<std::vector<boo
 
 		std::vector<MDOUBLE> rateProbs;
 		for (int j = 0 ; j < _sp->categories(); ++j) {
-			rateProbs.push_back(_sp->ratesProb(j));
+			MDOUBLE currentRateProb = _sp->ratesProb(j);
+			currentRateProb = currentRateProb * (1.0  - _invariantSitesProportion)
+			rateProbs.push_back(currentRateProb);
 		}
+		if (_invariantSitesProportion > 0.0) rateProbs.push_back(_invariantSitesProportion);
+
 		_rateSampler = std::make_unique<DiscreteDistribution>(rateProbs);
 
 		std::vector<MDOUBLE> frequencies;
@@ -103,6 +108,10 @@ void rateMatrixSim::generate_substitution_log(int seqLength) {
 	for (int h = 0; h < seqLength; h++)  {
 		int selectedRandomCategory = _rateSampler->drawSample() - 1;
 		_rateCategories[h] = selectedRandomCategory;
+		if (selectedRandomCategory == _sp->categories()) {
+			ratesVec[h] = 0.0;
+			continue;
+		}
 		ratesVec[h] = _sp->rates(selectedRandomCategory);
 		sumOfRatesAcrossSites += ratesVec[h];
 	}

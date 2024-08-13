@@ -75,6 +75,7 @@ void modelFactory::setGammaParameters(MDOUBLE alpha, size_t numCategories) {
 
 void modelFactory::resetFactory() {
     _state = factoryState::ALPHABET;
+    _invariantProportion = 0.0;
 }
 
 

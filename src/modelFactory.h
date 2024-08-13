@@ -68,7 +68,9 @@ class modelFactory
 {
 
 public:
-    modelFactory(tree* tr): _state(factoryState::ALPHABET), _tree(tr){}
+    modelFactory(tree* tr): _state(factoryState::ALPHABET), _tree(tr){
+        _invariantProportion = 0.0;
+    }
 
     std::shared_ptr<stochasticProcess> getStochasticProcess();
 
@@ -76,6 +78,9 @@ public:
     void setReplacementModel(modelCode model);
     void setModelParameters(std::vector<MDOUBLE> params);
     void setGammaParameters(MDOUBLE alpha, size_t numCategories);
+    void setInvariantSitesProportion(MDOUBLE invariantProportion);
+
+    MDOUBLE getInvariantSitesProportion() {return _invariantProportion;}
 
     void resetFactory();
 
@@ -95,6 +100,7 @@ private:
     std::vector<MDOUBLE> _parameters;
     MDOUBLE _alpha;
     size_t _gammaCategories;
+    MDOUBLE _invariantProportion;
 
 };
 

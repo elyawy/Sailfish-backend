@@ -66,6 +66,7 @@ private:
 	tree* _et;
 	std::shared_ptr<const stochasticProcess> _sp;
 	const alphabet* _alph;
+	MDOUBLE _invariantSitesProportion;
 	computePijGam _cpijGam;
 	sequence _rootSequence;
 	substitutionManager _subManager;
