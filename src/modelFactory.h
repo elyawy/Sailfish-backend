@@ -78,7 +78,7 @@ public:
     void setReplacementModel(modelCode model);
     void setModelParameters(std::vector<MDOUBLE> params);
     void setGammaParameters(MDOUBLE alpha, size_t numCategories);
-    void setInvariantSitesProportion(MDOUBLE invariantProportion);
+    void setInvariantSitesProportion(MDOUBLE invariantProportion) {_invariantProportion = invariantProportion;};
 
     MDOUBLE getInvariantSitesProportion() {return _invariantProportion;}
 

@@ -36,7 +36,7 @@ rateMatrixSim::rateMatrixSim(modelFactory& mFac, std::shared_ptr<std::vector<boo
 		std::vector<MDOUBLE> rateProbs;
 		for (int j = 0 ; j < _sp->categories(); ++j) {
 			MDOUBLE currentRateProb = _sp->ratesProb(j);
-			currentRateProb = currentRateProb * (1.0  - _invariantSitesProportion)
+			currentRateProb = currentRateProb * (1.0  - _invariantSitesProportion);
 			rateProbs.push_back(currentRateProb);
 		}
 		if (_invariantSitesProportion > 0.0) rateProbs.push_back(_invariantSitesProportion);
@@ -158,6 +158,7 @@ void rateMatrixSim::mutateEntireSeq(tree::nodeP currentNode, int seqLength) {
 
 	for (size_t site = 0; site < seqLength; ++site) {
 		ALPHACHAR parentChar = _rootSequence[site];//_subManager.getCharacter(parentId, site, _rootSequence);
+		if (_rateCategories[site] == _sp->categories()) continue;
 		ALPHACHAR nextChar = _cpijGam.getRandomChar(_rateCategories[site], nodeId, parentChar);
 		if (nextChar != parentChar){
 			_subManager.handleEvent(nodeId, site, nextChar, _rateCategories, _sp.get(), _rootSequence);

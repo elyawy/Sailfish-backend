@@ -123,7 +123,7 @@ PYBIND11_MODULE(_Sailfish, m) {
         .def("set_replacement_model" , &modelFactory::setReplacementModel)
         .def("set_model_parameters" , &modelFactory::setModelParameters)
         .def("set_gamma_parameters" , &modelFactory::setGammaParameters)
-        .def("set_invariant_sites_proportion". &modelFactory::setInvariantSitesProportion)
+        .def("set_invariant_sites_proportion", &modelFactory::setInvariantSitesProportion)
         .def("reset", &modelFactory::resetFactory);
 
 

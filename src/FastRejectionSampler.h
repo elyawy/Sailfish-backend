@@ -39,11 +39,13 @@ public:
 
 
         for(size_t i=0; i < _weights.size(); ++i) {
-            _totalWeightsSum += _weights[i];
-            int level = static_cast<int>(std::log2(_weights[i]));
+            MDOUBLE currentWeight = _weights[i];
+            if (currentWeight == 0.0) continue;
+            _totalWeightsSum += currentWeight;
+            int level = static_cast<int>(std::log2(currentWeight));
             if (level >= 0) level += 1;
             level -= _minWeightLevel;
-            _levelsWeights[level] += _weights[i];
+            _levelsWeights[level] += currentWeight;
             size_t innerIndex = _levelToWeights.at(level).size();
             _levelToWeights.at(level).push_back(i);
             _weightIndexToBin[i] = innerIndex;
