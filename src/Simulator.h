@@ -78,7 +78,7 @@ public:
 
         for (size_t i = 0; i < currentNode.getNumberOfSons(); i++) {
             tree::TreeNode* childNode =  currentNode.getSon(i);
-            auto newBlockTuple = simulateAlongBranch(correctedSeqLength, childNode->dis2father(), childNode->id());
+            auto newBlockTuple = simulateAlongBranch(correctedSeqLength, childNode->dis2father(), childNode->id()-1);
             blockmap[childNode->id()] = newBlockTuple;
             generateIndelsRecursively(blockmap, *(currentNode.getSon(i)));
         }
