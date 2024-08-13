@@ -467,7 +467,8 @@ class Simulator:
             model: _Sailfish.modelCode,
             model_parameters: List = None,
             gamma_parameters_alpha : float = 1.0,
-            gamma_parameters_catergories: int = 1
+            gamma_parameters_catergories: int = 1,
+            invariant_sites_proportion: float = 0.0
         ) -> None:
         if not model:
             raise ValueError(f"please provide a substitution model from the the following list: {_Sailfish.modelCode}")
@@ -490,8 +491,9 @@ class Simulator:
                 raise ValueError(f"please provide a model parameters")
             else:
                 self._model_factory.set_model_parameters(model_parameters)
-        
+
         self._model_factory.set_gamma_parameters(gamma_parameters_alpha, gamma_parameters_catergories)
+        self._model_factory.set_invariant_sites_proportion(invariant_sites_proportion)
         self._simulator.init_substitution_sim(self._model_factory)
 
         self._is_sub_model_init = True
