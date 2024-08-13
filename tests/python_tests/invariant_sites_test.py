@@ -11,8 +11,7 @@ sim_protocol.set_sequence_size(ROOT_SEQUENCE_LENGTH)
 
 simulation = sim.Simulator(sim_protocol, simulation_type=sim.SIMULATION_TYPE.DNA)
 
-simulation.set_replacement_model(model=MODEL_CODES.NUCJC,gamma_parameters_alpha=1.0,
-                                 gamma_parameters_catergories=4, invariant_sites_proportion=0.2)
+simulation.set_replacement_model(model=MODEL_CODES.NUCJC, invariant_sites_proportion=0.5)
 msa = simulation()
 
 msa.print_msa()
