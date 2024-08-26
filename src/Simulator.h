@@ -100,8 +100,10 @@ public:
         DiscreteDistribution* insertionLengthDistribution = _protocol->getInsertionDistribution(nodePosition);
         DiscreteDistribution* deletionLengthDistribution = _protocol->getDeletionDistribution(nodePosition);
 
+        double sampledDeletionLength = deletionLengthDistribution->drawSample();
+
         double sequenceWiseInsertionRate = 1.0 * insertionRate * (sequenceSize + 1);
-        double sequenceWiseDeletionRate = 1.0 * deletionRate * sequenceSize;
+        double sequenceWiseDeletionRate = 1.0 * deletionRate * (sequenceSize + (sampledDeletionLength - 1));
 
         // std::cout << "sequenceWiseInsertionRate=" << sequenceWiseInsertionRate << "\n";
         // std::cout << "sequenceWiseDeletionRate=" << sequenceWiseDeletionRate << "\n";
@@ -119,7 +121,7 @@ public:
 
             double insertionProbability = sequenceWiseInsertionRate / (sequenceWiseInsertionRate + sequenceWiseDeletionRate);
 
-            size_t eventIndex;
+            int eventIndex;
             size_t eventLength;
             event eventType;
 
@@ -132,13 +134,17 @@ public:
                 eventLength = insertionLengthDistribution->drawSample();
                 eventType = event::INSERTION;
             } else {
-                auto _fair_die = std::uniform_int_distribution<int>(1, sequenceSize);
+                auto _fair_die = std::uniform_int_distribution<int>(1 - (sampledDeletionLength-1), sequenceSize);
                 eventIndex = _fair_die(_mt_rand);
+                eventLength = sampledDeletionLength;
+                if (eventIndex < 1) {
+                    eventLength = eventLength + (eventIndex-1);
+                    eventIndex = 1;
+                }
                 // std::cout << eventIndex << " ";
 
-                eventLength = deletionLengthDistribution->drawSample();
                 if (eventLength + eventIndex > sequenceSize) {
-                    eventLength = sequenceSize - eventIndex;
+                    eventLength = sequenceSize - eventIndex + 1;
                 }
                 eventType = event::DELETION;
             }
@@ -155,9 +161,11 @@ public:
 
             sequenceSize = blocks.length() - 1;
 
+            sampledDeletionLength = deletionLengthDistribution->drawSample();
+
             branchLength = branchLength - waitingTime;
             sequenceWiseInsertionRate = 1.0 * insertionRate * (sequenceSize + 1);
-            sequenceWiseDeletionRate = 1.0 * deletionRate * sequenceSize;
+            sequenceWiseDeletionRate =  1.0 * deletionRate * (sequenceSize + (sampledDeletionLength - 1));
             
             lambdaParam = sequenceWiseInsertionRate + sequenceWiseDeletionRate;
             std::exponential_distribution<double> distribution(lambdaParam);

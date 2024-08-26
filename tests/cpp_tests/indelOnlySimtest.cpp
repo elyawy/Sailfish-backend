@@ -47,14 +47,14 @@ int main() {
     auto saveList = sim.getNodesSaveList();
 
     size_t counter = 0;
-    while (counter++ < 1) {
+    while (counter++ < 100000) {
         auto blockmap = sim.generateSimulation();
 
         auto msa = MSA(blockmap, tree_.getRoot(), saveList);
         
         std::string msa_str = msa.generateMsaString();
-    }
-    
+        std::cout << msa_str << "\n";
+    }   
 
     return 0;
 
