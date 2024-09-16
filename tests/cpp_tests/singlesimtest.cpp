@@ -7,7 +7,7 @@
 
 // takes 10 minutes currently
 int main() {
-    tree tree_("../trees/normalbranches_nLeaves100000.treefile");
+    tree tree_("../trees/normalbranches_nLeaves1000.treefile");
     // tree tree_("((A:0.1,B:0.2):0.3,C:0.4);", false);
     // tree_.getRoot()->orderSonsByHeight();
     std::time_t t1 = 12;//std::time(0);
@@ -28,8 +28,8 @@ int main() {
 
     // fill(insertionRates.begin(), insertionRates.end(), 0.0);
     // fill(deletionRates.begin(), deletionRates.end(), 0.0);
-    fill(insertionRates.begin(), insertionRates.end(), 0.0);
-    fill(deletionRates.begin(), deletionRates.end(), 0.0);
+    fill(insertionRates.begin(), insertionRates.end(), 0.05);
+    fill(deletionRates.begin(), deletionRates.end(), 0.05);
 
     SimulationProtocol protocol(&tree_);
 
@@ -42,28 +42,21 @@ int main() {
     int rootLength = 1000;
     protocol.setSequenceSize(rootLength);
 
-    protocol.setSaveAncestral(false);
-
     protocol.setSeed(t1);
 
     Simulator sim(&protocol);
 
     // sim.initSimulator();
-    MSA msa(tree_.getLeavesNum(), rootLength);
-    std::vector<BlockMap> blockmaps = sim.runSimulator(1);
-    std::cout << "simulated Blocks\n";
+    auto saveList = sim.getNodesSaveList();
 
-    std::cin.get();
+    auto blockmap = sim.generateSimulation();
+    std::cout << "Generated BlockMap " << "\n";
 
-
-    // auto rootblock = std::get<0>(blockmaps[0].at(3));
-
-    std::vector<MSA> msas;
-    // std::vector<MSA> msas = MSA::generateMSAs(blockmaps, tree_.getRoot());
-    int msaLength = rootLength;//msas[0].getMSAlength();
+    auto msa = MSA(blockmap, tree_.getRoot(), saveList);
+    
+    int msaLength = msa.getMSAlength();
 
     std::cout << "length of the MSA will be: " << msaLength << "\n";
-    std::cin.get();
 
     modelFactory mFac(&tree_);
 
@@ -71,9 +64,10 @@ int main() {
     mFac.setReplacementModel(modelCode::NUCJC);
     // mFac.setModelParameters({0.25,0.25,0.25,0.25,0.1});
 
-    mFac.setGammaParameters(1.0, 1); // TODO: ALLOW 1 CATEGORY!
+    mFac.setGammaParameters(1.0, 4); // TODO: ALLOW 1 CATEGORY!
 
     if (!mFac.isModelValid()) return 0;
+
 
     sim.initSubstitionSim(mFac);
     std::cout << "initializing subs sim" << "\n";
@@ -99,8 +93,8 @@ int main() {
     msa.fillSubstitutions(fullContainer);
     std::cout << "filled MSA" << "\n";
 
-    msa.printFullMsa();
-    // msas[0].writeFullMsa("/home/elyalab/fasta.fasta");
+    // msa.writeFullMsa();
+    msa.writeFullMsa("/home/elyalab/fasta_1.fasta");
 
     // blockmaps.clear();
     // msas.clear();
