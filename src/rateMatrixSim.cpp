@@ -29,7 +29,7 @@ rateMatrixSim::rateMatrixSim(modelFactory& mFac, std::shared_ptr<std::vector<boo
 
 		size_t alphaSize = _sp->alphabetSize();
 
-		_cpijGam.fillPij(*_et, *_sp);
+		// _cpijGam.fillPij(*_et, *_sp);
 		initGillespieSampler();
 		
 
@@ -143,11 +143,11 @@ void rateMatrixSim::mutateSeqRecuresively(tree::nodeP currentNode, int seqLength
 
 void rateMatrixSim::mutateSeqAlongBranch(tree::nodeP currentNode, int seqLength) {
 	const MDOUBLE distToFather = currentNode->dis2father();
-	if (distToFather > 0.5) {
-		mutateEntireSeq(currentNode, seqLength);
-	} else {
-		mutateSeqGillespie(currentNode, seqLength, distToFather);
-	}
+	// if (distToFather > 0.5) {
+	// 	mutateEntireSeq(currentNode, seqLength);
+	// } else {
+	mutateSeqGillespie(currentNode, seqLength, distToFather);
+	// }
 	// testSumOfRates();
 }
 
