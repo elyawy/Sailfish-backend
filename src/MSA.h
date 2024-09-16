@@ -13,6 +13,7 @@
 #include "../libs/Phylolib/includes/sequenceContainer.h"
 
 #include "Sequence.h"
+#include "substitutionContainer.h"
 
 
 using namespace std;
@@ -44,17 +45,17 @@ public:
             numberOfSeqs += (nodesToSave)[i];
             if ((nodesToSave)[i]) _sequencesToSave.push_back(i);
         }
-
         // SuperSequence superSequence(sequenceSize, rootNode->getNumberLeaves());
         SuperSequence superSequence(sequenceSize, numberOfSeqs);
 
         Sequence rootSequence(superSequence, false, rootNode->id());
         rootSequence.initSequence();
-        // std::cin.get();
 
         std::vector<Sequence> finalSequences;
         buildMsaRecursively(finalSequences, blockmap, *rootNode, superSequence, rootSequence, nodesToSave);
+
         fillMSA(finalSequences, superSequence);
+
     }
 
     void buildMsaRecursively(std::vector<Sequence> &finalSequences,
@@ -66,12 +67,11 @@ public:
         for (size_t i = 0; i < parrentNode.getNumberOfSons(); i++) {
             tree::TreeNode* childNode = parrentNode.getSon(i);
             Sequence currentSequence(superSequence, childNode->isLeaf(), childNode->id());
-            auto blocks = std::get<static_cast<int>(BLOCKLIST::BLOCKS)>(blockmap.at(childNode->id()));//simulateAlongBranch(sequences.top().size(), currentNode->dis2father(), nodePosition);
+            auto blocks = std::get<static_cast<int>(BLOCKLIST::BLOCKS)>(blockmap.at(childNode->id()));//simulateAlongBranch(sequences.top().size(), currentNode->dis2father(), nodePosition);    
             currentSequence.generateSequence(blocks, parentSequence);
             buildMsaRecursively(finalSequences, blockmap, *childNode, superSequence, currentSequence, nodesToSave);
 
         }
-        
     }
 
     void fillMSA(vector<Sequence> &sequences, SuperSequence &superSeq) {
@@ -90,7 +90,15 @@ public:
         
         for(auto &seq: sequences) {
             size_t sequenceNodeID = seq.getSequenceNodeID();
+            // if the sequence is only made up of gaps:
+            if (seq.size() == 0) {
+                _alignedSequence[sequenceNodeID].push_back(-_msaLength);
+                continue;
+            }
+            // seq.printSequence();
+
             auto previousSite = *seq.begin();
+
             lastPosition = previousSite->absolutePosition;
             if (lastPosition > 0) {
                 _alignedSequence[sequenceNodeID].push_back(-lastPosition);
@@ -99,6 +107,7 @@ public:
 
             for(auto currentSite=seq.begin() + 1; currentSite!=seq.end(); currentSite++) {
 				currentPosition = (*(currentSite))->absolutePosition;
+
                 positionDifference = currentPosition - lastPosition - 1;
                 
                 if (positionDifference == 0) cumulatedDifference++;
@@ -126,7 +135,7 @@ public:
     };
 
 
-    void fillSubstitutions(std::shared_ptr<sequenceContainer> _seqContainer) {
+    void fillSubstitutions(substitutionContainer _seqContainer) {
         _substitutions = _seqContainer;
     }
 
@@ -182,14 +191,14 @@ public:
     }
 
     std::string generateMsaString() {
-        if (_substitutions == nullptr) return generateMsaStringWithoutSubs();
+        if (_substitutions.isEmpty()) return generateMsaStringWithoutSubs();
         std::stringstream msaString;
-        for (size_t row = 0; row < _numberOfSequences; row++) {
+        for (size_t rowIndex = 0; rowIndex < _numberOfSequences; rowIndex++) {
             int passedSeq = 0;
-            int id = _substitutions->placeToId(row);
+            int id = _substitutions.getIdFromRowIndex(rowIndex);
             // std::cout << id << "\n";
-            msaString << ">" << _substitutions->name(id) << "\n";
-            std::string currentSeq = (*_substitutions)[id].toString();
+            msaString << ">" << _substitutions.getNameFromRowIndex(rowIndex) << "\n";
+            std::string currentSeq = _substitutions.getSequence(id);
             // std::cout << currentSeq << "\n";
             if (_alignedSequence.empty()) {
                 msaString << currentSeq;
@@ -238,7 +247,7 @@ public:
 private:
 	size_t _numberOfSequences; // NUMBER OF SEQUENCES IN THE MSA
     size_t _msaLength; // Length of the MSA
-    std::shared_ptr<sequenceContainer> _substitutions;
+    substitutionContainer _substitutions;
 
 	SuperSequence* _originalAlignedSeqs; //The aligned sequences
 
