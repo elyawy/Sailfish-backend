@@ -237,79 +237,23 @@ public:
         size_t remainder = sequenceLength % chunkSize; /* Likely uses the result of the division. */
         // std::cout << "number of chunks: " << numberOfChunks << ", with remainder: " << remainder << "\n"; 
 
-        substitutionContainer subContainer;
-        // std::shared_ptr<sequenceContainer> fullSequence;
-        // std::shared_ptr<sequenceContainer> tempSequence;
-
+        substitutionContainer subContainer(_substitutionSim->getAlphabet());
         for (size_t i = 0; i < numberOfChunks; i++) {
-            // std::cout << i << "\n";
             _substitutionSim->generate_substitution_log(chunkSize);
             auto seqContainer = _substitutionSim->getSequenceContainer();
-            // tempSequence = std::move(seqContainer);
 
             subContainer.addChunk(*(std::move(seqContainer)));
-
-            // if (i == 0) {
-            //     fullSequence = tempSequence;
-            //     continue;
-            // }
-            // for (size_t j = 0; j < fullSequence->numberOfSeqs(); ++j) {
-            //     int idOfSeq = tempSequence->placeToId(j);
-            //     (*fullSequence)[idOfSeq] += (*tempSequence)[idOfSeq];
-            // }
         }
         
-
-        // for (sequenceContainer::constTaxaIterator taxa = fullSequence->constTaxaBegin(); 
-        //     taxa != fullSequence->constTaxaEnd(); ++taxa) {
-        //     size_t id = taxa->id();
-        //     std::string decodedSeq = subContainer.getSequence(id);
-        //     std::string originalSeq = ((*fullSequence)[id]).toString();
-
-        //     if (originalSeq.compare(decodedSeq) != 0) {
-        //         std::cout << "originalSeq" << " is not " << "decodedSeq" << " for " << id << '\n';
-        //     }
-
-                
-        // }        
-
         if (remainder == 0) return subContainer;
 
         
         _substitutionSim->generate_substitution_log(remainder);
         auto seqContainer = _substitutionSim->getSequenceContainer();
-        // tempSequence = std::move(seqContainer);
 
         subContainer.addChunk(*(std::move(seqContainer)));
 
-        // if (fullSequence == nullptr) {
-        //     fullSequence = tempSequence;
-        //     // return fullSequence;
-        // }
-        // for (size_t j = 0; j < fullSequence->numberOfSeqs(); ++j) {
-        //     int idOfSeq = tempSequence->placeToId(j);
-        //     (*fullSequence)[idOfSeq] += (*tempSequence)[idOfSeq];
-        // }
-
-        // for (sequenceContainer::constTaxaIterator taxa = fullSequence->constTaxaBegin(); 
-        //     taxa != fullSequence->constTaxaEnd(); ++taxa) {
-        //     size_t id = taxa->id();
-        //     std::string decodedSeq = subContainer.getSequence(id);
-        //     std::string originalSeq = ((*fullSequence)[id]).toString();
-
-        //     if (originalSeq.compare(decodedSeq) != 0) {
-        //         std::cout << "originalSeq" << " is not " << "decodedSeq" << " for " << id << '\n';
-        //     }
-
-        // }  
-
         return subContainer;
-
-        
-        
-
-        // return fullSequence;
-
     }
 
 

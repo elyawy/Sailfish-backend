@@ -51,6 +51,7 @@ public:
 	std::vector<double> getSiteRates() { return _siteRates;};
 	// void generate_rates_continuous_gamma(const int seqLength,const MDOUBLE alpha,Vdouble rates);
 	// MDOUBLE getAvgSub() {return _avgSubtitutionsPerSite;}
+	alphabet* getAlphabet() { return _alph->clone();}
 	
 private:
 	void generateRootSeq(int seqLength, std::vector<MDOUBLE>& ratesVec);

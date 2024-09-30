@@ -7,7 +7,7 @@
 
 // takes 10 minutes currently
 int main() {
-    tree tree_("../trees/normalbranches_nLeaves10000.treefile");
+    tree tree_("../trees/normalbranches_nLeaves500000.treefile");
     std::time_t t1 = 42;
     
     vector<DiscreteDistribution*> insertionDists(tree_.getNodesNum() - 1);
@@ -24,8 +24,8 @@ int main() {
     vector<double> insertionRates(tree_.getNodesNum() - 1);
     vector<double> deletionRates(tree_.getNodesNum() - 1);
 
-    fill(insertionRates.begin(), insertionRates.end(), 0.03);
-    fill(deletionRates.begin(), deletionRates.end(), 0.09);
+    fill(insertionRates.begin(), insertionRates.end(), 0.0);
+    fill(deletionRates.begin(), deletionRates.end(), 0.0);
 
     SimulationProtocol protocol(&tree_);
 
@@ -35,7 +35,7 @@ int main() {
     protocol.setInsertionRates(insertionRates);
     protocol.setDeletionRates(deletionRates);
 
-    int rootLength = 1000;
+    int rootLength = 30000;
     protocol.setSequenceSize(rootLength);
 
 
@@ -53,8 +53,13 @@ int main() {
 
     Simulator sim(&protocol);
     auto nodesToSave = sim.getNodesSaveList();
-    auto blockmap = sim.generateSimulation();
-    auto msa = MSA(blockmap, tree_.getRoot(), nodesToSave);
+    // auto blockmap = sim.generateSimulation();
+    size_t numberOfSeqs = 0;
+    for (auto i: nodesToSave) {
+        numberOfSeqs += i;
+    }
+
+    auto msa = MSA(numberOfSeqs, rootLength, nodesToSave);
 
     int msaLength = msa.getMSAlength();
 
@@ -69,7 +74,8 @@ int main() {
     msa.fillSubstitutions(fullContainer);
     std::cout << "filled MSA" << "\n";
 
-    msa.writeFullMsa("/home/pupkolab/Desktop/test.fasta");
+    // std::cin.get();
+    // msa.writeFullMsa("/home/pupkolab/Desktop/test.fasta");
     // msa.printIndels();
 
     return 0;
