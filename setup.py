@@ -9,7 +9,7 @@ from datetime import datetime
 now = datetime.now()
 
 
-__version__ = f"{now.year % 100}.{now.month+1}.3"
+__version__ = f"{now.year % 100}.{now.month+1}.4"
 
 # The main interface is through Pybind11Extension.
 # * You can add cxx_std=11/14/17, and then build_ext can be removed.

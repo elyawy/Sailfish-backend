@@ -19,21 +19,21 @@ class Sequence
 
 private:
     SuperSequence* _superSequence;
-    bool _isLeafSequence;
+    bool _isSaveSequence;
     size_t _nodeID;
     SequenceType _sequence;
     // size_t _numLeaf;
 public:
 
-    Sequence(SuperSequence& superSeq, bool isLeaf, size_t nodeID) : 
-        _superSequence(&superSeq), _isLeafSequence(isLeaf), _nodeID(nodeID) {}
+    Sequence(SuperSequence& superSeq, bool isSaveSeq, size_t nodeID) : 
+        _superSequence(&superSeq), _isSaveSequence(isSaveSeq), _nodeID(nodeID) {}
 
     Sequence(const Sequence &seq) {
         for (size_t i = 0; i < seq._sequence.size(); i++) {
             _sequence.push_back(seq._sequence[i]);
         }
         _superSequence = seq._superSequence;
-        _isLeafSequence = seq._isLeafSequence;
+        _isSaveSequence = seq._isSaveSequence;
         _nodeID = seq._nodeID;
     }
 
@@ -41,6 +41,7 @@ public:
         auto superSeqIterator = _superSequence->begin();
 
         while (superSeqIterator != _superSequence->end()) {
+            if (_isSaveSequence) _superSequence->referencePosition(superSeqIterator);
             _sequence.push_back(superSeqIterator);
             superSeqIterator++;
         }
@@ -52,6 +53,7 @@ public:
         size_t length;
         size_t insertion;
         size_t randomPos = _superSequence->getRandomSequencePosition();
+        // std::cout << parentSeq.getSequenceNodeID() << "\n";
         for (auto it = blocklist.begin(); it != blocklist.end(); ++it) {
             position = (*it)[static_cast<int>(BLOCK::POSITION)];//(&it)->key();
             length = (*it)[static_cast<int>(BLOCK::LENGTH)];//(*it).length;
@@ -59,7 +61,11 @@ public:
 
             // std::cout << "current Block is: " << position <<"|" << length << "|" << insertion << "\n";
 
-            if (position==0 && length==1 && insertion==0) continue;
+            if (position==0 && length==1 && insertion==0) {
+                _sequence.push_back(parentSeq._sequence[0]);
+                continue;
+            }
+
 
             if (position!=0) {
                 position--;
@@ -68,7 +74,7 @@ public:
             }
 
             for (size_t i = 0; i < length; i++) {
-                if (_isLeafSequence) {
+                if (_isSaveSequence) {
                     _superSequence->referencePosition(parentSeq._sequence[position+i]);
                 } 
                 _sequence.push_back(parentSeq._sequence[position+i]);
@@ -82,14 +88,14 @@ public:
             
 
             for (size_t i = 0; i < insertion; i++) {
-                superSeqIterator = _superSequence->insertItemAtPosition(superSeqIterator, randomPos, _isLeafSequence);
+                superSeqIterator = _superSequence->insertItemAtPosition(superSeqIterator, randomPos, _isSaveSequence);
                 _sequence.push_back(superSeqIterator);
                 superSeqIterator++;
                 randomPos = _superSequence->incrementRandomSequencePosition();
             }
         }
 
-        if (_isLeafSequence) _superSequence->incrementLeafNum();
+        if (_isSaveSequence) _superSequence->incrementLeafNum();
     }
 
     SuperSequence* getSuperSequence() {

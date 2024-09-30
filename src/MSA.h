@@ -37,7 +37,7 @@ public:
 
     MSA (const BlockMap &blockmap,const tree::nodeP rootNode, const std::vector<bool>& nodesToSave) {
         size_t sequenceSize = std::get<static_cast<int>(BLOCKLIST::LENGTH)>(blockmap.at(rootNode->id()))-1;
-        // std::cout << sequenceSize << "\n";
+
         size_t numberOfSeqs = 0;
         _sequencesToSave.clear();
         for (size_t i=0; i < (nodesToSave).size(); i++) {
@@ -48,7 +48,7 @@ public:
         // SuperSequence superSequence(sequenceSize, rootNode->getNumberLeaves());
         SuperSequence superSequence(sequenceSize, numberOfSeqs);
 
-        Sequence rootSequence(superSequence, false, rootNode->id());
+        Sequence rootSequence(superSequence, nodesToSave[rootNode->id()], rootNode->id());
         rootSequence.initSequence();
         // std::cin.get();
 
@@ -63,9 +63,10 @@ public:
                              const std::vector<bool>& nodesToSave) {
         if ((nodesToSave)[parrentNode.id()]) finalSequences.push_back(parentSequence);
         if (parrentNode.isLeaf()) return;
+
         for (size_t i = 0; i < parrentNode.getNumberOfSons(); i++) {
             tree::TreeNode* childNode = parrentNode.getSon(i);
-            Sequence currentSequence(superSequence, childNode->isLeaf(), childNode->id());
+            Sequence currentSequence(superSequence, nodesToSave[childNode->id()], childNode->id());
             auto blocks = std::get<static_cast<int>(BLOCKLIST::BLOCKS)>(blockmap.at(childNode->id()));//simulateAlongBranch(sequences.top().size(), currentNode->dis2father(), nodePosition);
             currentSequence.generateSequence(blocks, parentSequence);
             buildMsaRecursively(finalSequences, blockmap, *childNode, superSequence, currentSequence, nodesToSave);
@@ -76,7 +77,7 @@ public:
 
     void fillMSA(vector<Sequence> &sequences, SuperSequence &superSeq) {
 		_numberOfSequences = superSeq.getNumSequences();
-		_msaLength = superSeq.getLeafSequenceLength();
+		_msaLength = superSeq.getMsaSequenceLength();
 		superSeq.setAbsolutePositions();
 		// _alignedSequence.resize(_numberOfSequences);
         _alignedSequence.reserve(_numberOfSequences);
@@ -108,7 +109,7 @@ public:
             for(auto currentSite=seq.begin() + 1; currentSite!=seq.end(); currentSite++) {
 				currentPosition = (*(currentSite))->absolutePosition;
                 positionDifference = currentPosition - lastPosition - 1;
-                
+
                 if (positionDifference == 0) cumulatedDifference++;
                 if (positionDifference > 0) {
                     _alignedSequence[sequenceNodeID].push_back(cumulatedDifference);
@@ -116,7 +117,8 @@ public:
                     totalSize += (cumulatedDifference + positionDifference);
                     cumulatedDifference = 1;
                 }
-                // if (totalSize > _msaLength) errorMsg::reportError("sequence lengths mismatch in fillMSA");
+                if (totalSize > _msaLength) errorMsg::reportError("sequence lengths mismatch in fillMSA");
+
 
                 lastPosition = currentPosition;
 
@@ -125,7 +127,7 @@ public:
                 _alignedSequence[sequenceNodeID].push_back(cumulatedDifference);
                 totalSize += cumulatedDifference;
             }
-            if (totalSize != _msaLength) _alignedSequence[sequenceNodeID].push_back(-(_msaLength - totalSize));
+            if (totalSize < _msaLength) _alignedSequence[sequenceNodeID].push_back(-(_msaLength - totalSize));
 			cumulatedDifference = 1;
             lastPosition = 0;
             totalSize = 0;
@@ -195,10 +197,8 @@ public:
         for (size_t row = 0; row < _numberOfSequences; row++) {
             int passedSeq = 0;
             int id = _substitutions->placeToId(row);
-            // std::cout << id << "\n";
             msaString << ">" << _substitutions->name(id) << "\n";
             std::string currentSeq = (*_substitutions)[id].toString();
-            // std::cout << currentSeq << "\n";
             if (_alignedSequence.empty()) {
                 msaString << currentSeq;
                 msaString << "\n";

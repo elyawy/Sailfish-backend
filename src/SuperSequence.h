@@ -18,10 +18,10 @@ private:
     size_t _randomSequenceCounter;
     size_t _leafNum;
     size_t _numSequences;
-    size_t _leafSeqLength;
+    size_t _msaSeqLength;
 public:
     SuperSequence(size_t sequenceSize, size_t numSequences) {
-        _leafSeqLength = 0;
+        _msaSeqLength = 0;
         _leafNum = 0;
         _numSequences = numSequences;
         for (size_t i = 1; i <= sequenceSize; ++i) {
@@ -34,7 +34,7 @@ public:
     void referencePosition(SequenceType::iterator position) {
         if (!(*position).isColumn) {
             (*position).isColumn = true;
-            ++_leafSeqLength;
+            ++_msaSeqLength;
         }
     }
 
@@ -47,14 +47,14 @@ public:
         }
     }
 
-    SequenceType::iterator insertItemAtPosition(SequenceType::iterator position, size_t item, bool isLeaf) {
+    SequenceType::iterator insertItemAtPosition(SequenceType::iterator position, size_t item, bool isToSave) {
         // std::cout << "INSERT POS: " << *position << " " << item << "\n";
         // printSequence();
         columnContainer newColumn = {item, false};
 
-        if (isLeaf) {
+        if (isToSave) {
             newColumn.isColumn = true;
-            ++_leafSeqLength;
+            ++_msaSeqLength;
         }
 
         return _sequence.insert(position ,newColumn);
@@ -96,8 +96,8 @@ public:
         return _numSequences;
     }
 
-    size_t getLeafSequenceLength() {
-        return _leafSeqLength;
+    size_t getMsaSequenceLength() {
+        return _msaSeqLength;
     }
 
 

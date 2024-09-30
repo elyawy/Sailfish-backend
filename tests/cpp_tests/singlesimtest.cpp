@@ -7,10 +7,10 @@
 
 // takes 10 minutes currently
 int main() {
-    tree tree_("../trees/normalbranches_nLeaves100000.treefile");
-    // tree tree_("((A:0.1,B:0.2):0.3,C:0.4);", false);
+    tree tree_("../trees/normalbranches_nLeaves100.treefile");
+    // tree tree_("(A:0.1,B:0.2):0.3;", false);
     // tree_.getRoot()->orderSonsByHeight();
-    std::time_t t1 = 12;//std::time(0);
+    std::time_t t1 = 1;//std::time(0);
     // DiscreteDistribution::setSeed(t1);
     vector<DiscreteDistribution*> insertionDists(tree_.getNodesNum() - 1);
     vector<DiscreteDistribution*> deletionDists(tree_.getNodesNum() - 1);
@@ -28,8 +28,8 @@ int main() {
 
     // fill(insertionRates.begin(), insertionRates.end(), 0.0);
     // fill(deletionRates.begin(), deletionRates.end(), 0.0);
-    fill(insertionRates.begin(), insertionRates.end(), 0.0);
-    fill(deletionRates.begin(), deletionRates.end(), 0.0);
+    fill(insertionRates.begin(), insertionRates.end(), 0.01);
+    fill(deletionRates.begin(), deletionRates.end(), 0.5);
 
     SimulationProtocol protocol(&tree_);
 
@@ -39,57 +39,40 @@ int main() {
     protocol.setInsertionRates(insertionRates);
     protocol.setDeletionRates(deletionRates);
 
-    int rootLength = 1000;
+    int rootLength = 100;
     protocol.setSequenceSize(rootLength);
-
-    protocol.setSaveAncestral(false);
 
     protocol.setSeed(t1);
 
     Simulator sim(&protocol);
 
-    // sim.initSimulator();
-    MSA msa(tree_.getLeavesNum(), rootLength);
-    std::vector<BlockMap> blockmaps = sim.runSimulator(1);
+    sim.setSaveRoot();
+
+    auto blockmap = sim.generateSimulation();
     std::cout << "simulated Blocks\n";
 
-    std::cin.get();
+    auto nodes = sim.getNodesSaveList();
 
+    MSA msa(blockmap, tree_.getRoot(), nodes);
 
-    // auto rootblock = std::get<0>(blockmaps[0].at(3));
-
-    std::vector<MSA> msas;
-    // std::vector<MSA> msas = MSA::generateMSAs(blockmaps, tree_.getRoot());
-    int msaLength = rootLength;//msas[0].getMSAlength();
-
+    int msaLength = msa.getMSAlength();
     std::cout << "length of the MSA will be: " << msaLength << "\n";
-    std::cin.get();
 
     modelFactory mFac(&tree_);
 
     mFac.setAlphabet(alphabetCode::NUCLEOTIDE);
     mFac.setReplacementModel(modelCode::NUCJC);
-    // mFac.setModelParameters({0.25,0.25,0.25,0.25,0.1});
 
-    mFac.setGammaParameters(1.0, 1); // TODO: ALLOW 1 CATEGORY!
-
+    mFac.setGammaParameters(1.0, 4); 
     if (!mFac.isModelValid()) return 0;
 
     sim.initSubstitionSim(mFac);
     std::cout << "initializing subs sim" << "\n";
-        // std::cout << "number of nodes to simulate: " << tree_.getNodesNum() - 1 << "\n";
-    // auto seqContainer = sim.simulateSubstitutions(msaLength);
 
 
     auto fullContainer = sim.simulateSubstitutions(msaLength);
 
 
-    // for (size_t i = 0; i < tree_.getLeavesNum(); i++)
-    // {
-    //    std::cout << i << "\n";
-    //    size_t nodeId = (*fullContainer).placeToId(i);
-    //    std::cout << (*fullContainer)[nodeId] << "\n";
-    // }
     
     
     std::cout << "finished all substitutions" << "\n";
@@ -100,20 +83,7 @@ int main() {
     std::cout << "filled MSA" << "\n";
 
     msa.printFullMsa();
-    // msas[0].writeFullMsa("/home/elyalab/fasta.fasta");
 
-    // blockmaps.clear();
-    // msas.clear();
-    // std::cout << "finished generating MSAs\n";
-
-    // std::cin.get();
-    // std::vector<tree::nodeP> leaves;
-
-    // tree_.getAllLeaves(leaves, tree_.getRoot());
-    // for (auto &node: leaves)
-    // {
-    //     std::cout << blockmaps[0][node->name()].printTree();
-    // }
 
     return 0;
 
