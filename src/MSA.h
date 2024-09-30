@@ -90,7 +90,15 @@ public:
         
         for(auto &seq: sequences) {
             size_t sequenceNodeID = seq.getSequenceNodeID();
+            // if the sequence is only made up of gaps:
+            if (seq.size() == 0) {
+                _alignedSequence[sequenceNodeID].push_back(-_msaLength);
+                continue;
+            }
+            // seq.printSequence();
+
             auto previousSite = *seq.begin();
+            
             lastPosition = previousSite->absolutePosition;
             if (lastPosition > 0) {
                 _alignedSequence[sequenceNodeID].push_back(-lastPosition);
