@@ -7,10 +7,11 @@
 
 // takes 10 minutes currently
 int main() {
-    // tree tree_("../trees/normalbranches_nLeaves10.treefile");
-    // tree tree_("(A:0.5,B:0.5);", false);
-    tree tree_("((A:0.1,B:1.0):0.05,(C:0.2):0.01);", false);
-    std::time_t t1 = 100;//std::time(0);
+    tree tree_("../trees/normalbranches_nLeaves10000.treefile");
+    // tree tree_("(A:0.1,B:0.2):0.3;", false);
+    // tree_.getRoot()->orderSonsByHeight();
+    std::time_t t1 = 1;//std::time(0);
+    // DiscreteDistribution::setSeed(t1);
     vector<DiscreteDistribution*> insertionDists(tree_.getNodesNum() - 1);
     vector<DiscreteDistribution*> deletionDists(tree_.getNodesNum() - 1);
 
@@ -25,8 +26,10 @@ int main() {
     vector<double> insertionRates(tree_.getNodesNum() - 1);
     vector<double> deletionRates(tree_.getNodesNum() - 1);
 
-    fill(insertionRates.begin(), insertionRates.end(), 0.01);
-    fill(deletionRates.begin(), deletionRates.end(), 0.1);
+    // fill(insertionRates.begin(), insertionRates.end(), 0.0);
+    // fill(deletionRates.begin(), deletionRates.end(), 0.0);
+    fill(insertionRates.begin(), insertionRates.end(), 0.03);
+    fill(deletionRates.begin(), deletionRates.end(), 0.09);
 
     SimulationProtocol protocol(&tree_);
 
@@ -36,45 +39,60 @@ int main() {
     protocol.setInsertionRates(insertionRates);
     protocol.setDeletionRates(deletionRates);
 
-    int rootLength = 100;
+    int rootLength = 500;
     protocol.setSequenceSize(rootLength);
-
-    protocol.setSaveAncestral(false);
 
     protocol.setSeed(t1);
 
     Simulator sim(&protocol);
+
+    sim.setSaveRoot();
+
+    auto blockmap = sim.generateSimulation();
+    std::cout << "simulated Blocks\n";
+
+    auto nodes = sim.getNodesSaveList();
+
+    MSA msa(blockmap, tree_.getRoot(), nodes);
+
+    int msaLength = msa.getMSAlength();
+    std::cout << "length of the MSA will be: " << msaLength << "\n";
+
     modelFactory mFac(&tree_);
 
-    mFac.setAlphabet(alphabetCode::AMINOACID);
-    mFac.setReplacementModel(modelCode::JONES);
-    // mFac.setModelParameters({0.25,0.25,0.25,0.25,0.1,0.2,0.3,0.4,0.5,0.6});
-    mFac.setGammaParameters(1.0, 4);
+    mFac.setAlphabet(alphabetCode::NUCLEOTIDE);
+    mFac.setReplacementModel(modelCode::NUCJC);
+
+    mFac.setGammaParameters(1.0, 4); 
     if (!mFac.isModelValid()) return 0;
+
     sim.initSubstitionSim(mFac);
-    // sim.setSaveAllNodes();
-    // sim.setSaveAllNodes();
-    sim.setSaveRoot();
-    // sim.setSaveNode(1);
+    std::cout << "initializing subs sim" << "\n";
 
-    // sim.setSaveNode(1);
-    // std::cout << "hey\n";
-    auto saveList = sim.getNodesSaveList();
-    // sim.setSaveRates(true);
+    std::cout << msaLength << "\n";
+    std::cin.get();
+    int length1 = msaLength/2;
+    int length2 = msaLength - length1;
 
-    size_t counter = 0;
-    while (counter++ < 10) {
-        auto blockmap = sim.generateSimulation();
 
-        auto msa = MSA(blockmap, tree_.getRoot(), saveList);
-        int msaLength = msa.getMSAlength();
-        std::cout << msaLength << "\n";
-        auto fullContainer = sim.simulateSubstitutions(msaLength);
-        msa.fillSubstitutions(fullContainer);
-        // std::cout << counter  << "\n";
-        msa.printFullMsa();
-    }
-    
+    auto fullContainer = sim.simulateSubstitutions(msaLength);
+    std::cout << "finished length1 substitutions" << "\n";
+    // std::cin.get();
+    msa.fillSubstitutions(fullContainer);
+    std::cout << "filled MSA" << "\n";
+    std::cin.get();
+    msa.writeFullMsa("/home/elyalab/temp1.fasta");
+    // std::cout << msa.generateMsaString();
+
+    // msa.printFullMsa();
+
+    // fullContainer = sim.simulateSubstitutions(length2);
+    // std::cout << "finished length2 substitutions" << "\n";
+    // msa.fillSubstitutions(fullContainer);
+    // std::cout << "filled MSA" << "\n";
+    // msa.printFullMsa();
+
+
 
     return 0;
 

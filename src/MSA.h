@@ -191,33 +191,40 @@ public:
         return msaString.str();
     }
 
+
     std::string generateMsaString() {
         if (_substitutions == nullptr) return generateMsaStringWithoutSubs();
-        std::stringstream msaString;
+        std::string msaString;
+        msaString.reserve((_msaLength+256)*_numberOfSequences);
         for (size_t row = 0; row < _numberOfSequences; row++) {
             int passedSeq = 0;
             int id = _substitutions->placeToId(row);
-            msaString << ">" << _substitutions->name(id) << "\n";
+            msaString.append(">");
+            msaString.append(_substitutions->name(id));
+            msaString.append("\n");
             std::string currentSeq = (*_substitutions)[id].toString();
             if (_alignedSequence.empty()) {
-                msaString << currentSeq;
-                msaString << "\n";
+                msaString.append(currentSeq);
+                msaString.append("\n");
+
                 continue;
             }
             for (size_t col = 0; col < _alignedSequence[id].size(); col++) {
                 int strSize = _alignedSequence[id][col];
                 if (strSize < 0) {
                     strSize = -strSize;
-                    msaString << std::string(strSize, '-');
+                    msaString.append(std::string(strSize, '-'));
+
                 } else {
-                    msaString << currentSeq.substr(passedSeq, strSize);
+                    msaString.append(currentSeq.substr(passedSeq, strSize));
+
                 }
                 passedSeq += strSize;
             }
-            msaString << "\n";
+            msaString.append("\n");
             
         }
-        return msaString.str();
+        return msaString;
     }
 
     void printFullMsa() {
@@ -225,8 +232,45 @@ public:
 	}
 
 
+    std::string writeMsaChunks(ofstream& msafile) {
+        std::string msaString;
+        for (size_t row = 0; row < _numberOfSequences; row++) {
+            int passedSeq = 0;
+            int id = subs->placeToId(row);
+            if (posInMsa == 0) {
+                msaString.append(">");
+                msaString.append(_substitutions->name(id));
+                msaString.append("\n");
+            }
+            std::string currentSeq = (*_substitutions)[id].toString();
+            if (_alignedSequence.empty()) {
+                msaString.append(currentSeq);
+                msaString.append("\n");
+                continue;
+            }
+            for (size_t col = 0; col < _alignedSequence[id].size(); col++) {
+                int strSize = _alignedSequence[id][col];
+                if (strSize < 0) {
+                    strSize = -strSize;
+                    msaString.append(std::string(strSize, '-'));
 
+                } else {
+                    msaString.append(currentSeq.substr(passedSeq, strSize));
+                }
+                passedSeq += strSize;
+            }
+            msaString.append("\n");            
+        }
+        return msaString;
+    }
 
+    void writeMsaIncremental(const char * filePath) {
+        ofstream msafile (filePath);
+        if (msafile.is_open()) {
+            writeMsaChunks(msafile);
+            msafile.close();
+        }
+    }
 
     void writeFullMsa(const char * filePath) {
         ofstream msafile (filePath);
