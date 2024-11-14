@@ -70,18 +70,17 @@ int main() {
     std::cout << "initializing subs sim" << "\n";
 
     std::cout << msaLength << "\n";
-    std::cin.get();
-    int length1 = msaLength/2;
-    int length2 = msaLength - length1;
-
-
-    auto fullContainer = sim.simulateSubstitutions(msaLength);
-    std::cout << "finished length1 substitutions" << "\n";
     // std::cin.get();
-    msa.fillSubstitutions(fullContainer);
-    std::cout << "filled MSA" << "\n";
-    std::cin.get();
-    msa.writeFullMsa("/home/elyalab/temp1.fasta");
+
+
+    // sim.simulateAndWriteSubstitutions(msaLength, "/home/elyalab/temp/writing_test");
+    // std::cout << "finished simulating substitutions" << "\n";
+    // std::cin.get();
+    msa.fillSubstitutions( "/home/elyalab/temp/writing_test");
+    msa.getFileNames();
+    // std::cout << "filled MSA" << "\n";
+    // std::cin.get();
+    // msa.writeFullMsa("/home/elyalab/temp1.fasta");
     // std::cout << msa.generateMsaString();
 
     // msa.printFullMsa();
