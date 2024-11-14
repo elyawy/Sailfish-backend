@@ -8,6 +8,7 @@
 #include <unordered_map>
 #include <iostream>
 #include <fstream>
+#include <filesystem>
 
 #include "../libs/Phylolib/includes/tree.h"
 #include "../libs/Phylolib/includes/sequenceContainer.h"
@@ -140,6 +141,18 @@ public:
         _substitutions = _seqContainer;
     }
 
+    void setSubstitutionsFolder(const std::string& substitutionsDir) {
+        _substitutionsDir = substitutionsDir;
+// std::stoi(entry.path().stem())
+
+        for (const auto& entry : std::filesystem::directory_iterator(_substitutionsDir)) {
+            
+            _substitutionPaths.push_back(entry);
+        }
+        // std::cout << _substitutionPaths.size() << "\n";
+    }
+
+
 	MSA(size_t numSequences, size_t msaLength,const std::vector<bool>& nodesToSave): 
         _numberOfSequences(numSequences), _msaLength(msaLength) {
         _sequencesToSave.clear();
@@ -191,33 +204,40 @@ public:
         return msaString.str();
     }
 
+
     std::string generateMsaString() {
         if (_substitutions == nullptr) return generateMsaStringWithoutSubs();
-        std::stringstream msaString;
+        std::string msaString;
+        msaString.reserve((_msaLength+256)*_numberOfSequences);
         for (size_t row = 0; row < _numberOfSequences; row++) {
             int passedSeq = 0;
             int id = _substitutions->placeToId(row);
-            msaString << ">" << _substitutions->name(id) << "\n";
+            msaString.append(">");
+            msaString.append(_substitutions->name(id));
+            msaString.append("\n");
             std::string currentSeq = (*_substitutions)[id].toString();
             if (_alignedSequence.empty()) {
-                msaString << currentSeq;
-                msaString << "\n";
+                msaString.append(currentSeq);
+                msaString.append("\n");
+
                 continue;
             }
             for (size_t col = 0; col < _alignedSequence[id].size(); col++) {
                 int strSize = _alignedSequence[id][col];
                 if (strSize < 0) {
                     strSize = -strSize;
-                    msaString << std::string(strSize, '-');
+                    msaString.append(std::string(strSize, '-'));
+
                 } else {
-                    msaString << currentSeq.substr(passedSeq, strSize);
+                    msaString.append(currentSeq.substr(passedSeq, strSize));
+
                 }
                 passedSeq += strSize;
             }
-            msaString << "\n";
+            msaString.append("\n");
             
         }
-        return msaString.str();
+        return msaString;
     }
 
     void printFullMsa() {
@@ -225,7 +245,57 @@ public:
 	}
 
 
+    void writeMsaFromDir(const char * filePath) {
+        std::ofstream msafile (filePath);
 
+        if (msafile.is_open()) {
+            for (size_t row = 0; row < _numberOfSequences; row++) {
+                int passedSeq = 0;
+                auto & seqPath = _substitutionPaths[row].path();
+                int id = std::stoi(seqPath.stem());
+
+                std::ifstream seqFile(seqPath);
+                char currentChar;
+                while (seqFile.get(currentChar)) {
+                    msafile << currentChar;
+                    if (currentChar == '\n') break;;
+                }
+                
+                if (_alignedSequence.empty()) {
+                    while (seqFile.get(currentChar)) {
+                        msafile << currentChar;
+                    }
+                    continue;
+                }
+
+                for (size_t col = 0; col < _alignedSequence[id].size(); col++) {
+                    int strSize = _alignedSequence[id][col];
+                    if (strSize < 0) {
+                        strSize = -strSize;
+                        size_t readCounter = strSize;
+                        while (readCounter > 0) {
+                            msafile << '-';
+                            seqFile.get(currentChar); 
+                            readCounter--;
+                        }
+                    } else {
+                        size_t readCounter = strSize;
+                        while (readCounter > 0) {
+                            seqFile.get(currentChar);
+                            msafile << currentChar;
+                            readCounter--;
+                        }
+                    }
+                    passedSeq += strSize;
+                }
+                msafile << '\n'; 
+                seqFile.close(); 
+                std::remove(seqPath.c_str()); // delete taxa sequence file              
+            }
+            msafile.close();
+        }
+        else cout << "Unable to open file";
+    }
 
 
     void writeFullMsa(const char * filePath) {
@@ -247,6 +317,8 @@ private:
 	size_t _numberOfSequences; // NUMBER OF SEQUENCES IN THE MSA
     size_t _msaLength; // Length of the MSA
     std::shared_ptr<sequenceContainer> _substitutions;
+    std::string _substitutionsDir;
+    std::vector<std::filesystem::directory_entry> _substitutionPaths;
 
 	SuperSequence* _originalAlignedSeqs; //The aligned sequences
 

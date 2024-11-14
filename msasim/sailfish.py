@@ -1,5 +1,5 @@
 import _Sailfish
-import os, warnings, math, operator, time, profile
+import os, warnings, math, operator, time, profile, tempfile, pathlib
 from functools import reduce
 from typing import List, Optional, Dict
 from re import split
@@ -101,12 +101,9 @@ class ZipfDistribution(Distribution):
         """
         self.p = p
         self.truncation = truncation
-        HARMONIC = lambda n,s: sum([(i**-s) for i in range(1,n+1)])
-        PMF = lambda x: (x**-p)*(1.0/HARMONIC(truncation, p))
-        CDF = lambda x: HARMONIC(x, p) / HARMONIC(truncation, p)
-        norm_factor = CDF(truncation) - CDF(0)
 
-        probabilities = [PMF(i)/norm_factor for i in range(1, truncation+1)]
+        norm_factor = sum([(i**-p) for i in range(1,truncation+1)])
+        probabilities = [(i**-p)/norm_factor for i in range(1, truncation+1)]
 
         self.set_dist(probabilities)
     
@@ -536,6 +533,26 @@ class Simulator:
 
             Msas.append(msa)
         return Msas
+    
+    def simulate_low_memory(self, output_file_path: pathlib.Path) -> Msa:
+        if self._simProtocol._is_insertion_rate_zero and self._simProtocol._is_deletion_rate_zero:
+            msa = Msa(sum(self.get_sequences_to_save()),
+                        self._simProtocol.get_sequence_size(),
+                        self.get_sequences_to_save())
+        else:
+            blocktree = self.gen_indels()
+            msa = Msa(blocktree._get_Sailfish_blocks(),
+                        self._simProtocol._get_root(),
+                        self.get_sequences_to_save())
+
+        # sim.init_substitution_sim(mFac)
+        if self._simulation_type != SIMULATION_TYPE.NOSUBS:
+            with tempfile.TemporaryDirectory() as tmpdirname:
+                self._simulator.gen_substitutions_to_dir(msa.get_length(), tmpdirname)
+                msa._msa.set_substitutions_folder(tmpdirname)
+                msa._msa.write_msa_from_dir(str(output_file_path))
+
+
     
     def __call__(self) -> Msa:
         return self.simulate(1)[0]
