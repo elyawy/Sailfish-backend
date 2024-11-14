@@ -8,6 +8,9 @@
 
 namespace py = pybind11;
 
+/**
+ * This file includes all the bindings required by the simulator to function properly.
+ */
 
 PYBIND11_MODULE(_Sailfish, m) {
     m.doc() = R"pbdoc(

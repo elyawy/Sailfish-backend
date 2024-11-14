@@ -78,7 +78,18 @@ void modelFactory::resetFactory() {
     _invariantProportion = 0.0;
 }
 
-
+/**
+ * Creates a new instance of the stochastic process from Phylolib.
+ * A stochastic process contains the substitution model (Q-matrix etc.) and its alphabet
+ * (nucleotide/amino).
+ *
+ * @return A shared pointer to the newly created stochastic process object.
+ * 
+ * Note:
+ * This method is used by the model factory to generate an instance of the 
+ * stochastic process. The creation process may involve various dependencies and 
+ * configurations, which are handled internally by this function.
+ */
 std::shared_ptr<stochasticProcess> modelFactory::getStochasticProcess() {
     if (_state!=factoryState::COMPLETE) {
         std::cout << "Please set all the required model parameters.\n";

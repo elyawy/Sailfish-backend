@@ -26,6 +26,18 @@ private:
     std::vector<double> _levelsWeights;
 
 public:
+    /**
+     * Constructor for FastRejectionSampler class.
+     *
+     * Initializes a new instance of FastRejectionSampler with the provided weights,
+     * minimum weight, and maximum weight. This constructor sets up the internal state
+     * required for fast rejection sampling, including the creation of level-based data structures.
+     *
+     * @param weights A vector of non-negative double values representing the probabilities
+     *                to be sampled from.
+     * @param minWeight The minimum weight value among all provided weights.
+     * @param maxWeight The maximum weight value among all provided weights.
+     */
     FastRejectionSampler(const std::vector<double> &weights, double minWeight, double maxWeight): 
         _weights(weights), _minWeight(minWeight), _maxWeight(maxWeight) , _biasedCoin(0.0,1.0), _totalWeightsSum(0.0) {
 
