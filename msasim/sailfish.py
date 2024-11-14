@@ -1,5 +1,5 @@
 import _Sailfish
-import os, warnings, math, operator, time, profile
+import os, warnings, math, operator, time, profile, tempfile, pathlib
 from functools import reduce
 from typing import List, Optional, Dict
 from re import split
@@ -533,6 +533,26 @@ class Simulator:
 
             Msas.append(msa)
         return Msas
+    
+    def simulate_low_memory(self, output_file_path: pathlib.Path) -> Msa:
+        if self._simProtocol._is_insertion_rate_zero and self._simProtocol._is_deletion_rate_zero:
+            msa = Msa(sum(self.get_sequences_to_save()),
+                        self._simProtocol.get_sequence_size(),
+                        self.get_sequences_to_save())
+        else:
+            blocktree = self.gen_indels()
+            msa = Msa(blocktree._get_Sailfish_blocks(),
+                        self._simProtocol._get_root(),
+                        self.get_sequences_to_save())
+
+        # sim.init_substitution_sim(mFac)
+        if self._simulation_type != SIMULATION_TYPE.NOSUBS:
+            with tempfile.TemporaryDirectory() as tmpdirname:
+                self.gen_substitutions_to_dir(msa.get_length(), tmpdirname)
+                msa.fill_substitutions(tmpdirname)
+                msa.write_msa_from_dir(str(output_file_path))
+
+
     
     def __call__(self) -> Msa:
         return self.simulate(1)[0]
