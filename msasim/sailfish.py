@@ -548,9 +548,9 @@ class Simulator:
         # sim.init_substitution_sim(mFac)
         if self._simulation_type != SIMULATION_TYPE.NOSUBS:
             with tempfile.TemporaryDirectory() as tmpdirname:
-                self.gen_substitutions_to_dir(msa.get_length(), tmpdirname)
-                msa.fill_substitutions(tmpdirname)
-                msa.write_msa_from_dir(str(output_file_path))
+                self._simulator.gen_substitutions_to_dir(msa.get_length(), tmpdirname)
+                msa._msa.set_substitutions_folder(tmpdirname)
+                msa._msa.write_msa_from_dir(str(output_file_path))
 
 
     

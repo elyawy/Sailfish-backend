@@ -149,6 +149,7 @@ PYBIND11_MODULE(_Sailfish, m) {
         .def("length", &MSA::getMSAlength)
         .def("num_sequences", &MSA::getNumberOfSequences)
         .def("fill_substitutions", &MSA::fillSubstitutions)
+        .def("set_substitutions_folder", &MSA::setSubstitutionsFolder)
         .def("print_msa", &MSA::printFullMsa)
         .def("print_indels", &MSA::printIndels)
         .def("write_msa", &MSA::writeFullMsa)

@@ -141,7 +141,7 @@ public:
         _substitutions = _seqContainer;
     }
 
-    void fillSubstitutions(const std::string& substitutionsDir) {
+    void setSubstitutionsFolder(const std::string& substitutionsDir) {
         _substitutionsDir = substitutionsDir;
 // std::stoi(entry.path().stem())
 
