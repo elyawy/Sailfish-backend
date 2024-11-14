@@ -37,10 +37,10 @@ jobs:
               os: "macos-14",
               id: "macos-arm-64"
             }
-          - {
-              os: "macos-13",
-              id: "macos-x86-64"
-            }
+          # - {
+          #     os: "macos-13",
+          #     id: "macos-x86-64"
+          #   }
         # macos-13 is an intel runner, macos-14 is apple silicon
 
     steps:
