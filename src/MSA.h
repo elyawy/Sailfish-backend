@@ -290,7 +290,7 @@ public:
                 }
                 msafile << '\n'; 
                 seqFile.close(); 
-                std::remove(seqPath.c_str()); // delete taxa sequence file              
+                std::filesystem::remove(seqPath); // delete taxa sequence file              
             }
             msafile.close();
         }
