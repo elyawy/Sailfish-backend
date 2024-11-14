@@ -244,40 +244,54 @@ public:
         std::cout << generateMsaString();
 	}
 
-    void getFileNames() {
-        std::cout << _substitutionPaths[0].path() << "\n";
-    }
 
     void writeMsaFromDir(const char * filePath) {
         std::ofstream msafile (filePath);
 
         if (msafile.is_open()) {
-        for (size_t row = 0; row < _numberOfSequences; row++) {
-            int passedSeq = 0;
-            int id = std::stoi(_substitutionPaths[row].path().stem());
-            if (_alignedSequence.empty()) {
-                msaString.append(currentSeq);
-                msaString.append("\n");
-                continue;
-            }
+            for (size_t row = 0; row < _numberOfSequences; row++) {
+                int passedSeq = 0;
+                auto & seqPath = _substitutionPaths[row].path();
+                int id = std::stoi(seqPath.stem());
 
-            for (size_t col = 0; col < _alignedSequence[id].size(); col++) {
-                int strSize = _alignedSequence[id][col];
-                if (strSize < 0) {
-                    strSize = -strSize;
-                    msaString.append(std::string(strSize, '-'));
-
-                } else {
-                    msaString.append(currentSeq.substr(passedSeq, strSize));
-
+                std::ifstream seqFile(seqPath);
+                char currentChar;
+                while (seqFile.get(currentChar)) {
+                    msafile << currentChar;
+                    if (currentChar == '\n') break;;
                 }
-                passedSeq += strSize;
-            }
-            msaString.append("\n");
-            
-        }
+                
+                if (_alignedSequence.empty()) {
+                    while (seqFile.get(currentChar)) {
+                        msafile << currentChar;
+                    }
+                    continue;
+                }
 
-            msafile << generateMsaString();
+                for (size_t col = 0; col < _alignedSequence[id].size(); col++) {
+                    int strSize = _alignedSequence[id][col];
+                    if (strSize < 0) {
+                        strSize = -strSize;
+                        size_t readCounter = strSize;
+                        while (readCounter > 0) {
+                            msafile << '-';
+                            seqFile.get(currentChar); 
+                            readCounter--;
+                        }
+                    } else {
+                        size_t readCounter = strSize;
+                        while (readCounter > 0) {
+                            seqFile.get(currentChar);
+                            msafile << currentChar;
+                            readCounter--;
+                        }
+                    }
+                    passedSeq += strSize;
+                }
+                msafile << '\n'; 
+                seqFile.close(); 
+                std::remove(seqPath.c_str()); // delete taxa sequence file              
+            }
             msafile.close();
         }
         else cout << "Unable to open file";

@@ -101,12 +101,9 @@ class ZipfDistribution(Distribution):
         """
         self.p = p
         self.truncation = truncation
-        HARMONIC = lambda n,s: sum([(i**-s) for i in range(1,n+1)])
-        PMF = lambda x: (x**-p)*(1.0/HARMONIC(truncation, p))
-        CDF = lambda x: HARMONIC(x, p) / HARMONIC(truncation, p)
-        norm_factor = CDF(truncation) - CDF(0)
 
-        probabilities = [PMF(i)/norm_factor for i in range(1, truncation+1)]
+        norm_factor = sum([(i**-p) for i in range(1,truncation+1)])
+        probabilities = [(i**-p)/norm_factor for i in range(1, truncation+1)]
 
         self.set_dist(probabilities)
     

@@ -134,6 +134,7 @@ PYBIND11_MODULE(_Sailfish, m) {
         .def("run_sim", &Simulator::runSimulator)
         .def("init_substitution_sim", &Simulator::initSubstitionSim)
         .def("gen_substitutions", &Simulator::simulateSubstitutions)
+        .def("gen_substitutions_to_dir", &Simulator::simulateAndWriteSubstitutions)
         .def("save_site_rates", &Simulator::setSaveRates)
         .def("get_site_rates", &Simulator::getSiteRates)
         .def("save_all_nodes_sequences", &Simulator::setSaveAllNodes)
@@ -151,6 +152,7 @@ PYBIND11_MODULE(_Sailfish, m) {
         .def("print_msa", &MSA::printFullMsa)
         .def("print_indels", &MSA::printIndels)
         .def("write_msa", &MSA::writeFullMsa)
+        .def("write_msa", &MSA::writeMsaFromDir)
         .def("get_msa_string", &MSA::generateMsaString)
         .def("get_msa", &MSA::getMSAVec);
 

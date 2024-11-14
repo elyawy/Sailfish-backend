@@ -246,18 +246,6 @@ public:
             file.close();
 
         }
-        
-        // for (const sequence &seq: seqContainer) {
-        //     std::ofstream file(directory + "/" + std::to_string(seq.id()) + ".fasta", std::ios_base::app);
-        //     if (!file.is_open()) {
-        //         // Handle error - couldn't open the file
-        //         continue;
-        //     }
-        //     if (isFirst) file << ">" << seq.name() << "\n";
-        //     file << seq.toString();
-        //     file.close();
-        // }
-        
     }
 
     void simulateAndWriteSubstitutions(size_t sequenceLength, const std::string& directory) {
