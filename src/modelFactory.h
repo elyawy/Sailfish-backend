@@ -4,6 +4,7 @@
 
 #include <vector>
 #include <memory>
+#include <sstream>
 
 #include "../libs/Phylolib/includes/stochasticProcess.h"
 #include "../libs/Phylolib/includes/alphabet.h"
