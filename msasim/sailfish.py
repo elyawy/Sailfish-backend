@@ -462,15 +462,16 @@ class Simulator:
     def set_replacement_model(
             self,
             model: _Sailfish.modelCode,
+            amino_model_file: pathlib.Path = None,
             model_parameters: List = None,
             gamma_parameters_alpha : float = 1.0,
-            gamma_parameters_catergories: int = 1,
+            gamma_parameters_categories: int = 1,
             invariant_sites_proportion: float = 0.0
         ) -> None:
         if not model:
             raise ValueError(f"please provide a substitution model from the the following list: {_Sailfish.modelCode}")
-        if int(gamma_parameters_catergories) != gamma_parameters_catergories:
-            raise ValueError(f"gamma_parameters_catergories has to be a positive int value: received value of {gamma_parameters_catergories}")
+        if int(gamma_parameters_categories) != gamma_parameters_categories:
+            raise ValueError(f"gamma_parameters_catergories has to be a positive int value: received value of {gamma_parameters_categories}")
         self._model_factory = _Sailfish.modelFactory(self._simProtocol._get_Sailfish_tree())
 
         self._model_factory.set_alphabet(self._alphabet)
@@ -478,6 +479,8 @@ class Simulator:
             if model_parameters:
                 raise ValueError(f"no model parameters are used in protein, recevied value of: {model_parameters}")
             self._model_factory.set_replacement_model(model)
+            if model == MODEL_CODES.CUSTOM and amino_model_file:
+                self._model_factory.set_amino_replacement_model_file(str(amino_model_file))
         else:
             if model == MODEL_CODES.NUCJC and model_parameters:
                 raise ValueError(f"no model parameters in JC model, recevied value of: {model_parameters}")
@@ -489,7 +492,7 @@ class Simulator:
             else:
                 self._model_factory.set_model_parameters(model_parameters)
 
-        self._model_factory.set_gamma_parameters(gamma_parameters_alpha, gamma_parameters_catergories)
+        self._model_factory.set_gamma_parameters(gamma_parameters_alpha, gamma_parameters_categories)
         self._model_factory.set_invariant_sites_proportion(invariant_sites_proportion)
         self._simulator.init_substitution_sim(self._model_factory)
 

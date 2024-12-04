@@ -20,6 +20,7 @@ enum factoryState {
     ALPHABET,
     MODEL,
     PARAMETERS,
+    MODEL_FILE,
     GAMMA,
     COMPLETE
 };
@@ -59,7 +60,8 @@ enum modelCode {
     EX_EHO_BUR_OTH,
     EX_EHO_EXP_EXT,
     EX_EHO_EXP_HEL,
-    EX_EHO_EXP_OTH
+    EX_EHO_EXP_OTH,
+    CUSTOM
 };
 
 
@@ -77,6 +79,7 @@ public:
     void setAlphabet(alphabetCode alphabet);
     void setReplacementModel(modelCode model);
     void setModelParameters(std::vector<MDOUBLE> params);
+    void setCustomAAModelFile(const std::string &fileName);
     void setGammaParameters(MDOUBLE alpha, size_t numCategories);
     void setInvariantSitesProportion(MDOUBLE invariantProportion) {_invariantProportion = invariantProportion;};
 
@@ -97,6 +100,7 @@ private:
     alphabet* _alph;
     alphabetCode _alphabet;
     modelCode _model;
+    std::string _modelFilePath;
     std::vector<MDOUBLE> _parameters;
     MDOUBLE _alpha;
     size_t _gammaCategories;

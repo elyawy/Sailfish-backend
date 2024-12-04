@@ -113,6 +113,7 @@ PYBIND11_MODULE(_Sailfish, m) {
         .value("EX_EHO_EXP_EXT", modelCode::EX_EHO_EXP_EXT)
         .value("EX_EHO_EXP_HEL", modelCode::EX_EHO_EXP_HEL)
         .value("EX_EHO_EXP_OTH", modelCode::EX_EHO_EXP_OTH)
+        .value("CUSTOM", modelCode::CUSTOM)
         .export_values();
 
 
@@ -121,6 +122,7 @@ PYBIND11_MODULE(_Sailfish, m) {
         .def(py::init<tree*>())
         .def("set_alphabet", &modelFactory::setAlphabet)
         .def("set_replacement_model" , &modelFactory::setReplacementModel)
+        .def("set_amino_replacement_model_file" , &modelFactory::setCustomAAModelFile)
         .def("set_model_parameters" , &modelFactory::setModelParameters)
         .def("set_gamma_parameters" , &modelFactory::setGammaParameters)
         .def("set_invariant_sites_proportion", &modelFactory::setInvariantSitesProportion)

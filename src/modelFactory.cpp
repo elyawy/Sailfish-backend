@@ -30,7 +30,7 @@ void modelFactory::setReplacementModel(modelCode model) {
     _state = factoryState::PARAMETERS;
     if (_alphabet == alphabetCode::AMINOACID) _state = factoryState::GAMMA;
     if (_model == modelCode::AAJC || _model == modelCode::NUCJC) _state = factoryState::GAMMA;
-
+    if (_model == modelCode::CUSTOM) _state = factoryState::MODEL_FILE;
 }
 
 void modelFactory::setModelParameters(std::vector<MDOUBLE> params) {
@@ -60,6 +60,15 @@ void modelFactory::setModelParameters(std::vector<MDOUBLE> params) {
     }
 
     _parameters = params;
+    _state = factoryState::GAMMA;
+}
+
+void modelFactory::setCustomAAModelFile(const std::string &fileName) {
+    if (_state!=factoryState::MODEL_FILE) {
+        std::cout << "Please set the model to 'CUSTOM' before proceeding.\n";
+        return;
+    }
+    _modelFilePath = fileName;
     _state = factoryState::GAMMA;
 }
 
@@ -183,6 +192,21 @@ std::shared_ptr<stochasticProcess> modelFactory::getStochasticProcess() {
             break;
         case modelCode::EX_EHO_EXP_OTH:
             repModel = std::make_unique<pupAll>(datMatrixHolder::EX_EHO_EXP_OTH);
+            break;
+        case modelCode::CUSTOM:
+            std::ifstream in(_modelFilePath);
+            if (!in.is_open()) throw std::runtime_error("Could not open file");
+            std::stringstream contents;
+            char buffer;
+            while (in.get(buffer)) {
+                if (buffer == '\"' || buffer == '\n') continue;
+                contents << buffer;
+            }
+            in.close();
+            const std::string &tmpstr = contents.str();
+            const char* cstr = tmpstr.c_str();
+            datMatrixString aminoFileString(cstr);
+            repModel = std::make_unique<pupAll>(aminoFileString);
             break;
     }
 
