@@ -196,7 +196,7 @@ public:
                     strSize = -strSize;
                     msaString << std::string(strSize, '-');
                 } else {
-                    msaString << std::string(strSize, 'A');
+                    msaString << std::string(strSize, 'X');
                 }
             }
             msaString << "\n";
