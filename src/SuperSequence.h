@@ -24,7 +24,7 @@ public:
         _msaSeqLength = 0;
         _leafNum = 0;
         _numSequences = numSequences;
-        for (size_t i = 1; i <= sequenceSize; ++i) {
+        for (size_t i = 0; i <= sequenceSize; ++i) {
             columnContainer column = {i, false};
             _sequence.push_back(column);
         }
@@ -32,6 +32,7 @@ public:
     }
 
     void referencePosition(SequenceType::iterator position) {
+        if ((*position).position == 0) return;
         if (!(*position).isColumn) {
             (*position).isColumn = true;
             ++_msaSeqLength;

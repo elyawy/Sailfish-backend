@@ -88,7 +88,7 @@ public:
 		int currentPosition = 0;
 		int lastPosition = 0;
 		int positionDifference = 0;
-		int cumulatedDifference = 1;
+		int cumulatedDifference = 0;
         
         for(auto &seq: sequences) {
             size_t sequenceNodeID = seq.getSequenceNodeID();
@@ -100,14 +100,23 @@ public:
             // seq.printSequence();
 
             auto previousSite = *seq.begin();
+            previousSite++;
+            std::cout << "previousSite->position="  << previousSite->position << "\n";
             
             lastPosition = previousSite->absolutePosition;
+            std::cout << "lastPosition=" << lastPosition << "\n";
             if (lastPosition > 0) {
                 _alignedSequence[sequenceNodeID].push_back(-lastPosition);
                 totalSize += lastPosition;
             }
 
+
+
             for(auto currentSite=seq.begin() + 1; currentSite!=seq.end(); currentSite++) {
+                if ((*currentSite)->position == 1 && currentSite==seq.end()) break;
+                else {
+                    currentSite++;
+                }
 				currentPosition = (*(currentSite))->absolutePosition;
                 positionDifference = currentPosition - lastPosition - 1;
 
@@ -118,7 +127,10 @@ public:
                     totalSize += (cumulatedDifference + positionDifference);
                     cumulatedDifference = 1;
                 }
-                if (totalSize > _msaLength) errorMsg::reportError("sequence lengths mismatch in fillMSA");
+                if (totalSize > _msaLength){
+                    std::cout << totalSize << ">=" << _msaLength << "\n";
+                    errorMsg::reportError("sequence lengths mismatch in fillMSA");
+                }
 
 
                 lastPosition = currentPosition;

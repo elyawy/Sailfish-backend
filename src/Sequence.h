@@ -41,10 +41,13 @@ public:
         auto superSeqIterator = _superSequence->begin();
 
         while (superSeqIterator != _superSequence->end()) {
+            std::cout << (*superSeqIterator).position << ",";
             if (_isSaveSequence) _superSequence->referencePosition(superSeqIterator);
             _sequence.push_back(superSeqIterator);
             superSeqIterator++;
         }
+        std::cout << "\n";
+
     }
 
     void generateSequence (const BlockList &blocklist, Sequence &parentSeq) {
@@ -53,25 +56,28 @@ public:
         size_t length;
         size_t insertion;
         size_t randomPos = _superSequence->getRandomSequencePosition();
-        // std::cout << parentSeq.getSequenceNodeID() << "\n";
+        std::cout << parentSeq.getSequenceNodeID() << "\n";
+        _sequence.push_back(parentSeq._sequence[0]); // anchor position always present.
         for (auto it = blocklist.begin(); it != blocklist.end(); ++it) {
             position = (*it)[static_cast<int>(BLOCK::POSITION)];//(&it)->key();
             length = (*it)[static_cast<int>(BLOCK::LENGTH)];//(*it).length;
             insertion = (*it)[static_cast<int>(BLOCK::INSERTION)];//(*it).insertion;
 
-            // std::cout << "current Block is: " << position <<"|" << length << "|" << insertion << "\n";
+            std::cout << "\tcurrent Block is: " << position <<"|" << length << "|" << insertion << "\n";
 
             if (position==0 && length==1 && insertion==0) {
-                _sequence.push_back(parentSeq._sequence[0]);
                 continue;
             }
 
-
-            if (position!=0) {
-                position--;
-            } else {
+            if (position == 0){ 
+                position++;
                 length--;
             }
+            // if (position!=0) {
+            //     position--;
+            // } else {
+            //     length--;
+            // }
 
             for (size_t i = 0; i < length; i++) {
                 if (_isSaveSequence) {
