@@ -7,7 +7,7 @@
 
 // takes 10 minutes currently
 int main() {
-    tree tree_("/home/elyalab/Dev/failed_syncs/SpartaV2/tests/pipeline_test/test.newick");
+    tree tree_("../trees/test.tree");
     std::time_t t1 = 42;//std::time(0);
     vector<DiscreteDistribution*> insertionDists(tree_.getNodesNum() - 1);
     vector<DiscreteDistribution*> deletionDists(tree_.getNodesNum() - 1);
@@ -49,9 +49,10 @@ int main() {
     mFac.setReplacementModel(modelCode::WAG);
     // mFac.setModelParameters({0.25,0.25,0.25,0.25,0.1,0.2,0.3,0.4,0.5,0.6});
     mFac.setGammaParameters(1.0, 1);
+    // mFac.setInvariantSitesProportion(0.5);
     if (!mFac.isModelValid()) return 0;
     sim.initSubstitionSim(mFac);
-    sim.setSaveRoot();
+    // sim.setSaveRoot();
     auto saveList = sim.getNodesSaveList();
 
 
@@ -75,7 +76,7 @@ int main() {
         msa.fillSubstitutions(fullContainer);
         std::cout << counter  << "\n";
         
-        if (counter == 163) {
+        if (counter == 126) {
             std::cout << "MSA " << counter << " is of length is zero\n";
             std::cout << msa.generateMsaString() << "\n";
             return 0;
