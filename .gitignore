@@ -8,3 +8,4 @@ Sailfish/__pycache__/*.pyc
 shell.nix
 _Sailfish.cpython-311-x86_64-linux-gnu.so
 msasim.egg-info
+tests/cpp_tests/a.out
