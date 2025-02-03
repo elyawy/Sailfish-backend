@@ -7,7 +7,7 @@
 
 // takes 10 minutes currently
 int main() {
-    tree tree_("../trees/normalbranches_nLeaves10.treefile");
+    // tree tree_("../trees/normalbranches_nLeaves10.treefile");
     // tree tree_("(A:0.5,B:0.5);", false);
     // tree tree_("((A:0.1,B:1.0):0.05,(C:0.2):0.01);", false);
     std::time_t t1 = 100;//std::time(0);

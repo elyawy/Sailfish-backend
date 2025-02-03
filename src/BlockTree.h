@@ -37,7 +37,10 @@ public:
   BlockTree() {}
 
   void handleEvent (event ev, size_t event_position, size_t event_size) {
-    _avlTree->handle_event(ev, event_position, event_size);
+    if (event_size == 0) return;
+    if(!_avlTree->handle_event(ev, event_position, event_size)) {
+      throw std::out_of_range("event_position exceeds sequence");
+    }
   }
 
   std::string printTree () {

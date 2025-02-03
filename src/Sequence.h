@@ -62,7 +62,7 @@ public:
             // std::cout << "current Block is: " << position <<"|" << length << "|" << insertion << "\n";
 
             if (position==0 && length==1 && insertion==0) {
-                _sequence.push_back(parentSeq._sequence[0]);
+                // _sequence.push_back(parentSeq._sequence[0]);
                 continue;
             }
 

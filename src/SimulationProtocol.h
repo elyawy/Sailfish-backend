@@ -11,6 +11,7 @@ private:
     tree* _tree;
     size_t _numberOfBranches;
     size_t _sequenceSize;
+    size_t _minSequenceSize;
     size_t _seed;
     std::vector<DiscreteDistribution*> _insertionLengthDistributions;
     std::vector<DiscreteDistribution*> _deletionLengthDistributions;
@@ -97,6 +98,11 @@ public:
 
     void setSequenceSize(size_t sequenceSize) {
         _sequenceSize = sequenceSize;
+        _minSequenceSize = 1;
+    }
+
+    void setMinSequenceSize(size_t minSequenceSize) {
+        _minSequenceSize = minSequenceSize;
     }
 
     void setSeed(size_t seed) {
@@ -113,6 +119,10 @@ public:
 
     size_t getSequenceSize(){
         return _sequenceSize;
+    }
+
+    size_t getMinSequenceSize(){
+        return _minSequenceSize;
     }
 
     void setSaveAncestral(bool saveAncestral) {

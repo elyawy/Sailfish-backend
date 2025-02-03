@@ -393,17 +393,17 @@ public:
     Block event_block = val_[block_index];
 
     int original_size = event_block.length + event_block.insertion;
-    bool is_anchor_block = (key_[block_index] == 0);
-    
+    // bool is_anchor_block = (key_[block_index] == 0);
+    pos = pos + 1;
     // insertion in added part
-    if (pos + is_anchor_block >= event_block.length ) {
+    if (pos >= event_block.length ) {
         event_block.insertion = event_block.insertion + event_size;
         int new_size = event_block.insertion + event_block.length;
         int difference_in_length = new_size - original_size;
 
         return this->insert(key_[block_index], event_block, difference_in_length);
     } else if (pos < event_block.length) { // insertion in origianl part
-        if (pos == 0) pos = 1;
+        // if (pos == 0) pos = 1;
 
         Block potential_block = { event_block.length - pos, event_block.insertion};
         Block updated_block = {pos, event_size};
@@ -427,85 +427,85 @@ public:
 
   //   xxxxxxxxxxx 
   //  [------OP------|---AP---]
-  void remove_case_a(const size_type block_index, size_t position, size_t event_size, size_t length, size_t insertion) {
+  bool remove_case_a(const size_type block_index, size_t position, size_t event_size, size_t length, size_t insertion) {
 
     key_type event_key = key_[block_index];
-
+    bool is_valid = true;
     Block new_block = {length - event_size, insertion};
     if (key_[block_index] == 0) { // checking if this is the first block in the blocklist
       Block first_block = {1, 0};
-      this->insert(0 , first_block, 1 - (length + insertion));
+      is_valid = this->insert(0 , first_block, 1 - (length + insertion));
     } else {
-      this->erase(key_[block_index], length + insertion);
+      is_valid = this->erase(key_[block_index], length + insertion);
     }
-    this->insert(event_key + event_size, new_block, (length + insertion) - event_size);
+    return this->insert(event_key + event_size, new_block, (length + insertion) - event_size) && is_valid;
   }
 
   //   xxxxxxxxxxxxxx xxxxxxxx
   //  [------OP------|---AP---]
-  void remove_case_b(const size_type block_index, size_t position, size_t event_size, size_t length, size_t insertion) {
+  bool remove_case_b(const size_type block_index, size_t position, size_t event_size, size_t length, size_t insertion) {
 
     if (key_[block_index] == 0) { // checking if this is the first block in the blocklist
       Block first_block = {1, 0};
-      this->insert(0, first_block, 1 - (length + insertion));
+      return this->insert(0, first_block, 1 - (length + insertion));
     } else {
-      this->erase(key_[block_index], length + insertion);
+      return this->erase(key_[block_index], length + insertion);
     }
   }
 
   //   xxxxxxxxxxxxxx xxxx
   //  [------OP------|---AP---]
-  void remove_case_c(const size_type block_index, size_t position, size_t event_size, size_t length, size_t insertion) {
-
+  bool remove_case_c(const size_type block_index, size_t position, size_t event_size, size_t length, size_t insertion) {
+    bool is_valid = true;
     size_t insertion_leftover = (length + insertion) - event_size;
     if (key_[block_index] == 0) { // checking if this is the first block in the blocklist
       Block first_block = {1, insertion_leftover};
       int new_size = first_block.insertion + first_block.length;
       int difference_in_length = new_size - (length + insertion);
-      this->insert(0, first_block, difference_in_length);
+      return this->insert(0, first_block, difference_in_length);
     } else {
       size_type previous_block_index = this->get_previous_block(block_index);
       Block previous_block = val_[previous_block_index];
       Block updated_block = {previous_block.length, previous_block.insertion + insertion_leftover};
-      this->erase(key_[block_index], length + insertion);
-      this->insert(key_[previous_block_index], updated_block, insertion_leftover);
+      is_valid = this->erase(key_[block_index], length + insertion);
+      return this->insert(key_[previous_block_index], updated_block, insertion_leftover) && is_valid;
     }
   }
 
   //      xxxxxxxx
   //  [------OP------|---AP---]
-  void remove_case_d(const size_type block_index, size_t position, size_t event_size, size_t length, size_t insertion) {
-
+  bool remove_case_d(const size_type block_index, size_t position, size_t event_size, size_t length, size_t insertion) {
+    bool is_valid = true;
     Block first_block = {position, 0};
     int new_size = first_block.insertion + first_block.length;
     int difference_in_length = new_size - (length + insertion);
-    this->insert(key_[block_index], first_block, difference_in_length);
+    is_valid = this->insert(key_[block_index], first_block, difference_in_length);
     Block new_block = {length - (position + event_size), insertion};
     new_size = new_block.insertion + new_block.length;
-    this->insert(key_[block_index] + position + event_size, new_block, new_size);
+    return this->insert(key_[block_index] + position + event_size, new_block, new_size) && is_valid;
   }
 
 
   //         xxxxxxxx
   //  [------OP------|---AP---]
-  void remove_case_e(const size_type block_index, size_t position, size_t event_size, size_t length, size_t insertion) {
+  bool remove_case_e(const size_type block_index, size_t position, size_t event_size, size_t length, size_t insertion) {
 
     Block first_block = {position, insertion};
     int new_size = first_block.insertion + first_block.length;
     int difference_in_length = new_size - (length + insertion);
-    this->insert(key_[block_index], first_block, difference_in_length);
+    return this->insert(key_[block_index], first_block, difference_in_length);
   }
 
 
   //             xxxx xxxx
   //  [------OP------|---AP---]
-  void remove_case_f(const size_type block_index, size_t position, size_t event_size, size_t length, size_t insertion) {
+  bool remove_case_f(const size_type block_index, size_t position, size_t event_size, size_t length, size_t insertion) {
     position = position <= length ? position : length;
 
     Block first_block = {position, (length + insertion) - (position + event_size)};
     int new_size = first_block.insertion + first_block.length;
     int difference_in_length = new_size - (length + insertion);
-    this->insert(key_[block_index], first_block, difference_in_length);
+    return this->insert(key_[block_index], first_block, difference_in_length);
   }
 
 
@@ -515,18 +515,19 @@ public:
     size_t length  = event_block.length;
     size_t insertion = event_block.insertion;
     size_t original_size = length + insertion;
+    bool is_valid = true;
     // removing the first block still keep a single position, thus we remove 1 from the event size. 
     // this will be removed during the decoding of the blocklist.
     // this handles non spanning deletions.
     if (position + event_size <= original_size) {
       if (position == 0) {
-        if (event_size == length + insertion)  remove_case_b(block_index, position, event_size, length, insertion);
-        else if (event_size < length)               remove_case_a(block_index, position, event_size, length, insertion);
-        else if (event_size >= length)              remove_case_c(block_index, position, event_size, length, insertion);
+        if (event_size == length + insertion) is_valid = remove_case_b(block_index, position, event_size, length, insertion);
+        else if (event_size < length) is_valid = remove_case_a(block_index, position, event_size, length, insertion);
+        else if (event_size >= length) is_valid = remove_case_c(block_index, position, event_size, length, insertion);
       } else {
-        if ((position + event_size) < length)  remove_case_d(block_index, position, event_size, length, insertion);
-        else if ((position + event_size) == length) remove_case_e(block_index, position, event_size, length, insertion);
-        else if ((position + event_size) > length)  remove_case_f(block_index, position, event_size, length, insertion);
+        if ((position + event_size) < length) is_valid = remove_case_d(block_index, position, event_size, length, insertion);
+        else if ((position + event_size) == length) is_valid = remove_case_e(block_index, position, event_size, length, insertion);
+        else if ((position + event_size) > length) is_valid = remove_case_f(block_index, position, event_size, length, insertion);
       }
     } else {
         // this means the deletion spans multiple blocks, thus we split the deletion and apply
@@ -536,14 +537,14 @@ public:
         // std::cout << "Affected blocks:\n";
         // std::cout << key_[block_index] << " " << key_[next_block_index] << "\n";
         size_t updated_size = original_size - position;
-        this->remove_block(block_index, position, updated_size);
+        is_valid = this->remove_block(block_index, position, updated_size);
 
         if (next_block_index != INVALID_IDX) {
-          this->remove_block(next_block_index, 0, event_size - updated_size); // it this correct?
+          is_valid = this->remove_block(next_block_index, 0, event_size - updated_size) && is_valid; // it this correct?
         }
     }
       
-  return false;
+  return is_valid;
   }
 
 
@@ -1186,6 +1187,7 @@ bool handle_event(event ev, size_t event_position, size_t event_size) {
     }
 
     if (ev == DELETION) {
+      if (event_position == 0) throw std::out_of_range("event_position exceeds sequence");
       return remove_block(block_index, event_position, event_size);
     }
 

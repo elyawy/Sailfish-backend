@@ -136,6 +136,75 @@ public:
         }
     };
 
+    static MSA msaFromSequences(vector<Sequence> &sequences, SuperSequence &superSeq) {
+        std::vector<bool> seqsToSave;
+        for (size_t i = 0; i < sequences.size(); i++)
+        {
+            seqsToSave.push_back(true);
+        }
+        
+
+        MSA msa(sequences.size(), 1, seqsToSave);
+		msa._numberOfSequences = superSeq.getNumSequences();
+		msa._msaLength = superSeq.getMsaSequenceLength();
+		superSeq.setAbsolutePositions();
+		// _alignedSequence.resize(_numberOfSequences);
+        msa._alignedSequence.reserve(msa._numberOfSequences);
+        
+        // size_t rowInMSA = 0;
+        int totalSize = 0;
+		int currentPosition = 0;
+		int lastPosition = 0;
+		int positionDifference = 0;
+		int cumulatedDifference = 1;
+        
+        for(auto &seq: sequences) {
+            size_t sequenceNodeID = seq.getSequenceNodeID();
+            // if the sequence is only made up of gaps:
+            if (seq.size() == 0) {
+                msa._alignedSequence[sequenceNodeID].push_back(-msa._msaLength);
+                continue;
+            }
+            // seq.printSequence();
+
+            auto previousSite = *seq.begin();
+            
+            lastPosition = previousSite->absolutePosition;
+            if (lastPosition > 0) {
+                msa._alignedSequence[sequenceNodeID].push_back(-lastPosition);
+                totalSize += lastPosition;
+            }
+
+            for(auto currentSite=seq.begin() + 1; currentSite!=seq.end(); currentSite++) {
+				currentPosition = (*(currentSite))->absolutePosition;
+                positionDifference = currentPosition - lastPosition - 1;
+
+                if (positionDifference == 0) cumulatedDifference++;
+                if (positionDifference > 0) {
+                    msa._alignedSequence[sequenceNodeID].push_back(cumulatedDifference);
+                    msa._alignedSequence[sequenceNodeID].push_back(-(positionDifference));
+                    totalSize += (cumulatedDifference + positionDifference);
+                    cumulatedDifference = 1;
+                }
+                if (totalSize > msa._msaLength) errorMsg::reportError("sequence lengths mismatch in fillMSA");
+
+
+                lastPosition = currentPosition;
+
+            }
+			if (cumulatedDifference > 0 && (totalSize != msa._msaLength)) {
+                msa._alignedSequence[sequenceNodeID].push_back(cumulatedDifference);
+                totalSize += cumulatedDifference;
+            }
+            if (totalSize < msa._msaLength) msa._alignedSequence[sequenceNodeID].push_back(-(msa._msaLength - totalSize));
+			cumulatedDifference = 1;
+            lastPosition = 0;
+            totalSize = 0;
+			// rowInMSA++;
+        }
+        return msa;
+    };
+
 
     void fillSubstitutions(std::shared_ptr<sequenceContainer> _seqContainer) {
         _substitutions = _seqContainer;

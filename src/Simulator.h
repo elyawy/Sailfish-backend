@@ -87,7 +87,7 @@ public:
 
     std::tuple<BlockList, size_t> simulateAlongBranch(size_t seqSize, double branchLength, size_t nodePosition) {
         size_t sequenceSize = seqSize;
-
+        size_t minSequenceSize = _protocol->getMinSequenceSize();
         // std::cout << "sequenceSize=" << sequenceSize << "\n";
 
         BlockTree blocks(sequenceSize);
@@ -104,7 +104,7 @@ public:
 
         double sequenceWiseInsertionRate = 1.0 * insertionRate * (sequenceSize + 1);
         double sequenceWiseDeletionRate = 1.0 * deletionRate * (sequenceSize + (sampledDeletionLength - 1));
-
+        if (sequenceSize <= minSequenceSize) sequenceWiseDeletionRate = 0.0;
         // std::cout << "sequenceWiseInsertionRate=" << sequenceWiseInsertionRate << "\n";
         // std::cout << "sequenceWiseDeletionRate=" << sequenceWiseDeletionRate << "\n";
 
@@ -128,7 +128,7 @@ public:
             double coinFlip = _biased_coin(_mt_rand);
 
             if (coinFlip < insertionProbability) {
-                auto _fair_die = std::uniform_int_distribution<int>(1, sequenceSize + 1);
+                auto _fair_die = std::uniform_int_distribution<int>(0, sequenceSize);
                 eventIndex = _fair_die(_mt_rand);
                 // std::cout << eventIndex << " ";
                 eventLength = insertionLengthDistribution->drawSample();
@@ -151,22 +151,23 @@ public:
             blocks.handleEvent(eventType, eventIndex, eventLength);
 
             // if (!blocks.checkLength()){
-            //     std::cout << blocks.printTree() << "\n";
-            //     std::cout << "eventType=" << eventType
-            //               << " eventIndex=" << eventIndex
-            //               << " sequenceSize=" << sequenceSize
-            //               << " eventLength=" << eventLength << "\n";
-            //     errorMsg::reportError("length error!");
+                // std::cout << blocks.printTree() << "\n";
+                // std::cout << "eventType=" << eventType
+                //           << " eventIndex=" << eventIndex
+                //           << " sequenceSize=" << sequenceSize
+                //           << " eventLength=" << eventLength << "\n";
+                // errorMsg::reportError("length error!");
             // }
 
-            sequenceSize = blocks.length() - 1;
 
+            sequenceSize = blocks.length() - 1;
             sampledDeletionLength = deletionLengthDistribution->drawSample();
 
             branchLength = branchLength - waitingTime;
             sequenceWiseInsertionRate = 1.0 * insertionRate * (sequenceSize + 1);
             sequenceWiseDeletionRate =  1.0 * deletionRate * (sequenceSize + (sampledDeletionLength - 1));
-            
+            if (sequenceSize <= minSequenceSize) sequenceWiseDeletionRate = 0.0;
+
             lambdaParam = sequenceWiseInsertionRate + sequenceWiseDeletionRate;
             std::exponential_distribution<double> distribution(lambdaParam);
             waitingTime = distribution(_mt_rand);
