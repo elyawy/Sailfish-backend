@@ -22,6 +22,8 @@ private:
     bool _isSaveSequence;
     size_t _nodeID;
     SequenceType _sequence;
+    Sequence* _parent;
+
     // size_t _numLeaf;
 public:
 
@@ -53,6 +55,7 @@ public:
         size_t length;
         size_t insertion;
         size_t randomPos = _superSequence->getRandomSequencePosition();
+        _parent = &parentSeq;
         // std::cout << parentSeq.getSequenceNodeID() << "\n";
         for (auto it = blocklist.begin(); it != blocklist.end(); ++it) {
             position = (*it)[static_cast<int>(BLOCK::POSITION)];//(&it)->key();
@@ -75,14 +78,15 @@ public:
 
             for (size_t i = 0; i < length; i++) {
                 if (_isSaveSequence) {
-                    _superSequence->referencePosition(parentSeq._sequence[position+i]);
+                    _superSequence->referencePosition(_parent->_sequence[position+i]);
                 } 
-                _sequence.push_back(parentSeq._sequence[position+i]);
+                _sequence.push_back(_parent->_sequence[position+i]);
             }
+            while (_parent->_sequence.size() == 0) _parent = _parent->_parent;
 
-            auto superSeqIterator = parentSeq._sequence[position];
+            auto superSeqIterator = _parent->_sequence[position];
             if (!_sequence.empty()) {
-                superSeqIterator = parentSeq._sequence[position+length-1];
+                superSeqIterator = _parent->_sequence[position+length-1];
                 superSeqIterator++;
             }
             

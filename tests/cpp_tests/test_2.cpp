@@ -7,8 +7,8 @@
 
 // takes 10 minutes currently
 int main() {
-    tree tree_("../trees/test.tree");
-    std::time_t t1 = 42;//std::time(0);
+    tree tree_("../trees/simple.tree");
+    std::time_t t1 = 35464;//std::time(0);
     vector<DiscreteDistribution*> insertionDists(tree_.getNodesNum() - 1);
     vector<DiscreteDistribution*> deletionDists(tree_.getNodesNum() - 1);
 
@@ -37,8 +37,10 @@ int main() {
     protocol.setDeletionLengthDistributions(deletionDists);
     protocol.setInsertionRates(insertionRates);
     protocol.setDeletionRates(deletionRates);
+    protocol.setMinSequenceSize(100);
 
-    int rootLength = 92;
+
+    int rootLength = 50;
     protocol.setSequenceSize(rootLength);
 
 
@@ -48,21 +50,22 @@ int main() {
     mFac.setAlphabet(alphabetCode::AMINOACID);
     mFac.setReplacementModel(modelCode::WAG);
     // mFac.setModelParameters({0.25,0.25,0.25,0.25,0.1,0.2,0.3,0.4,0.5,0.6});
-    mFac.setGammaParameters(1.0, 1);
+    mFac.setGammaParameters(0.5, 8);
     // mFac.setInvariantSitesProportion(0.5);
     if (!mFac.isModelValid()) return 0;
     sim.initSubstitionSim(mFac);
-    // sim.setSaveRoot();
+    sim.setSaveRoot();
     auto saveList = sim.getNodesSaveList();
 
-
+    
     size_t counter = 0;
-    while (counter++ < 100000) {
+    while (counter++ < 10000) {
         protocol.setInsertionLengthDistributions(insertionDists);
         protocol.setDeletionLengthDistributions(deletionDists);
         protocol.setInsertionRates(insertionRates);
         protocol.setDeletionRates(deletionRates);
         protocol.setSequenceSize(rootLength);
+        protocol.setMinSequenceSize(50);
 
         auto blockmap = sim.generateSimulation();
 
@@ -75,6 +78,7 @@ int main() {
 
         msa.fillSubstitutions(fullContainer);
         std::cout << counter  << "\n";
+        // msa.printFullMsa();
         
     }
     

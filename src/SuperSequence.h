@@ -32,6 +32,7 @@ public:
     }
 
     void referencePosition(SequenceType::iterator position) {
+        // if (position->position == 0) return;
         if (!(*position).isColumn) {
             (*position).isColumn = true;
             ++_msaSeqLength;
