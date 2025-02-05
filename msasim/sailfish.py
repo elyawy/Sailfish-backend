@@ -218,6 +218,7 @@ class SimProtocol:
                  insertion_rate: float = 0.0,
                  deletion_dist: Distribution = ZipfDistribution(1.7, 50),
                  insertion_dist: Distribution = ZipfDistribution(1.7, 50),
+                 minimum_seq_size: int = 100,
                  seed: int = 0,
         ):
         if isinstance(tree, Tree):
@@ -237,7 +238,8 @@ class SimProtocol:
         self.set_insertion_rates(insertion_rate=insertion_rate)
         self.set_deletion_length_distributions(deletion_dist=deletion_dist)
         self.set_insertion_length_distributions(insertion_dist=insertion_dist)
-    
+        self.set_min_sequence_size(min_sequence_size=minimum_seq_size)
+
     def get_tree(self) -> Tree:
         return self._tree
     
@@ -263,6 +265,11 @@ class SimProtocol:
     
     def get_sequence_size(self) -> int:
         return self._root_seq_size
+    
+    def set_min_sequence_size(self, min_sequence_size: int) -> None:
+        self._sim.set_minimum_sequence_size(min_sequence_size)
+        self._min_seq_size = min_sequence_size
+
     
     def set_insertion_rates(self, insertion_rate: Optional[float] = None, insertion_rates: Optional[List[float]] = None) -> None:
         if insertion_rate is not None:

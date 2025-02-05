@@ -72,7 +72,9 @@ PYBIND11_MODULE(_Sailfish, m) {
         .def("set_insertion_length_distributions", &SimulationProtocol::setInsertionLengthDistributions)
         .def("get_insertion_length_distribution", &SimulationProtocol::getInsertionDistribution)
         .def("set_deletion_length_distributions", &SimulationProtocol::setDeletionLengthDistributions)
-        .def("get_deletion_length_distribution", &SimulationProtocol::getDeletionDistribution);
+        .def("get_deletion_length_distribution", &SimulationProtocol::getDeletionDistribution)
+        .def("set_minimum_sequence_size", &SimulationProtocol::setMinSequenceSize)
+        .def("get_minimum_sequence_size", &SimulationProtocol::getMinSequenceSize);
 
 
 
