@@ -150,14 +150,14 @@ public:
             }
             blocks.handleEvent(eventType, eventIndex, eventLength);
 
-            if (!blocks.checkLength()){
-                std::cout << blocks.printTree() << "\n";
-                std::cout << "eventType=" << eventType
-                          << " eventIndex=" << eventIndex
-                          << " sequenceSize=" << sequenceSize
-                          << " eventLength=" << eventLength << "\n";
-                errorMsg::reportError("length error!");
-            }
+            // if (!blocks.checkLength()){
+            //     std::cout << blocks.printTree() << "\n";
+            //     std::cout << "eventType=" << eventType
+            //               << " eventIndex=" << eventIndex
+            //               << " sequenceSize=" << sequenceSize
+            //               << " eventLength=" << eventLength << "\n";
+            //     errorMsg::reportError("length error!");
+            // }
 
 
             sequenceSize = blocks.length() - 1;
