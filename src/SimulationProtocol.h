@@ -98,7 +98,6 @@ public:
 
     void setSequenceSize(size_t sequenceSize) {
         _sequenceSize = sequenceSize;
-        _minSequenceSize = 1;
     }
 
     void setMinSequenceSize(size_t minSequenceSize) {

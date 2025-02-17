@@ -410,6 +410,8 @@ class Simulator:
             simProtocol.set_insertion_rates(0.05)
             simProtocol.set_deletion_rates(0.05)
             simProtocol.set_sequence_size(100)
+            simProtocol.set_min_sequence_size(1)
+
         # verify sim_protocol
         if self._verify_sim_protocol(simProtocol):
             self._simProtocol = simProtocol
