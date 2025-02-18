@@ -5,6 +5,8 @@ wheelhouse
 libs/libPhylolib.a
 Sailfish/__pycache__
 Sailfish/__pycache__/*.pyc
+msasim/__pycache__
+msasim/__pycache__/*.pyc
 shell.nix
 _Sailfish.cpython-311-x86_64-linux-gnu.so
 msasim.egg-info
