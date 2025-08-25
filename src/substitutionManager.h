@@ -90,7 +90,7 @@ public:
             _substitutionVec[nodeId] = std::make_unique<changeMap>(rootSeq.seqLen(), INVALID_CHAR);
         }
 
-        ALPHACHAR previousChar = getCharacter(nodeId,position,rootSeq);
+        ALPHACHAR previousChar = rootSeq[position];
 
         MDOUBLE previousQii = sp->Qij(previousChar, previousChar);
 		MDOUBLE newQii = sp->Qij(change, change);
@@ -101,7 +101,7 @@ public:
         _siteSampler->updateWeight(position, newWeight);
 
 
-        (*_substitutionVec[nodeId])[position] = change;
+        (*_substitutionVec[nodeId])[position] = previousChar;
         rootSeq[position] = change;
     }
 
@@ -134,9 +134,9 @@ public:
             errorMsg::reportError("Trying to reach removed pointer!");
         }
         auto nodeChangeMap = getChangeMap(fromNode);
-        // std::cout << "Recovering subs from node=" << fromNode << "\n";
+        // std::cout << "Recovering sequence from node=" << fromNode << "\n";
+        for (size_t currentSite=0; currentSite < rootSeq.seqLen(); ++currentSite) {
 
-        for (size_t currentSite; currentSite < rootSeq.seqLen(); ++currentSite) {
             if ((*nodeChangeMap)[currentSite] == INVALID_CHAR) continue;
             if ((*nodeChangeMap)[currentSite] == rootSeq[currentSite]) continue;
 
@@ -153,11 +153,7 @@ public:
 
             MDOUBLE newWeight = (-newFreq)*sp->rates(rateCategories[currentSite]);
             _siteSampler->updateWeight(currentSite, newWeight);
-
-
 	    }
-
-
     }
 
 

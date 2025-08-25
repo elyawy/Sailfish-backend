@@ -134,20 +134,21 @@ void rateMatrixSim::mutateSeqRecuresively(tree::nodeP currentNode, int seqLength
 		mutateSeqAlongBranch(node, seqLength);
 		if ((*_nodesToSave)[node->id()]) saveSequence(node->id(), node->name());
 		mutateSeqRecuresively(node, seqLength);
-
-		if (!_subManager.isEmpty(currentNode->id())) {
-			_subManager.undoSubs(currentNode->id(), _rootSequence, _rateCategories, _sp.get());
+		if (!_subManager.isEmpty(node->id())) {
+			_subManager.undoSubs(node->id(), _rootSequence, _rateCategories, _sp.get());
 		}
 	}
 }
 
 void rateMatrixSim::mutateSeqAlongBranch(tree::nodeP currentNode, int seqLength) {
 	const MDOUBLE distToFather = currentNode->dis2father();
-	if (distToFather > 0.5) {
-		mutateEntireSeq(currentNode, seqLength);
-	} else {
-		mutateSeqGillespie(currentNode, seqLength, distToFather);
-	}
+	mutateEntireSeq(currentNode, seqLength);
+	
+	// if (distToFather > 0.5) {
+	// 	mutateEntireSeq(currentNode, seqLength);
+	// } else {
+	// 	mutateSeqGillespie(currentNode, seqLength, distToFather);
+	// }
 	// testSumOfRates();
 }
 
