@@ -134,7 +134,7 @@ public:
             errorMsg::reportError("Trying to reach removed pointer!");
         }
         auto nodeChangeMap = getChangeMap(fromNode);
-        // std::cout << "Recovering subs from node=" << fromNode << "\n";
+        std::cout << "Recovering subs from node=" << fromNode << "\n";
 
         for (size_t currentSite; currentSite < rootSeq.seqLen(); ++currentSite) {
             if ((*nodeChangeMap)[currentSite] == INVALID_CHAR) continue;
