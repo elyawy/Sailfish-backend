@@ -7,10 +7,14 @@
 
 // takes 10 minutes currently
 int main() {
-    // tree tree_("../trees/normalbranches_nLeaves10.treefile");
+    tree tree_("../trees/normalbranches_nLeaves10.treefile");
     // tree tree_("(A:0.5,B:0.5);", false);
-    tree tree_("((A:0.1,B:0.1):0.0,C:0.0);", false);
-    std::time_t t1 = 102;//std::time(0);
+    // tree tree_("(C:0.01,(A:0.01,B:0.01):0.01);", false);
+    // tree tree_("((A:0.01,B:0.01):0.01,C:0.01);", false);
+
+    // tree tree_("((A:0.0,B:0.0):0.0,C:0.01);", false);
+
+    std::time_t t1 = 123;//std::time(0);
     vector<DiscreteDistribution*> insertionDists(tree_.getNodesNum() - 1);
     vector<DiscreteDistribution*> deletionDists(tree_.getNodesNum() - 1);
 
@@ -36,10 +40,9 @@ int main() {
     protocol.setInsertionRates(insertionRates);
     protocol.setDeletionRates(deletionRates);
 
-    int rootLength = 100;
+    int rootLength = 10000;
     protocol.setSequenceSize(rootLength);
 
-    // protocol.setSaveAncestral(true);
 
     protocol.setSeed(t1);
 
@@ -49,12 +52,13 @@ int main() {
     mFac.setAlphabet(alphabetCode::AMINOACID);
     mFac.setReplacementModel(modelCode::LG);
     // mFac.setModelParameters({0.25,0.25,0.25,0.25,0.1,0.2,0.3,0.4,0.5,0.6});
-    mFac.setGammaParameters(1.0, 1);
+    mFac.setGammaParameters(1.0, 4);
     // mFac.setInvariantSitesProportion(0.9);
     if (!mFac.isModelValid()) return 1;
     sim.initSubstitionSim(mFac);
 
-    sim.setSaveRoot();
+    // sim.setSaveRoot();
+    // sim.setSaveAllNodes();
     auto saveList = sim.getNodesSaveList();
     sim.setSaveRates(true);
 
@@ -69,9 +73,7 @@ int main() {
         auto fullContainer = sim.simulateSubstitutions(msaLength);
         auto rates = sim.getSiteRates();
 
-        // std::cout << rates << "\n";
         msa.fillSubstitutions(fullContainer);
-        // std::cout << counter  << "\n";
         msa.printFullMsa();
     }
     

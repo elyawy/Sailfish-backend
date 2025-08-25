@@ -129,20 +129,12 @@ void rateMatrixSim::generate_substitution_log(int seqLength) {
 
 void rateMatrixSim::mutateSeqRecuresively(tree::nodeP currentNode, int seqLength) {
 	if (currentNode->isLeaf()) return;
-	// if (currentNode->isLeaf()) {
-	// 	_subManager.undoSubs(currentNode->id(), _rootSequence, _rateCategories, _sp.get());
-	// 	return;
-	// }
 
 	for (auto &node: currentNode->getSons()) {
 		mutateSeqAlongBranch(node, seqLength);
 		if ((*_nodesToSave)[node->id()]) saveSequence(node->id(), node->name());
 		mutateSeqRecuresively(node, seqLength);
-		std::cout << "currentNode=" << currentNode->name() << "\n";
 		if (!_subManager.isEmpty(node->id())) {
-			// std::cout << "currentNode=" << currentNode->name() << " <--" << currentNode->dis2father() <<
-				//  "-- parentNode=" << currentNode->father()->name() << "\n";
-
 			_subManager.undoSubs(node->id(), _rootSequence, _rateCategories, _sp.get());
 		}
 	}
@@ -184,7 +176,6 @@ void rateMatrixSim::mutateSeqGillespie(tree::nodeP currentNode, int seqLength, M
 	MDOUBLE branchLength = distToParent;
 
 	double lambdaParam = _subManager.getReactantsSum();
-	std::cout << "lambdaParam=" << lambdaParam << "\n";
 	std::exponential_distribution<double> distribution(-lambdaParam);
 	double waitingTime = distribution(*_mt_rand);
 	if (waitingTime < 0) {
