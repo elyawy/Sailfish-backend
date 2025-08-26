@@ -63,7 +63,7 @@ public:
 
         double cumulativeWeight = 0.0;
 
-        for (int i = 0; i < _levelsWeights.size(); i++) {
+        for (size_t i = 0; i < _levelsWeights.size(); i++) {
             cumulativeWeight += _levelsWeights[i];
             selectedLevel = i;
             if (levelSampler < cumulativeWeight) break;

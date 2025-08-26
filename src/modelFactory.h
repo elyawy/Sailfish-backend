@@ -98,7 +98,8 @@ public:
 private:
     factoryState _state;
     tree* _tree;
-    alphabet* _alph;
+    // alphabet* _alph;
+    std::unique_ptr<alphabet> _alphPtr;
     alphabetCode _alphabet;
     modelCode _model;
     std::string _modelFilePath;

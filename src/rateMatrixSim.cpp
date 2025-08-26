@@ -108,7 +108,7 @@ void rateMatrixSim::generate_substitution_log(int seqLength) {
 	for (int h = 0; h < seqLength; h++)  {
 		int selectedRandomCategory = _rateSampler->drawSample() - 1;
 		_rateCategories[h] = selectedRandomCategory;
-		if (selectedRandomCategory == _sp->categories()) {
+		if (selectedRandomCategory >= _sp->categories()) {
 			ratesVec[h] = 0.0;
 			continue;
 		}
@@ -253,7 +253,7 @@ std::unique_ptr<sequenceContainer> rateMatrixSim::getSequenceContainer() {
 	// 	myseqData->add(*std::move(_simulatedSequences[i]));
 	// }
 
-	return std::move(outputSequences);
+	return outputSequences;
 }
 
 

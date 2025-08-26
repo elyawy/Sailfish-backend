@@ -2,6 +2,7 @@
 #include <list>
 #include <iterator> 
 #include <cstddef> 
+#include <limits>
 
 class SuperSequence {
 public:
@@ -25,7 +26,7 @@ public:
         _leafNum = 0;
         _numSequences = numSequences;
         for (size_t i = 1; i <= sequenceSize; ++i) {
-            columnContainer column = {i, false};
+            columnContainer column = {i, std::numeric_limits<size_t>::max(), false};
             _sequence.push_back(column);
         }
         _randomSequenceCounter = sequenceSize + 1;
@@ -51,7 +52,7 @@ public:
     SequenceType::iterator insertItemAtPosition(SequenceType::iterator position, size_t item, bool isToSave) {
         // std::cout << "INSERT POS: " << *position << " " << item << "\n";
         // printSequence();
-        columnContainer newColumn = {item, false};
+        columnContainer newColumn = {item, std::numeric_limits<size_t>::max(), false};
 
         if (isToSave) {
             newColumn.isColumn = true;

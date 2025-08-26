@@ -92,14 +92,7 @@ std::shared_ptr<stochasticProcess> modelFactory::getStochasticProcess() {
     if (_state!=factoryState::COMPLETE) {
         std::cout << "Please set all the required model parameters.\n";
         // return;
-    }
-
-    alphabet *selectedAlphabet;
-    nucleotide nuc;
-    amino ami;
-    if (_alphabet==alphabetCode::NUCLEOTIDE) selectedAlphabet = &nuc;
-    if (_alphabet==alphabetCode::AMINOACID) selectedAlphabet = &ami;
-    
+    }    
 
     std::unique_ptr<replacementModel> repModel;
 
@@ -134,8 +127,9 @@ std::shared_ptr<stochasticProcess> modelFactory::getStochasticProcess() {
             repModel = std::make_unique<tamura92>(theta, TrTv);
             break;
         }
-        // case modelCode::WYANGMODEL:
-        //     repModel = &wYangModel();
+        case modelCode::WYANGMODEL:
+            throw std::runtime_error("Model not implemented: " + std::to_string(static_cast<int>(_model)));
+            break;
         case modelCode::CPREV45:
             repModel = std::make_unique<pupAll>(datMatrixHolder::cpREV45);
             break;
@@ -174,6 +168,9 @@ std::shared_ptr<stochasticProcess> modelFactory::getStochasticProcess() {
             break;
         case modelCode::EHO_HELIX:
             repModel = std::make_unique<pupAll>(datMatrixHolder::EHO_HELIX);
+            break;
+        case modelCode::EHO_OTHER:
+            repModel = std::make_unique<pupAll>(datMatrixHolder::EHO_OTHER);
             break;
         case modelCode::EX_EHO_BUR_EXT:
             repModel = std::make_unique<pupAll>(datMatrixHolder::EX_EHO_BUR_EXT);
@@ -226,11 +223,21 @@ std::shared_ptr<stochasticProcess> modelFactory::getStochasticProcess() {
 alphabet* modelFactory::getAlphabet() {
     if (_alphabet==alphabetCode::NULLCODE) {
         std::cout << "alphabet was not set! returning null pointer\n";
-        _alph = nullptr;
+        _alphPtr = nullptr;
     }
-    if (_alphabet==alphabetCode::NUCLEOTIDE) _alph = new nucleotide();
-    if (_alphabet==alphabetCode::AMINOACID) _alph = new amino();
-    return _alph;
+    // if (_alphabet==alphabetCode::NUCLEOTIDE) _alph = new nucleotide();
+    // if (_alphabet==alphabetCode::AMINOACID) _alph = new amino();
+    if (!_alphPtr) {
+        if (_alphabet == alphabetCode::NUCLEOTIDE) {
+            _alphPtr = std::make_unique<nucleotide>();
+        } else if (_alphabet == alphabetCode::AMINOACID) {
+            _alphPtr = std::make_unique<amino>();
+        } else {
+            return nullptr;
+        }
+    }
+    return _alphPtr.get();
+    // return _alph;
 }
 
 bool modelFactory::isModelValid() {
@@ -239,9 +246,6 @@ bool modelFactory::isModelValid() {
 
 
 
-modelFactory::~modelFactory()
-{
-    delete _alph;
-}
+modelFactory::~modelFactory() {}
 
 
