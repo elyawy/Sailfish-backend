@@ -26,15 +26,15 @@ class BlockTree
 private:
  // consider creating different sized avl_arrays to reduce ram usage.
   using TreeType = avl_array<std::uint32_t, std::uint32_t, 1000000U, true>;
-  std::shared_ptr<TreeType> _avlTree;
+  std::unique_ptr<TreeType> _avlTree;
 public:
-  BlockTree(int first_block_size) {
-    _avlTree = std::make_shared<TreeType>();//new TreeType;
-    _avlTree->init_tree(first_block_size + 1);
+  BlockTree() {
+    _avlTree = std::make_unique<TreeType>();//new TreeType;
+    // _avlTree->init_tree(first_block_size + 1);
   }
 
-  BlockTree(const BlockTree& otherTree): _avlTree(otherTree._avlTree) {}
-  BlockTree() {}
+  // BlockTree(const BlockTree& otherTree): _avlTree(otherTree._avlTree) {}
+  // BlockTree() {}
 
   void handleEvent (event ev, size_t event_position, size_t event_size) {
     if (event_size == 0) return;
@@ -69,6 +69,15 @@ public:
 
   bool checkLength() {
     return _avlTree->checkLength();
+  }
+
+  void clear(){
+    _avlTree->clear();
+  }
+
+  void initTree(int first_block_size){
+    _avlTree->clear();
+    _avlTree->init_tree(first_block_size + 1);
   }
 
 

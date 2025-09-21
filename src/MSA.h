@@ -92,9 +92,10 @@ public:
         
         for(auto &seq: sequences) {
             size_t sequenceNodeID = seq.getSequenceNodeID();
+            auto& currentSequence = _alignedSequence[sequenceNodeID];
             // if the sequence is only made up of gaps:
             if (seq.size() == 0) {
-                _alignedSequence[sequenceNodeID].push_back(-_msaLength);
+                currentSequence.push_back(-_msaLength);
                 continue;
             }
             // seq.printSequence();
@@ -103,7 +104,7 @@ public:
             
             lastPosition = previousSite->absolutePosition;
             if (lastPosition > 0) {
-                _alignedSequence[sequenceNodeID].push_back(-lastPosition);
+                currentSequence.push_back(-lastPosition);
                 totalSize += lastPosition;
             }
 
@@ -113,8 +114,8 @@ public:
 
                 if (positionDifference == 0) cumulatedDifference++;
                 if (positionDifference > 0) {
-                    _alignedSequence[sequenceNodeID].push_back(cumulatedDifference);
-                    _alignedSequence[sequenceNodeID].push_back(-(positionDifference));
+                    currentSequence.push_back(cumulatedDifference);
+                    currentSequence.push_back(-(positionDifference));
                     totalSize += (cumulatedDifference + positionDifference);
                     cumulatedDifference = 1;
                 }
@@ -125,10 +126,10 @@ public:
 
             }
 			if (cumulatedDifference > 0 && (totalSize != _msaLength)) {
-                _alignedSequence[sequenceNodeID].push_back(cumulatedDifference);
+                currentSequence.push_back(cumulatedDifference);
                 totalSize += cumulatedDifference;
             }
-            if (totalSize < _msaLength) _alignedSequence[sequenceNodeID].push_back(-(_msaLength - totalSize));
+            if (totalSize < _msaLength) currentSequence.push_back(-(_msaLength - totalSize));
 			cumulatedDifference = 1;
             lastPosition = 0;
             totalSize = 0;
@@ -259,8 +260,10 @@ public:
     std::string generateMsaStringWithoutSubs() {
         std::stringstream msaString;
         for (auto id: _sequencesToSave) {
-            for (size_t col = 0; col < _alignedSequence[id].size(); col++) {
-                int strSize = _alignedSequence[id][col];
+            const auto& alignedSeqRow = _alignedSequence[id];  // Single hash lookup
+
+            for (size_t col = 0; col < alignedSeqRow.size(); col++) {
+                int strSize = alignedSeqRow[col];
                 if (strSize < 0) {
                     strSize = -strSize;
                     msaString << std::string(strSize, '-');
@@ -291,8 +294,9 @@ public:
 
                 continue;
             }
-            for (size_t col = 0; col < _alignedSequence[id].size(); col++) {
-                int strSize = _alignedSequence[id][col];
+            const auto& alignedSeqRow = _alignedSequence[id];  // Single hash lookup
+            for (size_t col = 0; col < alignedSeqRow.size(); col++) {
+                int strSize = alignedSeqRow[col];
                 if (strSize < 0) {
                     strSize = -strSize;
                     msaString.append(std::string(strSize, '-'));
