@@ -7,7 +7,7 @@
 
 // takes 10 minutes currently
 int main() {
-    tree tree_("../trees/normalbranches_nLeaves100.treefile");
+    tree tree_("../trees/normalbranches_nLeaves5000.treefile");
     // tree tree_("(A:0.1,B:0.2):0.3;", false);
     // tree_.getRoot()->orderSonsByHeight();
     std::time_t t1 = 1;//std::time(0);
@@ -28,8 +28,8 @@ int main() {
 
     // fill(insertionRates.begin(), insertionRates.end(), 0.0);
     // fill(deletionRates.begin(), deletionRates.end(), 0.0);
-    fill(insertionRates.begin(), insertionRates.end(), 0.01);
-    fill(deletionRates.begin(), deletionRates.end(), 0.5);
+    fill(insertionRates.begin(), insertionRates.end(), 0.03);
+    fill(deletionRates.begin(), deletionRates.end(), 0.09);
 
     SimulationProtocol protocol(&tree_);
 
@@ -39,7 +39,7 @@ int main() {
     protocol.setInsertionRates(insertionRates);
     protocol.setDeletionRates(deletionRates);
 
-    int rootLength = 100;
+    int rootLength = 30000;
     protocol.setSequenceSize(rootLength);
 
     protocol.setSeed(t1);
@@ -82,7 +82,7 @@ int main() {
     msa.fillSubstitutions(fullContainer);
     std::cout << "filled MSA" << "\n";
 
-    msa.printFullMsa();
+    msa.writeFullMsa("test.fasta");
 
 
     return 0;
