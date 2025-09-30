@@ -45,7 +45,7 @@ public:
             numberOfSeqs += (nodesToSave)[i];
             if ((nodesToSave)[i]) _sequencesToSave.push_back(i);
         }
-
+        _numberOfSequences = numberOfSeqs;
         // SuperSequence superSequence(sequenceSize, rootNode->getNumberLeaves());
         SuperSequence superSequence(sequenceSize, numberOfSeqs);
         std::shared_ptr<Sequence> rootSequence =
