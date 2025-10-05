@@ -9,16 +9,16 @@
 #include <numeric>
 #include <iterator>
 
-#include "FixedList.h"
+#include "SuperSequence.h"
 #include "BlockTree.h"
 
 class Sequence
 {
-    using iteratorType = FixedList::iterator;
+    using iteratorType = std::list<SuperSequence::columnContainer>::iterator;
     using SequenceType = std::vector<iteratorType>;
 
 private:
-    FixedList* _superSequence;
+    SuperSequence* _superSequence;
     bool _isSaveSequence;
     size_t _nodeID;
     SequenceType _sequence;
@@ -27,7 +27,7 @@ private:
     // size_t _numLeaf;
 public:
 
-    Sequence(FixedList& superSeq, bool isSaveSeq, size_t nodeID) : 
+    Sequence(SuperSequence& superSeq, bool isSaveSeq, size_t nodeID) : 
         _superSequence(&superSeq), _isSaveSequence(isSaveSeq), _nodeID(nodeID) {}
 
     // Sequence(const Sequence &seq) {
@@ -41,7 +41,7 @@ public:
 
     void initSequence() {
         auto superSeqIterator = _superSequence->begin();
-        ++superSeqIterator;
+
         while (superSeqIterator != _superSequence->end()) {
             if (_isSaveSequence) _superSequence->referencePosition(superSeqIterator);
             _sequence.push_back(superSeqIterator);
@@ -55,7 +55,7 @@ public:
         size_t position;
         size_t length;
         size_t insertion;
-
+        size_t randomPos = _superSequence->getRandomSequencePosition();
         _parent = &parentSeq;
         // std::cout << parentSeq.getSequenceNodeID() << "\n";
         for (auto it = blocklist.begin(); it != blocklist.end(); ++it) {
@@ -93,14 +93,17 @@ public:
             
 
             for (size_t i = 0; i < insertion; i++) {
-                superSeqIterator = _superSequence->insertAfter(superSeqIterator, _isSaveSequence);
+                superSeqIterator = _superSequence->insertItemAtPosition(superSeqIterator, randomPos, _isSaveSequence);
                 _sequence.push_back(superSeqIterator);
                 superSeqIterator++;
+                randomPos = _superSequence->incrementRandomSequencePosition();
             }
         }
+
+        if (_isSaveSequence) _superSequence->incrementLeafNum();
     }
 
-    FixedList* getSuperSequence() {
+    SuperSequence* getSuperSequence() {
         return _superSequence;
     }
 
@@ -122,20 +125,20 @@ public:
     }
 
 
-    void printSequence() const {
+    void printSequence() {
         for(auto &item: _sequence) {
-            std::cout << (*item) << " ";
+            std::cout << (*item).position << " ";
         }
         std::cout << "\n";
     }
 
     bool checkSequenceValidity() {
-        size_t maxSeqSize = _superSequence->size();
+        size_t maxSeqSize = _superSequence->getRandomSequencePosition();
         for (size_t i = 1; i < maxSeqSize; i++)
         {
             size_t numberOfAppearances = 0;
             for (auto j: _sequence) {
-                if (i==(*j)) numberOfAppearances++;
+                if (i==(*j).position) numberOfAppearances++;
 
             }
             if (numberOfAppearances > 1) {

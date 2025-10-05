@@ -92,9 +92,9 @@ public:
 
     bool referencePosition(size_t nodeK) {
         // Check if k is valid
-        if (nodeK >= _count) {
-            return false;
-        }
+        // if (nodeK >= _count) {
+        //     return false;
+        // }
         
         _isColumns[nodeK] = true;
         return true;
@@ -124,6 +124,12 @@ public:
 
     size_t getAbsolutePosition(size_t index) const {
         return _traversalPositions[index];
+    }
+
+    
+
+    size_t getIsColumn(size_t index) const {
+        return _isColumns[index];
     }
 
 
@@ -210,6 +216,10 @@ public:
     // Accept iterator
     bool referencePosition(const iterator& it) {
         return referencePosition(*it);
+    }
+
+    size_t getAbsolutePosition(const iterator& it) const {
+        return _traversalPositions[*it];
     }
 };
 
