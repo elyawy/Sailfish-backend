@@ -44,40 +44,27 @@ public:
         size_t insertion;
         _parent = &parentSeq;
 
+        auto insertAfterIt = _parent->_sequence[0];
 
         for (auto it = blocklist.begin(); it != blocklist.end(); ++it) {
             position = (*it)[static_cast<int>(BLOCK::POSITION)];
             length = (*it)[static_cast<int>(BLOCK::LENGTH)];
             insertion = (*it)[static_cast<int>(BLOCK::INSERTION)];
 
+            size_t idx = 0;
+            for (; idx < length; idx++) {
 
-
-            if (position==0 && length==1 && insertion==0) {
-                continue;
-            }
-
-
-            // Copy length elements from parent
-            for (size_t i = 0; i < length; i++) {
                 if (_isSaveSequence) {
-                    _fixedList->referencePosition(_parent->_sequence[position+i]);
+                    _fixedList->referencePosition(_parent->_sequence[position+idx]);
                 } 
-                _sequence.push_back(_parent->_sequence[position+i]);
+                _sequence.push_back(_parent->_sequence[position+idx]);
+                insertAfterIt = _parent->_sequence[position+idx];
             }
-
-            while (_parent->_sequence.size() == 0) _parent = _parent->_parent;
-
-            auto insertAfterIt = _parent->_sequence[position+length];
-            // if (!_sequence.empty()) {
-            //     insertAfterIt = _parent->_sequence[position+length-1];
-            //     ++insertAfterIt;
-            // }
 
             // Insert new positions
             for (size_t i = 0; i < insertion; i++) {
                 insertAfterIt = _fixedList->insertAfter(insertAfterIt, _isSaveSequence);
                 _sequence.push_back(insertAfterIt);
-                // ++insertAfterIt;
             }
         }
     }

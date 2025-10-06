@@ -81,10 +81,6 @@ public:
     void fillMSAFixed(vector<IteratorSequence> &sequences, FixedList &fixedList) {
         fixedList.setAbsolutePositions();
         _msaLength = fixedList.getMsaSequenceLength();
-        std::cout << "MSaFixedLength=" << _msaLength << "\n";
-        std::cout << "FixedList=";
-        fixedList.printSequence();
-
         _alignedSequence.reserve(_numberOfSequences);
         
         int totalSize = 0;
@@ -95,29 +91,25 @@ public:
         
         for(auto &seq: sequences) {
             size_t sequenceNodeID = seq.getSequenceNodeID();
-            std::cout << "Sequence=" << sequenceNodeID  << ":\n";
-            seq.printSequence();
+
             // if the sequence is only made up of gaps:
             if (seq.size() == 0) {
                 _alignedSequence[sequenceNodeID].push_back(-_msaLength);
                 continue;
             }
 
-            auto previousSite = *(seq.begin());
-
-            std::cout << *previousSite << "\n";
+            auto previousSite = *(seq.begin()+1);
             lastPosition = fixedList.getAbsolutePosition(previousSite);
+
             if (lastPosition > 0) {
-                _alignedSequence[sequenceNodeID].push_back(-lastPosition);
+                _alignedSequence[sequenceNodeID].push_back(-(lastPosition-1));
                 totalSize += lastPosition;
             }
-            std::cout << "currentPositions=" ;
 
-            for(auto currentSite=seq.begin() + 1; currentSite!=seq.end(); currentSite++) {
+            for(auto currentSite=seq.begin() + 2; currentSite!=seq.end(); currentSite++) {
 
                 currentPosition = fixedList.getAbsolutePosition(*currentSite);
                 positionDifference = currentPosition - lastPosition - 1;
-                std::cout << currentPosition << " ";
 
                 if (positionDifference == 0) cumulatedDifference++;
                 if (positionDifference > 0) {

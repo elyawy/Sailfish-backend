@@ -18,15 +18,15 @@ int main() {
     vector<double> insertionRates(tree_.getNodesNum() - 1);
     vector<double> deletionRates(tree_.getNodesNum() - 1);
 
-    fill(insertionRates.begin(), insertionRates.end(), 0.1);
-    fill(deletionRates.begin(), deletionRates.end(), 0.1);
+    fill(insertionRates.begin(), insertionRates.end(), 1.0);
+    fill(deletionRates.begin(), deletionRates.end(), 1.0);
 
     SimulationProtocol protocol(&tree_);
     protocol.setInsertionLengthDistributions(insertionDists);
     protocol.setDeletionLengthDistributions(deletionDists);
     protocol.setInsertionRates(insertionRates);
     protocol.setDeletionRates(deletionRates);
-    protocol.setSequenceSize(100);
+    protocol.setSequenceSize(5);
     protocol.setSeed(42);
 
     Simulator sim(&protocol);

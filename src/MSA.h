@@ -85,8 +85,6 @@ public:
 		superSeq.setAbsolutePositions();
 		// _alignedSequence.resize(_numberOfSequences);
         _alignedSequence.reserve(_numberOfSequences);
-        std::cout << "SuperSeq=";
-        superSeq.printSequence();
 
         // size_t rowInMSA = 0;
         int totalSize = 0;
@@ -97,16 +95,12 @@ public:
         
         for(auto &seq: sequences) {
             size_t sequenceNodeID = seq->getSequenceNodeID();
-            std::cout << "Sequence=" << sequenceNodeID  << ":\n";
-            seq->printSequence();
             auto& currentSequence = _alignedSequence[sequenceNodeID];
             // if the sequence is only made up of gaps:
             if (seq->size() == 0) {
                 currentSequence.push_back(-_msaLength);
                 continue;
             }
-            // seq.printSequence();
-
             auto previousSite = *seq->begin();
             
             lastPosition = previousSite->absolutePosition;
@@ -114,11 +108,10 @@ public:
                 currentSequence.push_back(-lastPosition);
                 totalSize += lastPosition;
             }
-            std::cout << "currentPositions=" ;
+
             for(auto currentSite=seq->begin() + 1; currentSite!=seq->end(); currentSite++) {
 				currentPosition = (*(currentSite))->absolutePosition;
                 positionDifference = currentPosition - lastPosition - 1;
-                std::cout << currentPosition << " ";
 
                 if (positionDifference == 0) cumulatedDifference++;
                 if (positionDifference > 0) {
