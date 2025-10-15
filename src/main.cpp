@@ -33,7 +33,7 @@ PYBIND11_MODULE(_Sailfish, m) {
         .def(py::init<size_t, size_t>());
 
     py::class_<BlockTree>(m, "BlockTree")
-        .def(py::init<int>())
+        .def(py::init<>())
         .def("print_tree", &BlockTree::printTree)
         .def("block_list", &BlockTree::getBlockList);
 
