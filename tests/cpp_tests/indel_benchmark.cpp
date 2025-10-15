@@ -5,8 +5,8 @@
 // #include "definitions.h"
 
 int main() {
-    tree tree_("/home/pupkolab/temp/sailfish_test/alignment.tree");
-    // tree tree_("/home/elyawy/Data/Bacillus_1ZARG/RAxML_tree.tree");
+    // tree tree_("/home/pupkolab/temp/sailfish_test/alignment.tree");
+    tree tree_("/home/elyawy/temp/Sailfish-backend/tests/trees/normalbranches_nLeaves1000.treefile");
 
     // tree tree_("(A:0.1,B:0.2);", false);
     vector<DiscreteDistribution*> insertionDists(tree_.getNodesNum() - 1);
@@ -45,7 +45,7 @@ int main() {
     auto saveList = sim.getNodesSaveList();
 
     size_t counter = 0;
-    while (counter++ < 10000) {
+    while (counter++ < 100) {
         auto start = std::chrono::high_resolution_clock::now();
         auto blockmap = sim.generateSimulation();
         auto end = std::chrono::high_resolution_clock::now();
@@ -67,6 +67,8 @@ int main() {
         std::cout << "String time: " << string_duration.count() << "ms" << "\n";
 
         std::cout << msaStr.size() << "\n";
+        // std::cout << msaStr << "\n";
+
 
     }   
     return 0;

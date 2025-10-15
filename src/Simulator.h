@@ -22,11 +22,11 @@ private:
     std::uniform_real_distribution<double> _biased_coin;
     std::shared_ptr<std::vector<bool>> _nodesToSave;
     // std::uniform_int_distribution<int> _fair_die;
-
+    BlockTree blocks;
 public:
     Simulator(SimulationProtocol* protocol): _protocol(protocol),
     _seed(protocol->getSeed()), _mt_rand(protocol->getSeed()),
-    _biased_coin(0,1) {
+    _biased_coin(0,1), blocks() {
         // std::cout << "simulator ready!\n";
         DiscreteDistribution::setSeed(_seed);
         _nodesToSave = std::make_shared<std::vector<bool>>(_protocol->getTree()->getNodesNum(), false);
@@ -90,7 +90,7 @@ public:
         size_t minSequenceSize = _protocol->getMinSequenceSize();
         // std::cout << "sequenceSize=" << sequenceSize << "\n";
 
-        BlockTree blocks(sequenceSize);
+        blocks.initTree(sequenceSize);
 
         double insertionRate = _protocol->getInsertionRate(nodePosition);
         double deletionRate = _protocol->getDeletionRate(nodePosition);
@@ -173,7 +173,10 @@ public:
             waitingTime = distribution(_mt_rand);
 
         }
-        return std::make_tuple(blocks.getBlockList(), blocks.length());
+
+        auto blockData = std::make_tuple(blocks.getBlockList(), blocks.length());
+        blocks.clear();
+        return blockData;
     }
 
     void initSubstitionSim(modelFactory& mFac) {

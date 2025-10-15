@@ -45,44 +45,47 @@ public:
             numberOfSeqs += (nodesToSave)[i];
             if ((nodesToSave)[i]) _sequencesToSave.push_back(i);
         }
-
+        _numberOfSequences = numberOfSeqs;
         // SuperSequence superSequence(sequenceSize, rootNode->getNumberLeaves());
         SuperSequence superSequence(sequenceSize, numberOfSeqs);
-
-        Sequence rootSequence(superSequence, nodesToSave[rootNode->id()], rootNode->id());
-        rootSequence.initSequence();
+        std::shared_ptr<Sequence> rootSequence =
+                        std::make_shared<Sequence>(superSequence, nodesToSave[rootNode->id()], rootNode->id());
+        rootSequence->initSequence();
         // std::cin.get();
+        std::vector<std::shared_ptr<Sequence>> finalSequences;
+        // std::vector<Sequence> finalSequences;
 
-        std::vector<Sequence> finalSequences;
         buildMsaRecursively(finalSequences, blockmap, *rootNode, superSequence, rootSequence, nodesToSave);
         fillMSA(finalSequences, superSequence);
     }
 
-    void buildMsaRecursively(std::vector<Sequence> &finalSequences,
+    void buildMsaRecursively(std::vector<std::shared_ptr<Sequence>> &finalSequences,
                              const BlockMap &blockmap,const tree::TreeNode &parrentNode,
-                             SuperSequence &superSequence, Sequence &parentSequence, 
+                             SuperSequence &superSequence, std::shared_ptr<Sequence> parentSequence, 
                              const std::vector<bool>& nodesToSave) {
         if ((nodesToSave)[parrentNode.id()]) finalSequences.push_back(parentSequence);
         if (parrentNode.isLeaf()) return;
 
         for (size_t i = 0; i < parrentNode.getNumberOfSons(); i++) {
             tree::TreeNode* childNode = parrentNode.getSon(i);
-            Sequence currentSequence(superSequence, nodesToSave[childNode->id()], childNode->id());
+            std::shared_ptr<Sequence> currentSequence = 
+                        std::make_shared<Sequence>(superSequence, nodesToSave[childNode->id()], childNode->id());
+
             auto blocks = std::get<static_cast<int>(BLOCKLIST::BLOCKS)>(blockmap.at(childNode->id()));//simulateAlongBranch(sequences.top().size(), currentNode->dis2father(), nodePosition);
-            currentSequence.generateSequence(blocks, parentSequence);
+            currentSequence->generateSequence(blocks, *parentSequence);
             buildMsaRecursively(finalSequences, blockmap, *childNode, superSequence, currentSequence, nodesToSave);
 
         }
         
     }
 
-    void fillMSA(vector<Sequence> &sequences, SuperSequence &superSeq) {
+    void fillMSA(vector<std::shared_ptr<Sequence>> &sequences, SuperSequence &superSeq) {
 		_numberOfSequences = superSeq.getNumSequences();
 		_msaLength = superSeq.getMsaSequenceLength();
 		superSeq.setAbsolutePositions();
 		// _alignedSequence.resize(_numberOfSequences);
         _alignedSequence.reserve(_numberOfSequences);
-        
+
         // size_t rowInMSA = 0;
         int totalSize = 0;
 		int currentPosition = 0;
@@ -91,30 +94,29 @@ public:
 		int cumulatedDifference = 1;
         
         for(auto &seq: sequences) {
-            size_t sequenceNodeID = seq.getSequenceNodeID();
+            size_t sequenceNodeID = seq->getSequenceNodeID();
+            auto& currentSequence = _alignedSequence[sequenceNodeID];
             // if the sequence is only made up of gaps:
-            if (seq.size() == 0) {
-                _alignedSequence[sequenceNodeID].push_back(-_msaLength);
+            if (seq->size() == 0) {
+                currentSequence.push_back(-_msaLength);
                 continue;
             }
-            // seq.printSequence();
-
-            auto previousSite = *seq.begin();
+            auto previousSite = *seq->begin();
             
             lastPosition = previousSite->absolutePosition;
             if (lastPosition > 0) {
-                _alignedSequence[sequenceNodeID].push_back(-lastPosition);
+                currentSequence.push_back(-lastPosition);
                 totalSize += lastPosition;
             }
 
-            for(auto currentSite=seq.begin() + 1; currentSite!=seq.end(); currentSite++) {
+            for(auto currentSite=seq->begin() + 1; currentSite!=seq->end(); currentSite++) {
 				currentPosition = (*(currentSite))->absolutePosition;
                 positionDifference = currentPosition - lastPosition - 1;
 
                 if (positionDifference == 0) cumulatedDifference++;
                 if (positionDifference > 0) {
-                    _alignedSequence[sequenceNodeID].push_back(cumulatedDifference);
-                    _alignedSequence[sequenceNodeID].push_back(-(positionDifference));
+                    currentSequence.push_back(cumulatedDifference);
+                    currentSequence.push_back(-(positionDifference));
                     totalSize += (cumulatedDifference + positionDifference);
                     cumulatedDifference = 1;
                 }
@@ -125,10 +127,10 @@ public:
 
             }
 			if (cumulatedDifference > 0 && (totalSize != _msaLength)) {
-                _alignedSequence[sequenceNodeID].push_back(cumulatedDifference);
+                currentSequence.push_back(cumulatedDifference);
                 totalSize += cumulatedDifference;
             }
-            if (totalSize < _msaLength) _alignedSequence[sequenceNodeID].push_back(-(_msaLength - totalSize));
+            if (totalSize < _msaLength) currentSequence.push_back(-(_msaLength - totalSize));
 			cumulatedDifference = 1;
             lastPosition = 0;
             totalSize = 0;
@@ -257,27 +259,32 @@ public:
 	}
 
     std::string generateMsaStringWithoutSubs() {
-        std::stringstream msaString;
+        // std::stringstream msaString;
+        std::string msaString;
+        msaString.reserve((_msaLength+1)*_numberOfSequences);
+
         for (auto id: _sequencesToSave) {
-            for (size_t col = 0; col < _alignedSequence[id].size(); col++) {
-                int strSize = _alignedSequence[id][col];
+            const auto& alignedSeqRow = _alignedSequence[id];  // Single hash lookup
+
+            for (size_t col = 0; col < alignedSeqRow.size(); col++) {
+                int strSize = alignedSeqRow[col];
                 if (strSize < 0) {
                     strSize = -strSize;
-                    msaString << std::string(strSize, '-');
+                    msaString.append(strSize, '-');
                 } else {
-                    msaString << std::string(strSize, 'A');
+                    msaString.append(strSize, 'A');
                 }
             }
-            msaString << "\n";
+            msaString.append("\n");
         }
-        return msaString.str();
+        return msaString;
     }
 
 
     std::string generateMsaString() {
         if (_substitutions == nullptr) return generateMsaStringWithoutSubs();
         std::string msaString;
-        msaString.reserve((_msaLength+256)*_numberOfSequences);
+        msaString.reserve((_msaLength+1)*_numberOfSequences);
         for (size_t row = 0; row < _numberOfSequences; row++) {
             int passedSeq = 0;
             int id = _substitutions->placeToId(row);
@@ -291,11 +298,12 @@ public:
 
                 continue;
             }
-            for (size_t col = 0; col < _alignedSequence[id].size(); col++) {
-                int strSize = _alignedSequence[id][col];
+            const auto& alignedSeqRow = _alignedSequence[id];  // Single hash lookup
+            for (size_t col = 0; col < alignedSeqRow.size(); col++) {
+                int strSize = alignedSeqRow[col];
                 if (strSize < 0) {
                     strSize = -strSize;
-                    msaString.append(std::string(strSize, '-'));
+                    msaString.append(strSize, '-');
 
                 } else {
                     msaString.append(currentSeq.substr(passedSeq, strSize));

@@ -30,14 +30,14 @@ public:
     Sequence(SuperSequence& superSeq, bool isSaveSeq, size_t nodeID) : 
         _superSequence(&superSeq), _isSaveSequence(isSaveSeq), _nodeID(nodeID) {}
 
-    Sequence(const Sequence &seq) {
-        for (size_t i = 0; i < seq._sequence.size(); i++) {
-            _sequence.push_back(seq._sequence[i]);
-        }
-        _superSequence = seq._superSequence;
-        _isSaveSequence = seq._isSaveSequence;
-        _nodeID = seq._nodeID;
-    }
+    // Sequence(const Sequence &seq) {
+    //     for (size_t i = 0; i < seq._sequence.size(); i++) {
+    //         _sequence.push_back(seq._sequence[i]);
+    //     }
+    //     _superSequence = seq._superSequence;
+    //     _isSaveSequence = seq._isSaveSequence;
+    //     _nodeID = seq._nodeID;
+    // }
 
     void initSequence() {
         auto superSeqIterator = _superSequence->begin();
@@ -50,6 +50,7 @@ public:
     }
 
     void generateSequence (const BlockList &blocklist, Sequence &parentSeq) {
+        _sequence.reserve(parentSeq._sequence.size());
 
         size_t position;
         size_t length;
