@@ -82,9 +82,17 @@ void modelFactory::setGammaParameters(MDOUBLE alpha, size_t numCategories) {
     _state = factoryState::COMPLETE;
 }
 
+void modelFactory::setSiteRateCorrelation(MDOUBLE correlation) {
+    if (correlation < -1.0 || correlation > 1.0) {
+        errorMsg::reportError("Rate correlation must be between -1 and 1");
+    }
+    _siteRateCorrelation = correlation;
+}
+
 void modelFactory::resetFactory() {
     _state = factoryState::ALPHABET;
     _invariantProportion = 0.0;
+    _siteRateCorrelation = 0.0;
 }
 
 

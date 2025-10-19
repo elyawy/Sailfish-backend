@@ -21,6 +21,7 @@
 rateMatrixSim::rateMatrixSim(modelFactory& mFac, std::shared_ptr<std::vector<bool>> nodesToSave) : 
 	_et(mFac.getTree()), _sp(mFac.getStochasticProcess()), _alph(mFac.getAlphabet()), 
 	_invariantSitesProportion(mFac.getInvariantSitesProportion()),
+	_siteRateCorrelation(mFac.getSiteRateCorrelation()),
 	_cpijGam(), _rootSequence(mFac.getAlphabet()), _subManager(mFac.getTree()->getNodesNum()),
 	_nodesToSave(nodesToSave), _saveRates(false), _biased_coin(0,1) {
 		// _et = mFac.getTree();
@@ -33,16 +34,17 @@ rateMatrixSim::rateMatrixSim(modelFactory& mFac, std::shared_ptr<std::vector<boo
 		initGillespieSampler();
 		
 
-		std::vector<MDOUBLE> rateProbs;
+		std::vector<MDOUBLE> rateCategoriesProbs;
 		for (int j = 0 ; j < _sp->categories(); ++j) {
 			MDOUBLE currentRateProb = _sp->ratesProb(j);
 			currentRateProb = currentRateProb * (1.0  - _invariantSitesProportion);
-			rateProbs.push_back(currentRateProb);
+			rateCategoriesProbs.push_back(currentRateProb);
 		}
-		if (_invariantSitesProportion > 0.0) rateProbs.push_back(_invariantSitesProportion);
+		if (_invariantSitesProportion > 0.0) rateCategoriesProbs.push_back(_invariantSitesProportion);
 
-		_rateSampler = std::make_unique<DiscreteDistribution>(rateProbs);
-
+		DiscreteDistribution initialSampler(rateCategoriesProbs);
+		_lastRateCategory = initialSampler.drawSample();
+		
 		std::vector<MDOUBLE> frequencies;
 		for (int j = 0; j < alphaSize; ++j) {
 			frequencies.push_back(_sp->freq(j));

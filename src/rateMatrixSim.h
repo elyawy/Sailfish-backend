@@ -66,7 +66,10 @@ private:
 	tree* _et;
 	std::shared_ptr<const stochasticProcess> _sp;
 	const alphabet* _alph;
+
 	MDOUBLE _invariantSitesProportion;
+	MDOUBLE _siteRateCorrelation;
+
 	computePijGam _cpijGam;
 	sequence _rootSequence;
 	substitutionManager _subManager;
@@ -80,7 +83,10 @@ private:
 	std::vector<double> _siteRates;
 	std::unique_ptr<sequenceContainer> _simulatedSequences; // the sequences (nodes * seqLen)
 	std::unique_ptr<DiscreteDistribution> _frequencySampler;
-	std::unique_ptr<DiscreteDistribution> _rateSampler;
+
+	size_t _lastRateCategory;
+	std::vector<std::unique_ptr<DiscreteDistribution>> _categoryTransitionSamplers;
+
 
 	std::mt19937_64 *_mt_rand;
 

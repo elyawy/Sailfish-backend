@@ -71,9 +71,11 @@ class modelFactory
 {
 
 public:
-    modelFactory(tree* tr): _state(factoryState::ALPHABET), _tree(tr){
-        _invariantProportion = 0.0;
-    }
+    modelFactory(tree* tr): 
+        _state(factoryState::ALPHABET),
+        _tree(tr),
+        _invariantProportion(0.0),
+        _siteRateCorrelation(0.0) {}
 
     std::shared_ptr<stochasticProcess> getStochasticProcess();
 
@@ -83,8 +85,10 @@ public:
     void setCustomAAModelFile(const std::string &fileName);
     void setGammaParameters(MDOUBLE alpha, size_t numCategories);
     void setInvariantSitesProportion(MDOUBLE invariantProportion) {_invariantProportion = invariantProportion;};
+    void setSiteRateCorrelation(MDOUBLE correlation);
 
     MDOUBLE getInvariantSitesProportion() {return _invariantProportion;}
+    MDOUBLE getSiteRateCorrelation() const { return _siteRateCorrelation; }
 
     void resetFactory();
 
@@ -107,6 +111,7 @@ private:
     MDOUBLE _alpha;
     size_t _gammaCategories;
     MDOUBLE _invariantProportion;
+    MDOUBLE _siteRateCorrelation;
 
 };
 
