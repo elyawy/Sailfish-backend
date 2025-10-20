@@ -34,22 +34,21 @@ public:
         }
         
         buildTransitionMatrix();
-        
-        // Sample initial category from stationary distribution
-        DiscreteDistribution initialSampler(_stationaryProbs);
-        _previousCategory = initialSampler.drawSample() - 1;
     }
     
     /**
      * Sample the next category
      * @return Category index
      */
-    int drawSample() {
-        if (_previousCategory < 0 || _previousCategory >= static_cast<int>(_transitionSamplers.size())) {
-            errorMsg::reportError("CategorySampler: invalid previous category state");
+    template<typename RngType = std::mt19937_64>
+    int drawSample(RngType &rng) {
+        if (_previousCategory < 0) {
+            DiscreteDistribution initialSampler(_stationaryProbs);
+            _previousCategory = initialSampler.drawSample(rng) - 1;
+            return _previousCategory;
         }
         
-        int nextCategory = _transitionSamplers[_previousCategory].drawSample() - 1;
+        int nextCategory = _transitionSamplers[_previousCategory].drawSample(rng) - 1;
         _previousCategory = nextCategory;
         return nextCategory;
     }
@@ -57,10 +56,10 @@ public:
     /**
      * Reset to sample from stationary distribution (for new sequences)
      */
+    
     void reset() {
         // Sample new initial category from stationary distribution
-        DiscreteDistribution initialSampler(_stationaryProbs);
-        _previousCategory = initialSampler.drawSample() - 1;
+        _previousCategory = -1;
     }
     
     /**
