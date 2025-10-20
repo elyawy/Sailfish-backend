@@ -4,7 +4,7 @@
 
 int main() {
     // Tree with 2 children from root - allows overlapping insertions
-    tree tree_("(A:0.1,B:0.1);", false);
+    tree tree_("(A:0.1,(B:0.1,C:0.1):0.1);", false);
     
     vector<DiscreteDistribution*> insertionDists(tree_.getNodesNum() - 1);
     vector<DiscreteDistribution*> deletionDists(tree_.getNodesNum() - 1);
@@ -20,7 +20,7 @@ int main() {
 
     // High insertion rate to guarantee insertions, no deletions
     fill(insertionRates.begin(), insertionRates.end(), 5.0);
-    fill(deletionRates.begin(), deletionRates.end(), 0.0);
+    fill(deletionRates.begin(), deletionRates.end(), 1.0);
 
     SimulationProtocol protocol(&tree_);
     protocol.setInsertionLengthDistributions(insertionDists);
@@ -33,7 +33,7 @@ int main() {
     auto saveList = sim.getNodesSaveList();
 
     // Run multiple simulations to catch different insertion scenarios
-    for (int trial = 0; trial < 10; trial++) {
+    for (int trial = 0; trial < 1000; trial++) {
         protocol.setSeed(trial);
 
         auto blockmap = sim.generateSimulation();

@@ -44,6 +44,8 @@ public:
         size_t insertion;
         _parent = &parentSeq;
 
+        while (_parent->_sequence.size() <= 1) _parent = _parent->_parent;
+
         auto insertAfterIt = _parent->_sequence[0];
 
         for (auto it = blocklist.begin(); it != blocklist.end(); ++it) {
@@ -63,7 +65,7 @@ public:
 
             // Insert new positions
             for (size_t i = 0; i < insertion; i++) {
-                insertAfterIt = _fixedList->insertAfter(insertAfterIt, _isSaveSequence);
+                    insertAfterIt = _fixedList->insertAfter(insertAfterIt, _isSaveSequence);
                 _sequence.push_back(insertAfterIt);
             }
         }

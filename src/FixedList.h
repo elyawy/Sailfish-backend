@@ -17,6 +17,7 @@ private:
     size_t _tailIndex = INVALID;             // Index of last element in logical order
     size_t _msaSeqLength = INVALID;
 
+
     static constexpr size_t INVALID = SIZE_MAX;
 
 public:
@@ -46,9 +47,12 @@ public:
         batchInsertAfter(_headIndex, false, sequenceSize);
     }
     
+
     // Insert after element at index k
     // Returns index of newly inserted element, or INVALID if failed
     inline size_t insertAfter(size_t nodeK, bool isColumn) {
+
+
         // Check if we have space
         if (full()) {
             return INVALID;
@@ -74,11 +78,44 @@ public:
         if (nodeK == _tailIndex) {
             _tailIndex = new_index;
         }
+
         
         return new_index;
     }
 
-
+    // Insert before element at index nodeK
+    // Returns index of newly inserted element, or INVALID if failed
+    // NOTE: Cannot insert before head (node 0)
+    inline size_t insertBefore(size_t nodeK, bool isColumn) {
+        // Check if we have space
+        if (full()) {
+            return INVALID;
+        }
+        
+        // Check if nodeK is valid
+        if (nodeK >= _count) {
+            return INVALID;
+        }
+        
+        // Cannot insert before head (anchor node)
+        if (nodeK == _headIndex || nodeK == 0) {
+            return INVALID;
+        }
+        
+        // Find the node that points to nodeK
+        size_t prev = _headIndex;
+        while (prev != INVALID && _nextIndices[prev] != nodeK) {
+            prev = _nextIndices[prev];
+        }
+        
+        // If we didn't find a predecessor, nodeK is not in the list
+        if (prev == INVALID) {
+            return INVALID;
+        }
+        
+        // Now insert after prev (which is before nodeK)
+        return insertAfter(prev, isColumn);
+    }
 
     size_t batchInsertAfter(size_t nodeK, bool isColumn, int numNodes) {
         size_t currentIndex = nodeK;
@@ -210,6 +247,11 @@ public:
     iterator insertAfter(const iterator& it, bool isColumn) {
         size_t newIndex = insertAfter(*it, isColumn);  // Call the size_t version
         return iterator(this, newIndex);  // Wrap the index in an iterator
+    }
+
+    iterator insertBefore(const iterator& it, bool isColumn) {
+        size_t newIndex = insertBefore(*it, isColumn);
+        return iterator(this, newIndex);
     }
 
 
