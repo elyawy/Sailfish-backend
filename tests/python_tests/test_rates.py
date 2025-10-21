@@ -7,13 +7,14 @@ print(sim.__file__)
 
 simulation_protocol = sim.SimProtocol("((A:0.1,B:0.05):0.02,C:0.05);")
 simulation_protocol.set_seed(1)
-simulation_protocol.set_sequence_size(10)
+simulation_protocol.set_sequence_size(1000)
 # time.sleep(3)
 
 simulator = sim.Simulator(simulation_protocol, simulation_type=sim.SIMULATION_TYPE.DNA)
 simulator.set_replacement_model(model=sim.MODEL_CODES.NUCJC,
                                 gamma_parameters_alpha=2.0,
-                                gamma_parameters_catergories=50)
+                                gamma_parameters_categories=10,
+                                site_rate_correlation=0.7)
 
 simulator.save_rates(True)
 
@@ -23,4 +24,10 @@ print(simulator.get_rates()) # this is empty []
 
 msa = simulator() # filled rates back with new simulation.
 msa.print_msa()
-print(simulator.get_rates())
+rates = simulator.get_rates()
+
+
+with open("rates.txt", 'w') as f:
+    f.write("\n".join(map(str,rates)))
+
+

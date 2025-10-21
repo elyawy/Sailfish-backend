@@ -11,32 +11,32 @@
 #include "rateMatrixSim.h"
 #include "modelFactory.h"
 
-
+template<typename RngType = std::mt19937_64>
 class Simulator
 {
 private:
     SimulationProtocol* _protocol;
-    std::unique_ptr<rateMatrixSim> _substitutionSim;
+    std::unique_ptr<rateMatrixSim<RngType>> _substitutionSim;
     size_t _seed;
-	std::mt19937_64 _mt_rand;
+	RngType _rng;
     std::uniform_real_distribution<double> _biased_coin;
     std::shared_ptr<std::vector<bool>> _nodesToSave;
     // std::uniform_int_distribution<int> _fair_die;
     BlockTree blocks;
 public:
     Simulator(SimulationProtocol* protocol): _protocol(protocol),
-    _seed(protocol->getSeed()), _mt_rand(protocol->getSeed()),
+    _seed(protocol->getSeed()), _rng(protocol->getSeed()),
     _biased_coin(0,1), blocks() {
         // std::cout << "simulator ready!\n";
-        DiscreteDistribution::setSeed(_seed);
+        // DiscreteDistribution::setSeed(_seed);
         _nodesToSave = std::make_shared<std::vector<bool>>(_protocol->getTree()->getNodesNum(), false);
         setSaveStateLeaves(_protocol->getTree()->getRoot());
     }
 
     void initSimulator() {
         _seed = _protocol->getSeed();
-        DiscreteDistribution::setSeed(_seed);
-        _mt_rand.seed(_seed);
+        // DiscreteDistribution::setSeed(_seed);
+        _rng.seed(_seed);
     }
 
     void resetSimulator(SimulationProtocol* newProtocol) {
@@ -100,7 +100,7 @@ public:
         DiscreteDistribution* insertionLengthDistribution = _protocol->getInsertionDistribution(nodePosition);
         DiscreteDistribution* deletionLengthDistribution = _protocol->getDeletionDistribution(nodePosition);
 
-        double sampledDeletionLength = deletionLengthDistribution->drawSample();
+        double sampledDeletionLength = deletionLengthDistribution->drawSample(_rng);
 
         double sequenceWiseInsertionRate = 1.0 * insertionRate * (sequenceSize + 1);
         double sequenceWiseDeletionRate = 1.0 * deletionRate * (sequenceSize + (sampledDeletionLength - 1));
@@ -113,7 +113,7 @@ public:
         std::exponential_distribution<double> distribution(lambdaParam);
 
 
-        double waitingTime = distribution(_mt_rand);
+        double waitingTime = distribution(_rng);
         // std::cout << "waitingTime=" << waitingTime << "\n";
         // std::cout << "branchLength=" << branchLength << "\n";
 
@@ -125,17 +125,17 @@ public:
             size_t eventLength;
             event eventType;
 
-            double coinFlip = _biased_coin(_mt_rand);
+            double coinFlip = _biased_coin(_rng);
 
             if (coinFlip < insertionProbability) {
                 auto _fair_die = std::uniform_int_distribution<int>(0, sequenceSize);
-                eventIndex = _fair_die(_mt_rand);
+                eventIndex = _fair_die(_rng);
                 // std::cout << eventIndex << " ";
-                eventLength = insertionLengthDistribution->drawSample();
+                eventLength = insertionLengthDistribution->drawSample(_rng);
                 eventType = event::INSERTION;
             } else {
                 auto _fair_die = std::uniform_int_distribution<int>(1 - (sampledDeletionLength-1), sequenceSize);
-                eventIndex = _fair_die(_mt_rand);
+                eventIndex = _fair_die(_rng);
                 eventLength = sampledDeletionLength;
                 if (eventIndex < 1) {
                     eventLength = eventLength + (eventIndex-1);
@@ -161,7 +161,7 @@ public:
 
 
             sequenceSize = blocks.length() - 1;
-            sampledDeletionLength = deletionLengthDistribution->drawSample();
+            sampledDeletionLength = deletionLengthDistribution->drawSample(_rng);
 
             branchLength = branchLength - waitingTime;
             sequenceWiseInsertionRate = 1.0 * insertionRate * (sequenceSize + 1);
@@ -170,7 +170,7 @@ public:
 
             lambdaParam = sequenceWiseInsertionRate + sequenceWiseDeletionRate;
             std::exponential_distribution<double> distribution(lambdaParam);
-            waitingTime = distribution(_mt_rand);
+            waitingTime = distribution(_rng);
 
         }
 
@@ -180,9 +180,9 @@ public:
     }
 
     void initSubstitionSim(modelFactory& mFac) {
-        _substitutionSim = std::make_unique<rateMatrixSim>(mFac, _nodesToSave);
+        _substitutionSim = std::make_unique<rateMatrixSim<RngType>>(mFac, _nodesToSave);
         // _substitutionSim->setSeed(_seed);
-        _substitutionSim->setRng(&_mt_rand);
+        _substitutionSim->setRng(&_rng);
     }
 
     std::vector<double> getSiteRates() {

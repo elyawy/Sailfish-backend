@@ -1,14 +1,16 @@
 #include <ctime>
 
-#include "../../src/Simulator.h"
+#include "../../../src/Simulator.h"
 // #include "definitions.h"
 
 
 
 // takes 10 minutes currently
 int main() {
-    tree tree_("/home/elyawy/temp/SpartaV2/ENOG5039UWA.newick");
-    std::time_t t1 = 42;//std::time(0);
+    // tree tree_("../trees/normalbranches_nLeaves10.treefile");
+    // tree tree_("(A:0.5,B:0.5);", false);
+    tree tree_("(A:1.0,B:1.0);", false);
+    std::time_t t1 = 100;//std::time(0);
     vector<DiscreteDistribution*> insertionDists(tree_.getNodesNum() - 1);
     vector<DiscreteDistribution*> deletionDists(tree_.getNodesNum() - 1);
 
@@ -23,8 +25,8 @@ int main() {
     vector<double> insertionRates(tree_.getNodesNum() - 1);
     vector<double> deletionRates(tree_.getNodesNum() - 1);
 
-    fill(insertionRates.begin(), insertionRates.end(), 0.01);
-    fill(deletionRates.begin(), deletionRates.end(), 0.1);
+    fill(insertionRates.begin(), insertionRates.end(), 0.0);
+    fill(deletionRates.begin(), deletionRates.end(), 0.0);
 
     SimulationProtocol protocol(&tree_);
 
@@ -37,6 +39,8 @@ int main() {
     int rootLength = 100;
     protocol.setSequenceSize(rootLength);
 
+    protocol.setSaveAncestral(false);
+
     protocol.setSeed(t1);
 
     Simulator sim(&protocol);
@@ -45,30 +49,30 @@ int main() {
     mFac.setAlphabet(alphabetCode::AMINOACID);
     mFac.setReplacementModel(modelCode::JONES);
     // mFac.setModelParameters({0.25,0.25,0.25,0.25,0.1,0.2,0.3,0.4,0.5,0.6});
-    mFac.setGammaParameters(1.0, 1);
+    mFac.setGammaParameters(1.0, 4);
+    // mFac.setInvariantSitesProportion(0.5);
+    mFac.setSiteRateCorrelation(0.8);
     if (!mFac.isModelValid()) return 0;
     sim.initSubstitionSim(mFac);
+
     auto saveList = sim.getNodesSaveList();
+    sim.setSaveRates(true);
 
 
     size_t counter = 0;
-    while (counter++ < 100000) {
-        protocol.setInsertionLengthDistributions(insertionDists);
-        protocol.setDeletionLengthDistributions(deletionDists);
-        protocol.setInsertionRates(insertionRates);
-        protocol.setDeletionRates(deletionRates);
-        protocol.setSequenceSize(rootLength);
-
+    while (counter++ < 1) {
         auto blockmap = sim.generateSimulation();
 
         auto msa = MSA(blockmap, tree_.getRoot(), saveList);
         int msaLength = msa.getMSAlength();
         
         auto fullContainer = sim.simulateSubstitutions(msaLength);
+        auto rates = sim.getSiteRates();
+
+        std::cout << rates << "\n";
         msa.fillSubstitutions(fullContainer);
-        std::cout << counter  << "\n";
-        
-        msa.generateMsaString();
+        // std::cout << counter  << "\n";
+        msa.printFullMsa();
     }
     
 
