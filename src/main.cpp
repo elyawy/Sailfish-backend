@@ -4,7 +4,6 @@
 #include <pybind11/stl.h>
 #include <memory>
 
-#define PCG_LITTLE_ENDIAN 1
 #include "./pcg_random.hpp"
 #include "./Simulator.h"
 
