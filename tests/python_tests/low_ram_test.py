@@ -18,7 +18,7 @@ simulation = sim.Simulator(sim_protocol, simulation_type=sim.SIMULATION_TYPE.PRO
 
 simulation.set_replacement_model(model=MODEL_CODES.WAG, 
                                  gamma_parameters_alpha=1.0, 
-                                 gamma_parameters_catergories=4)
+                                 gamma_parameters_categories=4)
 
 home_path = pathlib.Path.home() / "test.fasta"
 msa = simulation.simulate_low_memory(home_path)

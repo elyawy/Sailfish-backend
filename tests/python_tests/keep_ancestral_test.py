@@ -18,19 +18,8 @@ simulation = sim.Simulator(sim_protocol, simulation_type=sim.SIMULATION_TYPE.PRO
 
 simulation.set_replacement_model(model=MODEL_CODES.WAG, 
                                  gamma_parameters_alpha=1.0, 
-                                 gamma_parameters_catergories=4)
+                                 gamma_parameters_categories=4)
 simulation.save_root_sequence()
 
 msa = simulation()
 msa.print_msa()
-# counter = 0
-# while True:
-#     print(counter)
-#     msa = simulation()
-#     counter += 1
-
-# for i in range(10000):
-#     print(i)
-#     msa = simulation()
-# msa.print_msa()
-# msa.print_msa()

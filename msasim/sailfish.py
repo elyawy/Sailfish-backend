@@ -25,14 +25,14 @@ class Distribution:
                 raise ValueError(f"Each value of the probabilities should be between 0 to 1. Received a value of {x}")
         self._dist = _Sailfish.DiscreteDistribution(dist)
     
-    def draw_sample(self) -> int:
-        return self._dist.draw_sample()
+    # def draw_sample(self) -> int:
+    #     return self._dist.draw_sample()
     
-    def set_seed(self, seed: int) -> None:
-        return self._dist.set_seed(seed)
+    # def set_seed(self, seed: int) -> None:
+    #     return self._dist.set_seed(seed)
     
-    def get_table(self) -> List:
-        return self._dist.get_table()
+    # def get_table(self) -> List:
+    #     return self._dist.get_table()
     
     def _get_Sailfish_dist(self) -> _Sailfish.DiscreteDistribution:
         return self._dist
@@ -475,7 +475,8 @@ class Simulator:
             model_parameters: List = None,
             gamma_parameters_alpha : float = 1.0,
             gamma_parameters_categories: int = 1,
-            invariant_sites_proportion: float = 0.0
+            invariant_sites_proportion: float = 0.0,
+            site_rate_correlation: float = 0.0,
         ) -> None:
         if not model:
             raise ValueError(f"please provide a substitution model from the the following list: {_Sailfish.modelCode}")
@@ -503,6 +504,8 @@ class Simulator:
 
         self._model_factory.set_gamma_parameters(gamma_parameters_alpha, gamma_parameters_categories)
         self._model_factory.set_invariant_sites_proportion(invariant_sites_proportion)
+        self._model_factory.set_site_rate_correlation(site_rate_correlation)
+
         self._simulator.init_substitution_sim(self._model_factory)
 
         self._is_sub_model_init = True

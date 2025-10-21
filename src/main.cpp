@@ -4,6 +4,7 @@
 #include <pybind11/stl.h>
 #include <memory>
 
+#include "./pcg_random.hpp"
 #include "./Simulator.h"
 
 namespace py = pybind11;
@@ -29,6 +30,8 @@ PYBIND11_MODULE(_Sailfish, m) {
             Tree
     )pbdoc";
 
+    using SelectedRNG = pcg64;
+
     py::class_<Block>(m, "Block")
         .def(py::init<size_t, size_t>());
 
@@ -43,10 +46,7 @@ PYBIND11_MODULE(_Sailfish, m) {
         .export_values();
 
     py::class_<DiscreteDistribution>(m, "DiscreteDistribution")
-        .def(py::init<std::vector<double>>())
-        .def("draw_sample", &DiscreteDistribution::drawSample, "Draw a random sample according to the given distribution")
-        .def_static("set_seed", &DiscreteDistribution::setSeed, "Set seed for the random number generator")
-        .def("get_table", &DiscreteDistribution::getTable, "Get Vose's alias table (useful for debugging)");
+        .def(py::init<std::vector<double>>());
 
     py::class_<tree>(m, "Tree")
         .def(py::init<const std::string&, bool>(), "Create Phylogenetic tree object from newick formatted file")
@@ -128,22 +128,23 @@ PYBIND11_MODULE(_Sailfish, m) {
         .def("set_model_parameters" , &modelFactory::setModelParameters)
         .def("set_gamma_parameters" , &modelFactory::setGammaParameters)
         .def("set_invariant_sites_proportion", &modelFactory::setInvariantSitesProportion)
+        .def("set_site_rate_correlation", &modelFactory::setSiteRateCorrelation)
         .def("reset", &modelFactory::resetFactory);
 
 
-    py::class_<Simulator>(m, "Simulator")
+    py::class_<Simulator<SelectedRNG>>(m, "Simulator")
         .def(py::init<SimulationProtocol*>())
-        .def("reset_sim", &Simulator::resetSimulator)
-        .def("gen_indels", &Simulator::generateSimulation)
-        .def("run_sim", &Simulator::runSimulator)
-        .def("init_substitution_sim", &Simulator::initSubstitionSim)
-        .def("gen_substitutions", &Simulator::simulateSubstitutions)
-        .def("gen_substitutions_to_dir", &Simulator::simulateAndWriteSubstitutions)
-        .def("save_site_rates", &Simulator::setSaveRates)
-        .def("get_site_rates", &Simulator::getSiteRates)
-        .def("save_all_nodes_sequences", &Simulator::setSaveAllNodes)
-        .def("save_root_sequence", &Simulator::setSaveRoot)
-        .def("get_saved_nodes_mask", &Simulator::getNodesSaveList);
+        .def("reset_sim", &Simulator<SelectedRNG>::resetSimulator)
+        .def("gen_indels", &Simulator<SelectedRNG>::generateSimulation)
+        .def("run_sim", &Simulator<SelectedRNG>::runSimulator)
+        .def("init_substitution_sim", &Simulator<SelectedRNG>::initSubstitionSim)
+        .def("gen_substitutions", &Simulator<SelectedRNG>::simulateSubstitutions)
+        .def("gen_substitutions_to_dir", &Simulator<SelectedRNG>::simulateAndWriteSubstitutions)
+        .def("save_site_rates", &Simulator<SelectedRNG>::setSaveRates)
+        .def("get_site_rates", &Simulator<SelectedRNG>::getSiteRates)
+        .def("save_all_nodes_sequences", &Simulator<SelectedRNG>::setSaveAllNodes)
+        .def("save_root_sequence", &Simulator<SelectedRNG>::setSaveRoot)
+        .def("get_saved_nodes_mask", &Simulator<SelectedRNG>::getNodesSaveList);
 
 
     py::class_<MSA>(m, "Msa")
