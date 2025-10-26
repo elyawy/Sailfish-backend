@@ -1,13 +1,13 @@
 #include <ctime>
 
-#include "../../src/Simulator.h"
+#include "../../../src/Simulator.h"
 // #include "definitions.h"
 
 
 
 // takes 10 minutes currently
 int main() {
-    tree tree_("../trees/normalbranches_nLeaves10.treefile");
+    tree tree_("../../trees/normalbranches_nLeaves100.treefile");
     // tree tree_("(A:0.1,B:0.2):0.3;", false);
     // tree_.getRoot()->orderSonsByHeight();
     std::time_t t1 = 2;//std::time(0);
@@ -39,7 +39,7 @@ int main() {
     protocol.setInsertionRates(insertionRates);
     protocol.setDeletionRates(deletionRates);
 
-    int rootLength = 1000;
+    int rootLength = 30000;
     protocol.setSequenceSize(rootLength);
 
     protocol.setSeed(t1);
@@ -82,7 +82,7 @@ int main() {
     msa.fillSubstitutions(fullContainer);
     std::cout << "filled MSA" << "\n";
 
-    msa.writeFullMsa("test.fasta");
+    // msa.writeFullMsa("test.fasta");
     // msa.printFullMsa();
 
     return 0;

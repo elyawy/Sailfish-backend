@@ -20,7 +20,8 @@ public:
 		_et(mFac.getTree()), _sp(mFac.getStochasticProcess()), _alph(mFac.getAlphabet()), 
 		_invariantSitesProportion(mFac.getInvariantSitesProportion()),
 		_siteRateCorrelation(mFac.getSiteRateCorrelation()),
-		_cpijGam(), _rootSequence(mFac.getAlphabet()), _subManager(mFac.getTree()->getNodesNum()),
+		_cpijGam(), _currentSequence(std::make_unique<sequence>(mFac.getAlphabet())), 
+		_subManager(mFac.getTree()->getNodesNum()),
 		_nodesToSave(nodesToSave), _saveRates(false),
 		_rateCategorySampler(buildRateCategoryProbs(mFac), mFac.getSiteRateCorrelation()) {
 		
@@ -82,7 +83,7 @@ public:
 
 		if (_saveRates) _siteRates.insert(_siteRates.end(), ratesVec.begin(), ratesVec.end());
 
-		_rootSequence.resize(seqLength);
+		_currentSequence->resize(seqLength);
 		generateRootSeq(seqLength, ratesVec);
 
 		if ((*_nodesToSave)[_et->getRoot()->id()]) saveSequence(_et->getRoot()->id(), _et->getRoot()->name());
@@ -100,7 +101,7 @@ public:
 			if ((*_nodesToSave)[node->id()]) saveSequence(node->id(), node->name());
 			mutateSeqRecuresively(node, seqLength);
 			if (!_subManager.isEmpty(node->id())) {
-				_subManager.undoSubs(node->id(), _rootSequence, _rateCategories, _sp.get());
+				_subManager.undoSubs(node->id(), *_currentSequence, _rateCategories, _sp.get());
 			}
 		}
 	}
@@ -121,18 +122,17 @@ private:
         return rateCategoriesProbs;
     }
 
-
 	void generateRootSeq(int seqLength, std::vector<MDOUBLE>& ratesVec) {
 		size_t rootID = _et->getRoot()->id();
 		for (int i = 0; i < seqLength; i++) {
 			ALPHACHAR newChar = _frequencySampler->drawSample(*_rng) - 1;
-			_rootSequence[i] =  newChar;
+			(*_currentSequence)[i] = newChar;
 		}
-		_subManager.handleRootSequence(seqLength, ratesVec, _sp.get(), _rootSequence);
+		_subManager.handleRootSequence(seqLength, ratesVec, _sp.get(), *_currentSequence);
 		
-		_rootSequence.setAlphabet(_alph);
-		_rootSequence.setName(_et->getRoot()->name());
-		_rootSequence.setID(_et->getRoot()->id());
+		_currentSequence->setAlphabet(_alph);
+		_currentSequence->setName(_et->getRoot()->name());
+		_currentSequence->setID(_et->getRoot()->id());
 	}
 
 	void mutateSeqAlongBranch(tree::nodeP currentNode, int seqLength) {
@@ -145,11 +145,11 @@ private:
 		const int parentId = currentNode->father()->id();
 
 		for (size_t site = 0; site < seqLength; ++site) {
-			ALPHACHAR parentChar = _rootSequence[site];
+			ALPHACHAR parentChar = (*_currentSequence)[site];
 			if (_rateCategories[site] == _sp->categories()) continue;
 			ALPHACHAR nextChar = _cpijGam.getRandomChar(_rateCategories[site], nodeId, parentChar, *_rng);
 			if (nextChar != parentChar){
-				_subManager.handleEvent(nodeId, site, nextChar, _rateCategories, _sp.get(), _rootSequence);
+				_subManager.handleEvent(nodeId, site, nextChar, _rateCategories, _sp.get(), *_currentSequence);
 			}
 		}
 	}
@@ -173,9 +173,9 @@ private:
 			}
 
 			int mutatedSite = _subManager.sampleSite(*_rng);
-			ALPHACHAR parentChar = _rootSequence[mutatedSite];
+			ALPHACHAR parentChar = (*_currentSequence)[mutatedSite];
 			ALPHACHAR nextChar = _gillespieSampler[parentChar]->drawSample(*_rng) - 1;
-			_subManager.handleEvent(nodeId, mutatedSite, nextChar, _rateCategories, _sp.get(), _rootSequence);
+			_subManager.handleEvent(nodeId, mutatedSite, nextChar, _rateCategories, _sp.get(), *_currentSequence);
 
 			lambdaParam = _subManager.getReactantsSum();
 			branchLength = branchLength - waitingTime;
@@ -185,7 +185,7 @@ private:
 	}
 
 	void saveSequence(const int &nodeId, const std::string &name) {
-		sequence temp(_rootSequence);
+		sequence temp(*_currentSequence);
 		temp.setName(name);
 		temp.setID(nodeId);
 		_simulatedSequences->add(temp);
@@ -214,8 +214,8 @@ private:
 
 	bool testSumOfRates() {
 		MDOUBLE sumOfRates = 0.0;
-		for (size_t i = 0; i < _rootSequence.seqLen(); i++) {
-			ALPHACHAR currentChar = _rootSequence[i];
+		for (size_t i = 0; i < _currentSequence->seqLen(); i++) {
+			ALPHACHAR currentChar = (*_currentSequence)[i];
 			MDOUBLE currentQii = _sp->Qij(currentChar, currentChar);
 			MDOUBLE currentRate = _sp->rates(_rateCategories[i]);
 			sumOfRates += (currentQii*currentRate);
@@ -240,7 +240,7 @@ private:
 	MDOUBLE _siteRateCorrelation;
 
 	computePijGam _cpijGam;
-	sequence _rootSequence;
+	std::unique_ptr<sequence> _currentSequence;
 	substitutionManager _subManager;
 	std::shared_ptr<std::vector<bool>> _nodesToSave;
 	bool _saveRates;
