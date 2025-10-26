@@ -16,7 +16,7 @@ class substitutionManager
 private:
     // using changeMap = std::vector<ALPHACHAR>;
     std::vector<std::unique_ptr<sequence>> _nodeIdToSequencess;
-    std::unique_ptr<FastRejectionSampler> _siteampler;
+    std::unique_ptr<FastRejectionSampler> _siteSampler;
     MDOUBLE _sumOfReactantsXRates;
     // size_t _changeCounter;
 public:
@@ -86,9 +86,9 @@ public:
                     sequence &rootSeq) {
         // std::cout << "Change in node=" << nodeId << " in position=" << position << "\n";
 
-        if (_substitutionVec[nodeId] == nullptr) {
-            _substitutionVec[nodeId] = std::make_unique<changeMap>(rootSeq.seqLen(), INVALID_CHAR);
-        }
+        // if (_substitutionVec[nodeId] == nullptr) {
+        //     _substitutionVec[nodeId] = std::make_unique<changeMap>(rootSeq.seqLen(), INVALID_CHAR);
+        // }
 
         ALPHACHAR previousChar = rootSeq[position];
 
@@ -101,8 +101,8 @@ public:
         _siteSampler->updateWeight(position, newWeight);
 
 
-        (*_substitutionVec[nodeId])[position] = previousChar;
-        rootSeq[position] = change;
+        // (*_substitutionVec[nodeId])[position] = previousChar;
+        // rootSeq[position] = change;
     }
 
     template <typename Generator>
