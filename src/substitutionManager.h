@@ -43,6 +43,10 @@ public:
     //     if (isInvalid) return rootSeq[position];
     //     return (*currentChanges)[position];
     // }
+    void initializeRoot(std::unique_ptr<sequence> rootSeq) {
+        _nodeIdToSequences[0] = std::move(rootSeq);
+        _currentSequence = _nodeIdToSequences[0].get(); // Now just a raw pointer
+    }
 
     void handleRootSequence(size_t sequenceLength,
                             std::vector<MDOUBLE> &gammaSiteRates, 

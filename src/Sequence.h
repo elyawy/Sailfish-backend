@@ -12,6 +12,12 @@
 #include "SuperSequence.h"
 #include "BlockTree.h"
 
+struct CompressedSequence {
+    std::vector<std::pair<size_t, size_t>> runs; // (start_position, length)
+    size_t nodeID;
+    size_t uncompressedSize;
+};
+
 class Sequence
 {
     using iteratorType = std::list<SuperSequence::columnContainer>::iterator;
@@ -22,7 +28,7 @@ private:
     bool _isSaveSequence;
     size_t _nodeID;
     SequenceType _sequence;
-    Sequence* _parent;
+    const Sequence* _parent;
 
     // size_t _numLeaf;
 public:
@@ -38,6 +44,19 @@ public:
     //     _isSaveSequence = seq._isSaveSequence;
     //     _nodeID = seq._nodeID;
     // }
+    Sequence(const CompressedSequence& compressed, SuperSequence& superSeq) 
+        : _superSequence(&superSeq), _isSaveSequence(true), _nodeID(compressed.nodeID) {
+        
+        _sequence.reserve(compressed.uncompressedSize);
+        
+        for (const auto& [start, length] : compressed.runs) {
+            for (size_t i = 0; i < length; ++i) {
+                size_t position = start + i;
+                auto it = _superSequence->getIteratorByPosition(position);
+                _sequence.push_back(it);
+            }
+        }
+    }
 
     void initSequence() {
         auto superSeqIterator = _superSequence->begin();
@@ -49,14 +68,14 @@ public:
         }
     }
 
-    void generateSequence (const BlockList &blocklist, Sequence &parentSeq) {
-        _sequence.reserve(parentSeq._sequence.size());
+    void generateSequence (const BlockList &blocklist,const Sequence *parentSeq) {
+        _sequence.reserve(parentSeq->_sequence.size());
 
         size_t position;
         size_t length;
         size_t insertion;
         size_t randomPos = _superSequence->getRandomSequencePosition();
-        _parent = &parentSeq;
+        _parent = (parentSeq);
         // std::cout << parentSeq.getSequenceNodeID() << "\n";
         for (auto it = blocklist.begin(); it != blocklist.end(); ++it) {
             position = (*it)[static_cast<int>(BLOCK::POSITION)];//(&it)->key();
@@ -151,6 +170,38 @@ public:
 
     size_t getSequenceNodeID() {
         return _nodeID;
+    }
+
+
+    CompressedSequence compress() const {
+        CompressedSequence result;
+        result.nodeID = _nodeID;
+        result.uncompressedSize = _sequence.size();
+        
+        if (_sequence.empty()) return result;
+        
+        size_t start = (_sequence[0])->position;
+        size_t count = 1;
+        
+        for (size_t i = 1; i < _sequence.size(); ++i) {
+            size_t currentPos = (_sequence[i])->position;
+            size_t prevPos = (_sequence[i-1])->position;
+            
+            if (currentPos == prevPos + 1) {
+                // Consecutive, extend current run
+                count++;
+            } else {
+                // Non-consecutive, save current run and start new one
+                result.runs.push_back({start, count});
+                start = currentPos;
+                count = 1;
+            }
+        }
+        
+        // Don't forget the last run
+        result.runs.push_back({start, count});
+        
+        return result;
     }
 
 
