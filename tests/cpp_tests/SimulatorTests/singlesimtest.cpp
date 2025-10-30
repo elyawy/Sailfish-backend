@@ -7,7 +7,7 @@
 
 // takes 10 minutes currently
 int main() {
-    tree tree_("../../trees/normalbranches_nLeaves1000000.treefile");
+    tree tree_("../../trees/normalbranches_nLeaves100000.treefile");
     // tree tree_("(A:0.1,B:0.2):0.3;", false);
     // tree_.getRoot()->orderSonsByHeight();
     std::time_t t1 = 42;//std::time(0);
@@ -28,8 +28,8 @@ int main() {
 
     // fill(insertionRates.begin(), insertionRates.end(), 0.0);
     // fill(deletionRates.begin(), deletionRates.end(), 0.0);
-    fill(insertionRates.begin(), insertionRates.end(), 0.0);
-    fill(deletionRates.begin(), deletionRates.end(), 0.0);
+    fill(insertionRates.begin(), insertionRates.end(), 0.03);
+    fill(deletionRates.begin(), deletionRates.end(), 0.09);
 
     SimulationProtocol protocol(&tree_);
 
@@ -38,7 +38,7 @@ int main() {
     protocol.setDeletionLengthDistributions(deletionDists);
     protocol.setInsertionRates(insertionRates);
     protocol.setDeletionRates(deletionRates);
-    protocol.setMinSequenceSize(1);
+    // protocol.setMinSequenceSize(1);
 
     int rootLength = 30000;
     protocol.setSequenceSize(rootLength);
@@ -59,11 +59,11 @@ int main() {
     int msaLength = msa.getMSAlength();
 
     std::cout << "length of the MSA will be: " << msaLength << "\n";
-
+    std::cin.get();
     modelFactory mFac(&tree_);
 
-    mFac.setAlphabet(alphabetCode::NUCLEOTIDE);
-    mFac.setReplacementModel(modelCode::NUCJC);
+    mFac.setAlphabet(alphabetCode::AMINOACID);
+    mFac.setReplacementModel(modelCode::WAG);
 
     mFac.setGammaParameters(1.0, 4); 
     if (!mFac.isModelValid()) return 0;
@@ -85,7 +85,7 @@ int main() {
     std::cout << "filled MSA" << "\n";
     // std::cin.get();
 
-    // msa.writeFullMsa("test.fasta");
+    msa.writeFullMsa("test.fasta");
     // msa.printFullMsa();
 
     return 0;
