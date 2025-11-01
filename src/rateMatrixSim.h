@@ -7,11 +7,11 @@
 #include "../libs/Phylolib/includes/tree.h"
 #include "../libs/Phylolib/includes/stochasticProcess.h"
 #include "../libs/Phylolib/includes/sequenceContainer.h"
-#include "../libs/Phylolib/includes/computePijComponent.h"
 
 #include "modelFactory.h"
 // #include "substitutionManager.h"
 #include "CategorySampler.h"
+#include "CachedTransitionProbabilities.h"
 
 template<typename RngType = std::mt19937_64>
 class rateMatrixSim {
@@ -20,15 +20,12 @@ public:
 		_et(mFac.getTree()), _sp(mFac.getStochasticProcess()), _alph(mFac.getAlphabet()), 
 		_invariantSitesProportion(mFac.getInvariantSitesProportion()),
 		_siteRateCorrelation(mFac.getSiteRateCorrelation()),
-		_cpijGam(),
-		// _subManager(mFac.getTree()->getNodesNum()),
+		_cachedPijt(*mFac.getTree(), *mFac.getStochasticProcess()),
 		_nodesToSave(nodesToSave), _saveRates(false),
 		_rateCategorySampler(buildRateCategoryProbs(mFac), mFac.getSiteRateCorrelation()) {
 		
 		size_t alphaSize = _sp->alphabetSize();
-
-		_cpijGam.fillPij(*_et, *_sp);
-		// initGillespieSampler();
+		std::cout << "The number of unique branches in this tree: " << _cachedPijt.getNumUniqueBranches() << "\n";
 				
 		std::vector<MDOUBLE> frequencies;
 		for (int j = 0; j < alphaSize; ++j) {
@@ -159,7 +156,8 @@ private:
 		for (size_t site = 0; site < currentSequence.seqLen(); ++site) {
 			ALPHACHAR parentChar = currentSequence[site];
 			if (_rateCategories[site] == _sp->categories()) continue;
-			ALPHACHAR nextChar = _cpijGam.getRandomChar(_rateCategories[site], nodeId, parentChar, *_rng);
+			auto &Pijt = _cachedPijt.getDistribution(nodeId, _rateCategories[site], parentChar);
+			ALPHACHAR nextChar = Pijt.drawSample(*_rng) - 1;
 			currentSequence[site] = nextChar;
 			// if (nextChar != parentChar){
 			// 	_subManager.handleEvent(nodeId, site, nextChar, _rateCategories, _sp.get(), *_currentSequence);
@@ -250,7 +248,8 @@ private:
 	MDOUBLE _invariantSitesProportion;
 	MDOUBLE _siteRateCorrelation;
 
-	computePijGam _cpijGam;
+	CachedTransitionProbabilities _cachedPijt;
+	// computePijGam _cpijGam;
 	// sequence* _currentSequence;
 	// substitutionManager _subManager;
 	std::shared_ptr<std::vector<bool>> _nodesToSave;
