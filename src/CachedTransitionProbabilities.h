@@ -9,8 +9,8 @@
 
 class CachedTransitionProbabilities {
 public:
-    CachedTransitionProbabilities(const tree& t, const stochasticProcess& sp)
-        : _tree(t), _sp(sp), _alphabetSize(sp.alphabetSize())
+    CachedTransitionProbabilities(const tree& _tree, const stochasticProcess& _sp)
+        : _alphabetSize(_sp.alphabetSize())
     {
         const size_t numNodes = _tree.getNodesNum();
         const size_t numCategories = _sp.categories();
@@ -90,8 +90,6 @@ public:
     size_t getNumUniqueBranches() {return _distributions.size();}
 
 private:
-    const tree& _tree;
-    const stochasticProcess& _sp;
     std::vector<std::vector<DiscreteDistribution>> _distributions;
     std::vector<size_t> _nodeToUniqueIndex;
     const size_t _alphabetSize;

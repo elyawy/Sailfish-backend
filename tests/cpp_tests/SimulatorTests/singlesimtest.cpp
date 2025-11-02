@@ -7,7 +7,7 @@
 
 // takes 10 minutes currently
 int main() {
-    tree tree_("../../trees/normalbranches_nLeaves100000.treefile");
+    tree tree_("../../trees/normalbranches_nLeaves1000.treefile");
     // tree tree_("(A:0.1,B:0.2):0.3;", false);
     // tree_.getRoot()->orderSonsByHeight();
     std::time_t t1 = 42;//std::time(0);
@@ -28,8 +28,8 @@ int main() {
 
     // fill(insertionRates.begin(), insertionRates.end(), 0.0);
     // fill(deletionRates.begin(), deletionRates.end(), 0.0);
-    fill(insertionRates.begin(), insertionRates.end(), 0.03);
-    fill(deletionRates.begin(), deletionRates.end(), 0.09);
+    fill(insertionRates.begin(), insertionRates.end(), 0.0);
+    fill(deletionRates.begin(), deletionRates.end(), 0.0);
 
     SimulationProtocol protocol(&tree_);
 
@@ -59,7 +59,6 @@ int main() {
     int msaLength = msa.getMSAlength();
 
     std::cout << "length of the MSA will be: " << msaLength << "\n";
-    std::cin.get();
     modelFactory mFac(&tree_);
 
     mFac.setAlphabet(alphabetCode::AMINOACID);
@@ -85,7 +84,7 @@ int main() {
     std::cout << "filled MSA" << "\n";
     // std::cin.get();
 
-    msa.writeFullMsa("test.fasta");
+    // msa.writeFullMsa("test.fasta");
     // msa.printFullMsa();
 
     return 0;
