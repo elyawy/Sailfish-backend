@@ -7,7 +7,7 @@
 
 // takes 10 minutes currently
 int main() {
-    tree tree_("../../trees/normalbranches_nLeaves1000.treefile");
+    tree tree_("../../trees/normalbranches_nLeaves10000.treefile");
     // tree tree_("(A:0.1,B:0.2):0.3;", false);
     // tree_.getRoot()->orderSonsByHeight();
     std::time_t t1 = 42;//std::time(0);
