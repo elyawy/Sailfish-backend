@@ -40,7 +40,7 @@ int main() {
     protocol.setDeletionRates(deletionRates);
     // protocol.setMinSequenceSize(1);
 
-    int rootLength = 30000;
+    int rootLength = 100000;
     protocol.setSequenceSize(rootLength);
 
     protocol.setSeed(t1);
@@ -84,7 +84,7 @@ int main() {
     std::cout << "filled MSA" << "\n";
     // std::cin.get();
 
-    // msa.writeFullMsa("test.fasta");
+    msa.writeFullMsa("test.fasta");
     // msa.printFullMsa();
 
     return 0;

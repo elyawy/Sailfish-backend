@@ -22,7 +22,8 @@ public:
 		_siteRateCorrelation(mFac.getSiteRateCorrelation()),
 		_cachedPijt(*mFac.getTree(), *mFac.getStochasticProcess()),
 		_nodesToSave(nodesToSave), _saveRates(false),
-		_rateCategorySampler(buildRateCategoryProbs(mFac), mFac.getSiteRateCorrelation()) {
+		_rateCategorySampler(buildRateCategoryProbs(mFac), mFac.getSiteRateCorrelation()),
+		_writeFolder("") {
 		
 		size_t alphaSize = _sp->alphabetSize();
 		std::cout << "The number of unique branches in this tree: " << _cachedPijt.getNumUniqueBranches() << "\n";
@@ -58,6 +59,7 @@ public:
 		_simulatedSequences = std::make_unique<sequenceContainer>();
 		return outputSequences;
 	}
+
 
 	std::vector<double> getSiteRates() { 
 		return _siteRates;
@@ -107,6 +109,10 @@ public:
 			// 	_subManager.undoSubs(node->id(), *_currentSequence, _rateCategories, _sp.get());
 			// }
 		}
+	}
+
+	void setWriteFolder(const std::string &folder) {
+		_writeFolder = folder;
 	}
 
 private:
@@ -196,8 +202,23 @@ private:
 	// }
 
 	void saveSequence(const sequence &currentSequence) {
+		if (_writeFolder.size() > 0) {
+			saveSequenceToDisk(currentSequence);
+			return;
+		}
 		sequence temp(currentSequence);
 		_simulatedSequences->add(temp);
+	}
+
+	void saveSequenceToDisk(const sequence &currentSequence) {
+		std::string fileName = _writeFolder + "/" + std::to_string(currentSequence.id()) + ".fasta";
+		std::ofstream outFile(fileName);
+		if (!outFile.is_open()) {
+			errorMsg::reportError("Could not open file " + fileName + " for writing simulated sequences.");
+		}
+		outFile << ">" << currentSequence.name() << "\n";
+		outFile << currentSequence.toString() << "\n";
+		outFile.close();
 	}
 
 	void initGillespieSampler() {
@@ -262,6 +283,7 @@ private:
 	std::unique_ptr<DiscreteDistribution> _frequencySampler;
 
 	CategorySampler _rateCategorySampler;
+	std::string _writeFolder;
 
 	RngType *_rng;
 };
