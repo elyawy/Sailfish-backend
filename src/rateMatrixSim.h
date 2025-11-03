@@ -26,8 +26,7 @@ public:
 		_writeFolder("") {
 		
 		size_t alphaSize = _sp->alphabetSize();
-		std::cout << "The number of unique branches in this tree: " << _cachedPijt.getNumUniqueBranches() << "\n";
-				
+		
 		std::vector<MDOUBLE> frequencies;
 		for (int j = 0; j < alphaSize; ++j) {
 			frequencies.push_back(_sp->freq(j));
