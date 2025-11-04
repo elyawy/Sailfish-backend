@@ -177,7 +177,7 @@ public:
         CompressedSequence result;
         result.nodeID = _nodeID;
         result.uncompressedSize = _sequence.size();
-        
+        result.runs.reserve(_sequence.size() / 10); // Reserve space assuming average run length of 10
         if (_sequence.empty()) return result;
         
         size_t start = (_sequence[0])->position;

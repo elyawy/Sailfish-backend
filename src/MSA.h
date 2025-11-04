@@ -51,6 +51,7 @@ public:
 
         // std::cin.get();
         std::vector<CompressedSequence> finalSequences;
+        finalSequences.reserve(_numberOfSequences);
         // std::vector<Sequence> finalSequences;
 
         buildMsaRecursively(finalSequences, blockmap, *rootNode, superSequence, rootSequence, nodesToSave);
@@ -63,7 +64,7 @@ public:
                              BlockMap &blockmap,const tree::TreeNode &parrentNode,
                              SuperSequence &superSequence, const Sequence& parentSequence, 
                              const std::vector<bool>& nodesToSave) {
-        if ((nodesToSave)[parrentNode.id()]) finalSequences.push_back(parentSequence.compress());
+        if ((nodesToSave)[parrentNode.id()]) finalSequences.emplace_back(parentSequence.compress());
         if (parrentNode.isLeaf()) return;
 
         for (size_t i = 0; i < parrentNode.getNumberOfSons(); i++) {

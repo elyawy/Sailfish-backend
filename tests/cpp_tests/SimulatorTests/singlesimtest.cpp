@@ -1,6 +1,8 @@
 #include <ctime>
 
 #include "../../../src/Simulator.h"
+#include "../../../libs/pcg/pcg_random.hpp"
+
 // #include "definitions.h"
 
 
@@ -45,7 +47,7 @@ int main() {
 
     protocol.setSeed(t1);
 
-    Simulator sim(&protocol);
+    Simulator<pcg64> sim(&protocol);
 
     sim.setSaveRoot();
 
