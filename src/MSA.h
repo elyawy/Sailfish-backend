@@ -385,6 +385,10 @@ public:
     }
 
     std::unordered_map<size_t, std::vector<int>> getMSAVec() {return _alignedSequence;}
+
+    const std::unordered_map<size_t, std::vector<int>>& getAlignedSequence() const {
+        return _alignedSequence;
+    }
 	
 	~MSA() {
 	}

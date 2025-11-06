@@ -23,7 +23,7 @@ public:
 		_cachedPijt(*mFac.getTree(), *mFac.getStochasticProcess()),
 		_nodesToSave(nodesToSave), _saveRates(false),
 		_rateCategorySampler(buildRateCategoryProbs(mFac), mFac.getSiteRateCorrelation()),
-		_writeFolder("") {
+		_finalMsaPath("") {
 		
 		size_t alphaSize = _sp->alphabetSize();
 		
@@ -110,8 +110,12 @@ public:
 		}
 	}
 
-	void setWriteFolder(const std::string &folder) {
-		_writeFolder = folder;
+	void setWriteFolder(const std::string &filePath) {
+		_finalMsaPath = filePath;
+	}
+
+	void setAlignedSequenceMap(const std::unordered_map<size_t, std::vector<int>>& alignedSeq) {
+		_alignedSequenceMap = &alignedSeq;
 	}
 
 private:
@@ -156,17 +160,36 @@ private:
 
 	void mutateEntireSeq(sequence& currentSequence) {
 		const int nodeId = currentSequence.id();
-		// const int parentId = currentNode->father()->id();
-
-		for (size_t site = 0; site < currentSequence.seqLen(); ++site) {
-			ALPHACHAR parentChar = currentSequence[site];
-			if (_rateCategories[site] == _sp->categories()) continue;
-			auto &Pijt = _cachedPijt.getDistribution(nodeId, _rateCategories[site], parentChar);
-			ALPHACHAR nextChar = Pijt.drawSample(*_rng) - 1;
-			currentSequence[site] = nextChar;
-			// if (nextChar != parentChar){
-			// 	_subManager.handleEvent(nodeId, site, nextChar, _rateCategories, _sp.get(), *_currentSequence);
-			// }
+		
+		// Check if this is a leaf we're saving (low memory mode)
+		if (_alignedSequenceMap != nullptr && (*_nodesToSave)[nodeId]) {
+			const std::vector<int>& gapStructure = _alignedSequenceMap->at(nodeId);
+			
+			size_t site = 0;
+			for (int blockSize : gapStructure) {
+				if (blockSize < 0) {
+					// Gap block - skip these sites
+					site += (-blockSize);
+					continue;
+				}
+				// Non-gap block - mutate these sites
+				for (int i = 0; i < blockSize; ++i, ++site) {
+					ALPHACHAR parentChar = currentSequence[site];
+					if (_rateCategories[site] == _sp->categories()) continue;
+					auto &Pijt = _cachedPijt.getDistribution(nodeId, _rateCategories[site], parentChar);
+					ALPHACHAR nextChar = Pijt.drawSample(*_rng) - 1;
+					currentSequence[site] = nextChar;
+				}
+			}
+		} else {
+			// Normal mode - mutate all sites
+			for (size_t site = 0; site < currentSequence.seqLen(); ++site) {
+				ALPHACHAR parentChar = currentSequence[site];
+				if (_rateCategories[site] == _sp->categories()) continue;
+				auto &Pijt = _cachedPijt.getDistribution(nodeId, _rateCategories[site], parentChar);
+				ALPHACHAR nextChar = Pijt.drawSample(*_rng) - 1;
+				currentSequence[site] = nextChar;
+			}
 		}
 	}
 
@@ -201,7 +224,7 @@ private:
 	// }
 
 	void saveSequence(const sequence &currentSequence) {
-		if (_writeFolder.size() > 0) {
+		if (_finalMsaPath.size() > 0) {
 			saveSequenceToDisk(currentSequence);
 			return;
 		}
@@ -210,13 +233,33 @@ private:
 	}
 
 	void saveSequenceToDisk(const sequence &currentSequence) {
-		std::string fileName = _writeFolder + "/" + std::to_string(currentSequence.id()) + ".fasta";
-		std::ofstream outFile(fileName);
+		const int nodeId = currentSequence.id();
+		
+		// Open final MSA file in append mode
+		std::ofstream outFile(_finalMsaPath, std::ios::app);
 		if (!outFile.is_open()) {
-			errorMsg::reportError("Could not open file " + fileName + " for writing simulated sequences.");
+			errorMsg::reportError("Could not open file " + _finalMsaPath + " for writing MSA.");
 		}
+		
 		outFile << ">" << currentSequence.name() << "\n";
-		outFile << currentSequence.toString() << "\n";
+		
+		// Get gap structure for this sequence
+		const std::vector<int>& gapStructure = _alignedSequenceMap->at(nodeId);
+		
+		size_t site = 0;
+		for (int blockSize : gapStructure) {
+			if (blockSize < 0) {
+				// Gap block - write gaps
+				outFile << std::string(-blockSize, '-');
+			} else {
+				// Non-gap block - write sequence characters
+				for (int i = 0; i < blockSize; ++i) {
+					outFile << _alph->fromInt(currentSequence[site++]);
+				}
+			}
+		}
+		
+		outFile << "\n";
 		outFile.close();
 	}
 
@@ -282,7 +325,8 @@ private:
 	std::unique_ptr<DiscreteDistribution> _frequencySampler;
 
 	CategorySampler _rateCategorySampler;
-	std::string _writeFolder;
+	std::string _finalMsaPath;
+	const std::unordered_map<size_t, std::vector<int>>* _alignedSequenceMap = nullptr;
 
 	RngType *_rng;
 };

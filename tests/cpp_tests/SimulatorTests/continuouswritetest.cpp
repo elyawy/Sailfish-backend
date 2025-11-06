@@ -8,7 +8,7 @@
 
 // takes 10 minutes currently
 int main() {
-    tree tree_("../../trees/normalbranches_nLeaves30000.treefile");
+    tree tree_("../../trees/normalbranches_nLeaves10000.treefile");
     // tree tree_("(A:0.1,B:0.2):0.3;", false);
     // tree_.getRoot()->orderSonsByHeight();
     std::time_t t1 = 1;//std::time(0);
@@ -29,8 +29,8 @@ int main() {
 
     // fill(insertionRates.begin(), insertionRates.end(), 0.0);
     // fill(deletionRates.begin(), deletionRates.end(), 0.0);
-    fill(insertionRates.begin(), insertionRates.end(), 0.0);
-    fill(deletionRates.begin(), deletionRates.end(), 0.0);
+    fill(insertionRates.begin(), insertionRates.end(), 0.03);
+    fill(deletionRates.begin(), deletionRates.end(), 0.09);
 
     SimulationProtocol protocol(&tree_);
 
@@ -40,7 +40,7 @@ int main() {
     protocol.setInsertionRates(insertionRates);
     protocol.setDeletionRates(deletionRates);
 
-    int rootLength = 100000;
+    int rootLength = 30000;
     protocol.setSequenceSize(rootLength);
 
     protocol.setSeed(t1);
@@ -73,10 +73,11 @@ int main() {
     std::cout << msaLength << "\n";
     // std::cin.get();
 
+    sim.setAlignedSequenceMap(msa.getAlignedSequence());
 
-    sim.simulateAndWriteSubstitutions(msaLength, "/home/elyalab/temp/writing_test");
-    msa.setSubstitutionsFolder( "/home/elyalab/temp/writing_test");
-    msa.writeMsaFromDir("/home/elyalab/temp1.fasta");
+    sim.simulateAndWriteSubstitutions(msaLength, "/home/elyalab/best.fasta");
+    // msa.setSubstitutionsFolder( "/home/elyalab/temp/writing_test");
+    // msa.writeMsaFromDir("/home/elyalab/temp1.fasta");
 
 
     // auto fullContainer = sim.simulateSubstitutions(msaLength);

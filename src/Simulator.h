@@ -234,8 +234,8 @@ public:
     }
 
 
-    void simulateAndWriteSubstitutions(size_t sequenceLength, const std::string& directory) {
-        _substitutionSim->setWriteFolder(directory);
+    void simulateAndWriteSubstitutions(size_t sequenceLength, const std::string& filePath) {
+        _substitutionSim->setWriteFolder(filePath);
         _substitutionSim->generate_substitution_log(sequenceLength);
     }
 
@@ -245,6 +245,10 @@ public:
 
         return seqContainer;
 
+    }
+
+    void setAlignedSequenceMap(const std::unordered_map<size_t, std::vector<int>>& alignedSeq) {
+        _substitutionSim->setAlignedSequenceMap(alignedSeq);
     }
 
 
