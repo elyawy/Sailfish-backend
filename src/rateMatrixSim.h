@@ -244,21 +244,25 @@ private:
 		outFile << ">" << currentSequence.name() << "\n";
 		
 		// Get gap structure for this sequence
-		const std::vector<int>& gapStructure = _alignedSequenceMap->at(nodeId);
-		
-		size_t site = 0;
-		for (int blockSize : gapStructure) {
-			if (blockSize < 0) {
-				// Gap block - write gaps
-				outFile << std::string(-blockSize, '-');
-			} else {
-				// Non-gap block - write sequence characters
-				for (int i = 0; i < blockSize; ++i) {
-					outFile << _alph->fromInt(currentSequence[site++]);
+		if (_alignedSequenceMap != nullptr) {
+			const std::vector<int>& gapStructure = _alignedSequenceMap->at(nodeId);
+			size_t site = 0;
+			for (int blockSize : gapStructure) {
+				if (blockSize < 0) {
+					// Gap block - write gaps
+					outFile << std::string(-blockSize, '-');
+				} else {
+					// Non-gap block - write sequence characters
+					for (int i = 0; i < blockSize; ++i) {
+						outFile << _alph->fromInt(currentSequence[site++]);
+					}
 				}
 			}
+		} else {
+			for (size_t site = 0; site < currentSequence.seqLen(); ++site) {
+				outFile << _alph->fromInt(currentSequence[site]);
+			}
 		}
-		
 		outFile << "\n";
 		outFile.close();
 	}
