@@ -247,7 +247,8 @@ public:
 
     }
 
-    void setAlignedSequenceMap(const std::unordered_map<size_t, std::vector<int>>& alignedSeq) {
+    void setAlignedSequenceMap(const MSA& msa) {
+        const auto& alignedSeq = msa.getAlignedSequence();
         _substitutionSim->setAlignedSequenceMap(alignedSeq);
     }
 

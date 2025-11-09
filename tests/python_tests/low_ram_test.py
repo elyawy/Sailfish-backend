@@ -11,7 +11,7 @@ sim_protocol = sim.SimProtocol("(A:0.5,B:0.5);",
                                insertion_rate=0.01,
                                deletion_dist=ZipfDistribution(1.08, 50),
                                insertion_dist=ZipfDistribution(1.08, 50),
-                               seed=50)
+                               seed=1234)
 sim_protocol.set_sequence_size(ROOT_SEQUENCE_LENGTH)
 
 simulation = sim.Simulator(sim_protocol, simulation_type=sim.SIMULATION_TYPE.PROTEIN)

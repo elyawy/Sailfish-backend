@@ -13,3 +13,4 @@ msasim.egg-info
 tests/cpp_tests/a.out
 a.out
 .venv
+test_outputs

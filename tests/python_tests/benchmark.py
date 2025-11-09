@@ -1,8 +1,7 @@
-import sys, pathlib, time
-sys.path.insert(0,str(pathlib.Path(".").resolve()))
+import pathlib
+import time
 import psutil
 from msasim import sailfish as sim
-print(sim.__file__)
 
 
 length_insertions = sim.ZipfDistribution(1.7, 50)
@@ -21,7 +20,7 @@ trees_map = {
     "100": trees_path / "normalbranches_nLeaves100.treefile",
     "1k": trees_path / "normalbranches_nLeaves1000.treefile",
     "5k": trees_path / "normalbranches_nLeaves5000.treefile",
-    # "10k": trees_path / "normalbranches_nLeaves10000.treefile"
+    "10k": trees_path / "normalbranches_nLeaves10000.treefile"
     # "100k": trees_path / "normalbranches_nLeaves100000.treefile"
 }
 
@@ -55,7 +54,10 @@ def time_me(func):
 
 for num_sequences in trees_map.keys():
     simulator = init_protocol(num_sequences)
-    msa = time_me(simulator.simulate)()
+    output_dir = pathlib.Path("test_outputs")
+    output_dir.mkdir(exist_ok=True)
+
+    msa = time_me(simulator.simulate_low_memory)(output_dir / f"msa_{num_sequences}.fasta")
     process = psutil.Process()
     print(process.memory_info().rss / 1024**3)  # in bytes 
     # msa.write_msa(f"simulator_tests/msa_{num_sequences}.fasta") 
