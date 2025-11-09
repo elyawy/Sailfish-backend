@@ -29,8 +29,8 @@ int main() {
 
     // fill(insertionRates.begin(), insertionRates.end(), 0.0);
     // fill(deletionRates.begin(), deletionRates.end(), 0.0);
-    fill(insertionRates.begin(), insertionRates.end(), 0.03);
-    fill(deletionRates.begin(), deletionRates.end(), 0.09);
+    fill(insertionRates.begin(), insertionRates.end(), 0.0);
+    fill(deletionRates.begin(), deletionRates.end(), 0.0);
 
     SimulationProtocol protocol(&tree_);
 
@@ -75,7 +75,7 @@ int main() {
 
     sim.setAlignedSequenceMap(msa.getAlignedSequence());
 
-    sim.simulateAndWriteSubstitutions(msaLength, "/home/elyalab/best.fasta");
+    sim.simulateAndWriteSubstitutions(msaLength, "/home/pupkolab/best.fasta");
     // msa.setSubstitutionsFolder( "/home/elyalab/temp/writing_test");
     // msa.writeMsaFromDir("/home/elyalab/temp1.fasta");
 

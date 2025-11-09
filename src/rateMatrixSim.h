@@ -35,7 +35,11 @@ public:
 		_simulatedSequences = std::make_unique<sequenceContainer>();
 	}
 
-	virtual ~rateMatrixSim() {}
+	virtual ~rateMatrixSim() {
+		if (_outputFile.is_open()) {
+			_outputFile.close();
+		}
+	}
 
 	void setRng(RngType *rng) {
 		_rng = rng;
@@ -112,6 +116,12 @@ public:
 
 	void setWriteFolder(const std::string &filePath) {
 		_finalMsaPath = filePath;
+		if (!filePath.empty()) {
+			_outputFile.open(filePath, std::ios::out);  // open once
+			if (!_outputFile.is_open()) {
+				errorMsg::reportError("Could not open file " + filePath + " for writing MSA.");
+			}
+		}
 	}
 
 	void setAlignedSequenceMap(const std::unordered_map<size_t, std::vector<int>>& alignedSeq) {
@@ -235,13 +245,8 @@ private:
 	void saveSequenceToDisk(const sequence &currentSequence) {
 		const int nodeId = currentSequence.id();
 		
-		// Open final MSA file in append mode
-		std::ofstream outFile(_finalMsaPath, std::ios::app);
-		if (!outFile.is_open()) {
-			errorMsg::reportError("Could not open file " + _finalMsaPath + " for writing MSA.");
-		}
 		
-		outFile << ">" << currentSequence.name() << "\n";
+		_outputFile << ">" << currentSequence.name() << "\n";
 		
 		// Get gap structure for this sequence
 		if (_alignedSequenceMap != nullptr) {
@@ -250,21 +255,20 @@ private:
 			for (int blockSize : gapStructure) {
 				if (blockSize < 0) {
 					// Gap block - write gaps
-					outFile << std::string(-blockSize, '-');
+					_outputFile << std::string(-blockSize, '-');
 				} else {
 					// Non-gap block - write sequence characters
 					for (int i = 0; i < blockSize; ++i) {
-						outFile << _alph->fromInt(currentSequence[site++]);
+						_outputFile << _alph->fromInt(currentSequence[site++]);
 					}
 				}
 			}
 		} else {
 			for (size_t site = 0; site < currentSequence.seqLen(); ++site) {
-				outFile << _alph->fromInt(currentSequence[site]);
+				_outputFile.put(_alph->fromInt(currentSequence[site])[0]);
 			}
 		}
-		outFile << "\n";
-		outFile.close();
+		_outputFile << "\n";
 	}
 
 	void initGillespieSampler() {
@@ -287,6 +291,7 @@ private:
 			setSaveStateLeaves(node);
 		}
 	}
+
 
 	// bool testSumOfRates() {
 	// 	MDOUBLE sumOfRates = 0.0;
@@ -333,6 +338,7 @@ private:
 	const std::unordered_map<size_t, std::vector<int>>* _alignedSequenceMap = nullptr;
 
 	RngType *_rng;
+	std::ofstream _outputFile;  // ADD THIS
 };
 
 #endif

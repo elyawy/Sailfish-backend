@@ -1,13 +1,15 @@
 #include <ctime>
 
-#include "../../src/Simulator.h"
+#include "../../../src/Simulator.h"
+#include "../../../libs/pcg/pcg_random.hpp"
+
 // #include "definitions.h"
 
 
 
 // takes 10 minutes currently
 int main() {
-    tree tree_("../trees/normalbranches_nLeaves10.treefile");
+    tree tree_("../../trees/normalbranches_nLeaves100000.treefile");
     // tree tree_("(A:0.5,B:0.5);", false);
     // tree tree_("(C:0.01,(A:0.01,B:0.01):0.01);", false);
     // tree tree_("((A:0.01,B:0.01):0.01,C:0.01);", false);
@@ -40,20 +42,20 @@ int main() {
     protocol.setInsertionRates(insertionRates);
     protocol.setDeletionRates(deletionRates);
 
-    int rootLength = 100;
+    int rootLength = 30000;
     protocol.setSequenceSize(rootLength);
 
 
     protocol.setSeed(t1);
 
-    Simulator sim(&protocol);
+    Simulator<pcg64> sim(&protocol);
     modelFactory mFac(&tree_);
 
-    mFac.setAlphabet(alphabetCode::AMINOACID);
-    mFac.setReplacementModel(modelCode::LG);
+    mFac.setAlphabet(alphabetCode::NUCLEOTIDE);
+    mFac.setReplacementModel(modelCode::NUCJC);
     // mFac.setModelParameters({0.25,0.25,0.25,0.25,0.1,0.2,0.3,0.4,0.5,0.6});
     mFac.setGammaParameters(1.0, 4);
-    mFac.setSiteRateCorrelation(0.2);
+    // mFac.setSiteRateCorrelation(0.2);
 
     // mFac.setInvariantSitesProportion(0.9);
     if (!mFac.isModelValid()) return 1;
@@ -61,24 +63,13 @@ int main() {
 
     // sim.setSaveRoot();
     // sim.setSaveAllNodes();
-    auto saveList = sim.getNodesSaveList();
-    sim.setSaveRates(true);
+    // auto saveList = sim.getNodesSaveList();
+    // sim.setSaveRates(true);
 
+    std::cout << "starting subs sim\n";
+    sim.simulateAndWriteSubstitutions(rootLength, "/home/pupkolab/best.fasta");
+    // auto seqContainer = sim.simulateSubstitutions(rootLength);
 
-    size_t counter = 0;
-    while (counter++ < 1) {
-        auto blockmap = sim.generateSimulation();
-
-        auto msa = MSA(blockmap, tree_.getRoot(), saveList);
-        int msaLength = msa.getMSAlength();
-        
-        auto fullContainer = sim.simulateSubstitutions(msaLength);
-        auto rates = sim.getSiteRates();
-
-        std::cout << rates << "\n";
-
-        msa.fillSubstitutions(fullContainer);
-    }
     
 
     return 0;
