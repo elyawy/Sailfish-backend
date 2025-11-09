@@ -23,9 +23,7 @@ class MSA
 public:
 	using iteratorType = std::list<SuperSequence::columnContainer>::iterator;
 
-	// MSA(const vector<string> & seqArray) : _originalAlignedSeqs(seqArray), _numberOfSequences(seqArray.size()) {};
-
-    static std::vector<MSA> generateMSAs(const std::vector<BlockMap> &blockmaps, tree::nodeP rootNode,
+    static std::vector<MSA> generateMSAs(std::vector<BlockMap> &blockmaps, tree::nodeP rootNode,
                                         const std::vector<bool>& nodesToSave) {
         std::vector<MSA> msas;
 
@@ -36,7 +34,7 @@ public:
         return msas;
     }
 
-    MSA (const BlockMap &blockmap,const tree::nodeP rootNode, const std::vector<bool>& nodesToSave) {
+    MSA (BlockMap &blockmap,const tree::nodeP rootNode, const std::vector<bool>& nodesToSave) {
         size_t sequenceSize = std::get<static_cast<int>(BLOCKLIST::LENGTH)>(blockmap.at(rootNode->id()))-1;
 
         size_t numberOfSeqs = 0;
@@ -48,38 +46,39 @@ public:
         _numberOfSequences = numberOfSeqs;
         // SuperSequence superSequence(sequenceSize, rootNode->getNumberLeaves());
         SuperSequence superSequence(sequenceSize, numberOfSeqs);
-        std::shared_ptr<Sequence> rootSequence =
-                        std::make_shared<Sequence>(superSequence, nodesToSave[rootNode->id()], rootNode->id());
-        rootSequence->initSequence();
+        Sequence rootSequence(superSequence, nodesToSave[rootNode->id()], rootNode->id());
+        rootSequence.initSequence();
+
         // std::cin.get();
-        std::vector<std::shared_ptr<Sequence>> finalSequences;
+        std::vector<CompressedSequence> finalSequences;
+        finalSequences.reserve(_numberOfSequences);
         // std::vector<Sequence> finalSequences;
 
         buildMsaRecursively(finalSequences, blockmap, *rootNode, superSequence, rootSequence, nodesToSave);
+        blockmap.clear();
+        
         fillMSA(finalSequences, superSequence);
     }
 
-    void buildMsaRecursively(std::vector<std::shared_ptr<Sequence>> &finalSequences,
-                             const BlockMap &blockmap,const tree::TreeNode &parrentNode,
-                             SuperSequence &superSequence, std::shared_ptr<Sequence> parentSequence, 
+    void buildMsaRecursively(std::vector<CompressedSequence> &finalSequences,
+                             BlockMap &blockmap,const tree::TreeNode &parrentNode,
+                             SuperSequence &superSequence, const Sequence& parentSequence, 
                              const std::vector<bool>& nodesToSave) {
-        if ((nodesToSave)[parrentNode.id()]) finalSequences.push_back(parentSequence);
+        if ((nodesToSave)[parrentNode.id()]) finalSequences.emplace_back(parentSequence.compress());
         if (parrentNode.isLeaf()) return;
 
         for (size_t i = 0; i < parrentNode.getNumberOfSons(); i++) {
             tree::TreeNode* childNode = parrentNode.getSon(i);
-            std::shared_ptr<Sequence> currentSequence = 
-                        std::make_shared<Sequence>(superSequence, nodesToSave[childNode->id()], childNode->id());
+            Sequence currentSequence(superSequence, nodesToSave[childNode->id()], childNode->id());
 
             auto blocks = std::get<static_cast<int>(BLOCKLIST::BLOCKS)>(blockmap.at(childNode->id()));//simulateAlongBranch(sequences.top().size(), currentNode->dis2father(), nodePosition);
-            currentSequence->generateSequence(blocks, *parentSequence);
+            currentSequence.generateSequence(blocks, &parentSequence);
             buildMsaRecursively(finalSequences, blockmap, *childNode, superSequence, currentSequence, nodesToSave);
-
         }
         
     }
 
-    void fillMSA(vector<std::shared_ptr<Sequence>> &sequences, SuperSequence &superSeq) {
+    void fillMSA(std::vector<CompressedSequence> &sequences, SuperSequence &superSeq) {
 		_numberOfSequences = superSeq.getNumSequences();
 		_msaLength = superSeq.getMsaSequenceLength();
 		superSeq.setAbsolutePositions();
@@ -93,15 +92,16 @@ public:
 		int positionDifference = 0;
 		int cumulatedDifference = 1;
         
-        for(auto &seq: sequences) {
-            size_t sequenceNodeID = seq->getSequenceNodeID();
+        for(auto &_seq: sequences) {
+            Sequence seq(_seq,superSeq);
+            size_t sequenceNodeID = seq.getSequenceNodeID();
             auto& currentSequence = _alignedSequence[sequenceNodeID];
             // if the sequence is only made up of gaps:
-            if (seq->size() == 0) {
+            if (seq.size() == 0) {
                 currentSequence.push_back(-_msaLength);
                 continue;
             }
-            auto previousSite = *seq->begin();
+            auto previousSite = *seq.begin();
             
             lastPosition = previousSite->absolutePosition;
             if (lastPosition > 0) {
@@ -109,7 +109,7 @@ public:
                 totalSize += lastPosition;
             }
 
-            for(auto currentSite=seq->begin() + 1; currentSite!=seq->end(); currentSite++) {
+            for(auto currentSite=seq.begin() + 1; currentSite!=seq.end(); currentSite++) {
 				currentPosition = (*(currentSite))->absolutePosition;
                 positionDifference = currentPosition - lastPosition - 1;
 
@@ -385,9 +385,12 @@ public:
     }
 
     std::unordered_map<size_t, std::vector<int>> getMSAVec() {return _alignedSequence;}
+
+    const std::unordered_map<size_t, std::vector<int>>& getAlignedSequence() const {
+        return _alignedSequence;
+    }
 	
 	~MSA() {
-		// delete _originalAlignedSeqs;
 	}
 
 private:
@@ -396,8 +399,6 @@ private:
     std::shared_ptr<sequenceContainer> _substitutions;
     std::string _substitutionsDir;
     std::vector<std::filesystem::directory_entry> _substitutionPaths;
-
-	SuperSequence* _originalAlignedSeqs; //The aligned sequences
 
 	std::unordered_map<size_t, std::vector<int>> _alignedSequence;
     std::vector<size_t> _sequencesToSave;

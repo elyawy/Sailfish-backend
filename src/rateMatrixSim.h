@@ -7,11 +7,11 @@
 #include "../libs/Phylolib/includes/tree.h"
 #include "../libs/Phylolib/includes/stochasticProcess.h"
 #include "../libs/Phylolib/includes/sequenceContainer.h"
-#include "../libs/Phylolib/includes/computePijComponent.h"
 
 #include "modelFactory.h"
-#include "substitutionManager.h"
+// #include "substitutionManager.h"
 #include "CategorySampler.h"
+#include "CachedTransitionProbabilities.h"
 
 template<typename RngType = std::mt19937_64>
 class rateMatrixSim {
@@ -20,15 +20,13 @@ public:
 		_et(mFac.getTree()), _sp(mFac.getStochasticProcess()), _alph(mFac.getAlphabet()), 
 		_invariantSitesProportion(mFac.getInvariantSitesProportion()),
 		_siteRateCorrelation(mFac.getSiteRateCorrelation()),
-		_cpijGam(), _rootSequence(mFac.getAlphabet()), _subManager(mFac.getTree()->getNodesNum()),
+		_cachedPijt(*mFac.getTree(), *mFac.getStochasticProcess()),
 		_nodesToSave(nodesToSave), _saveRates(false),
-		_rateCategorySampler(buildRateCategoryProbs(mFac), mFac.getSiteRateCorrelation()) {
+		_rateCategorySampler(buildRateCategoryProbs(mFac), mFac.getSiteRateCorrelation()),
+		_finalMsaPath("") {
 		
 		size_t alphaSize = _sp->alphabetSize();
-
-		_cpijGam.fillPij(*_et, *_sp);
-		initGillespieSampler();
-				
+		
 		std::vector<MDOUBLE> frequencies;
 		for (int j = 0; j < alphaSize; ++j) {
 			frequencies.push_back(_sp->freq(j));
@@ -37,7 +35,11 @@ public:
 		_simulatedSequences = std::make_unique<sequenceContainer>();
 	}
 
-	virtual ~rateMatrixSim() {}
+	virtual ~rateMatrixSim() {
+		if (_outputFile.is_open()) {
+			_outputFile.close();
+		}
+	}
 
 	void setRng(RngType *rng) {
 		_rng = rng;
@@ -61,6 +63,7 @@ public:
 		return outputSequences;
 	}
 
+
 	std::vector<double> getSiteRates() { 
 		return _siteRates;
 	}
@@ -82,27 +85,47 @@ public:
 
 		if (_saveRates) _siteRates.insert(_siteRates.end(), ratesVec.begin(), ratesVec.end());
 
-		_rootSequence.resize(seqLength);
-		generateRootSeq(seqLength, ratesVec);
+		// _currentSequence->resize(seqLength);
+		sequence rootSequence = generateRootSeq(seqLength, ratesVec);
 
-		if ((*_nodesToSave)[_et->getRoot()->id()]) saveSequence(_et->getRoot()->id(), _et->getRoot()->name());
+		if ((*_nodesToSave)[_et->getRoot()->id()]){ 
+			saveSequence(rootSequence);
+		}
 
-		mutateSeqRecuresively(_et->getRoot(), seqLength);
+		mutateSeqRecuresively(rootSequence, _et->getRoot());
 
-		_subManager.clear();
+		// _subManager.clear();
 	}
 
-	void mutateSeqRecuresively(tree::nodeP currentNode, int seqLength) {
+	void mutateSeqRecuresively(const sequence& currentSequence, tree::nodeP currentNode) {
 		if (currentNode->isLeaf()) return;
 
 		for (auto &node: currentNode->getSons()) {
-			mutateSeqAlongBranch(node, seqLength);
-			if ((*_nodesToSave)[node->id()]) saveSequence(node->id(), node->name());
-			mutateSeqRecuresively(node, seqLength);
-			if (!_subManager.isEmpty(node->id())) {
-				_subManager.undoSubs(node->id(), _rootSequence, _rateCategories, _sp.get());
+			sequence childSeq(currentSequence);
+			childSeq.setID(node->id());
+			childSeq.setName(node->name());
+			mutateSeqAlongBranch(childSeq, node->dis2father());
+			if ((*_nodesToSave)[node->id()]) saveSequence(childSeq);
+			mutateSeqRecuresively(childSeq, node);
+			// if (!(*_nodesToSave)[node->id()]) _subManager.freeSequence();
+			// if (!_subManager.isEmpty(node->id())) {
+			// 	_subManager.undoSubs(node->id(), *_currentSequence, _rateCategories, _sp.get());
+			// }
+		}
+	}
+
+	void setWriteFolder(const std::string &filePath) {
+		_finalMsaPath = filePath;
+		if (!filePath.empty()) {
+			_outputFile.open(filePath, std::ios::out);  // open once
+			if (!_outputFile.is_open()) {
+				errorMsg::reportError("Could not open file " + filePath + " for writing MSA.");
 			}
 		}
+	}
+
+	void setAlignedSequenceMap(const std::unordered_map<size_t, std::vector<int>>& alignedSeq) {
+		_alignedSequenceMap = &alignedSeq;
 	}
 
 private:
@@ -121,74 +144,131 @@ private:
         return rateCategoriesProbs;
     }
 
+	sequence generateRootSeq(int seqLength, std::vector<MDOUBLE>& ratesVec) {
+		sequence rootSeq(_alph);
 
-	void generateRootSeq(int seqLength, std::vector<MDOUBLE>& ratesVec) {
+		rootSeq.resize(seqLength);
+
 		size_t rootID = _et->getRoot()->id();
 		for (int i = 0; i < seqLength; i++) {
 			ALPHACHAR newChar = _frequencySampler->drawSample(*_rng) - 1;
-			_rootSequence[i] =  newChar;
+			rootSeq[i] = newChar;
 		}
-		_subManager.handleRootSequence(seqLength, ratesVec, _sp.get(), _rootSequence);
+		// _subManager.setRootSequence(seqLength, ratesVec, _sp.get(), *_currentSequence);
 		
-		_rootSequence.setAlphabet(_alph);
-		_rootSequence.setName(_et->getRoot()->name());
-		_rootSequence.setID(_et->getRoot()->id());
+		// rootSeq.setAlphabet(_alph);
+		rootSeq.setName(_et->getRoot()->name());
+		rootSeq.setID(_et->getRoot()->id());
+		return rootSeq;
+
 	}
 
-	void mutateSeqAlongBranch(tree::nodeP currentNode, int seqLength) {
-		const MDOUBLE distToFather = currentNode->dis2father();
-		mutateEntireSeq(currentNode, seqLength);
+	void mutateSeqAlongBranch(sequence& currentSequence, const MDOUBLE& distToFather) {
+		// const MDOUBLE distToFather = currentNode->dis2father();
+		mutateEntireSeq(currentSequence);
 	}
 
-	void mutateEntireSeq(tree::nodeP currentNode, int seqLength) {
-		const int nodeId = currentNode->id();
-		const int parentId = currentNode->father()->id();
-
-		for (size_t site = 0; site < seqLength; ++site) {
-			ALPHACHAR parentChar = _rootSequence[site];
-			if (_rateCategories[site] == _sp->categories()) continue;
-			ALPHACHAR nextChar = _cpijGam.getRandomChar(_rateCategories[site], nodeId, parentChar, *_rng);
-			if (nextChar != parentChar){
-				_subManager.handleEvent(nodeId, site, nextChar, _rateCategories, _sp.get(), _rootSequence);
+	void mutateEntireSeq(sequence& currentSequence) {
+		const int nodeId = currentSequence.id();
+		
+		// Check if this is a leaf we're saving (low memory mode)
+		if (_alignedSequenceMap != nullptr && (*_nodesToSave)[nodeId]) {
+			const std::vector<int>& gapStructure = _alignedSequenceMap->at(nodeId);
+			
+			size_t site = 0;
+			for (int blockSize : gapStructure) {
+				if (blockSize < 0) {
+					// Gap block - skip these sites
+					site += (-blockSize);
+					continue;
+				}
+				// Non-gap block - mutate these sites
+				for (int i = 0; i < blockSize; ++i, ++site) {
+					ALPHACHAR parentChar = currentSequence[site];
+					if (_rateCategories[site] == _sp->categories()) continue;
+					auto &Pijt = _cachedPijt.getDistribution(nodeId, _rateCategories[site], parentChar);
+					ALPHACHAR nextChar = Pijt.drawSample(*_rng) - 1;
+					currentSequence[site] = nextChar;
+				}
+			}
+		} else {
+			// Normal mode - mutate all sites
+			for (size_t site = 0; site < currentSequence.seqLen(); ++site) {
+				ALPHACHAR parentChar = currentSequence[site];
+				if (_rateCategories[site] == _sp->categories()) continue;
+				auto &Pijt = _cachedPijt.getDistribution(nodeId, _rateCategories[site], parentChar);
+				ALPHACHAR nextChar = Pijt.drawSample(*_rng) - 1;
+				currentSequence[site] = nextChar;
 			}
 		}
 	}
 
-	void mutateSeqGillespie(tree::nodeP currentNode, int seqLength, MDOUBLE distToParent) {
-		const int nodeId = currentNode->id();
-		const int parentId = currentNode->father()->id();
-		MDOUBLE branchLength = distToParent;
+	// void mutateSeqGillespie(tree::nodeP currentNode, int seqLength, MDOUBLE distToParent) {
+	// 	const int nodeId = currentNode->id();
+	// 	const int parentId = currentNode->father()->id();
+	// 	MDOUBLE branchLength = distToParent;
 
-		double lambdaParam = _subManager.getReactantsSum();
-		std::exponential_distribution<double> distribution(-lambdaParam);
-		double waitingTime = distribution(*_rng);
-		if (waitingTime < 0) {
-			std::cout << branchLength << " " << lambdaParam << " " << waitingTime << "\n";
-			errorMsg::reportError("waiting time is negative :(");
+	// 	double lambdaParam = _subManager.getReactantsSum();
+	// 	std::exponential_distribution<double> distribution(-lambdaParam);
+	// 	double waitingTime = distribution(*_rng);
+	// 	if (waitingTime < 0) {
+	// 		std::cout << branchLength << " " << lambdaParam << " " << waitingTime << "\n";
+	// 		errorMsg::reportError("waiting time is negative :(");
+	// 	}
+	// 	while (waitingTime < branchLength) {
+	// 		if (waitingTime < 0) {
+	// 			std::cout << branchLength << " " << lambdaParam << " " << waitingTime << "\n";
+	// 			errorMsg::reportError("waiting time is negative :(");
+	// 		}
+
+	// 		int mutatedSite = _subManager.sampleSite(*_rng);
+	// 		ALPHACHAR parentChar = (*_currentSequence)[mutatedSite];
+	// 		ALPHACHAR nextChar = _gillespieSampler[parentChar]->drawSample(*_rng) - 1;
+	// 		_subManager.handleEvent(nodeId, mutatedSite, nextChar, _rateCategories, _sp.get(), *_currentSequence);
+
+	// 		lambdaParam = _subManager.getReactantsSum();
+	// 		branchLength = branchLength - waitingTime;
+	// 		std::exponential_distribution<double> distribution(-lambdaParam);
+	// 		waitingTime = distribution(*_rng);
+	// 	}
+	// }
+
+	void saveSequence(const sequence &currentSequence) {
+		if (_finalMsaPath.size() > 0) {
+			saveSequenceToDisk(currentSequence);
+			return;
 		}
-		while (waitingTime < branchLength) {
-			if (waitingTime < 0) {
-				std::cout << branchLength << " " << lambdaParam << " " << waitingTime << "\n";
-				errorMsg::reportError("waiting time is negative :(");
-			}
-
-			int mutatedSite = _subManager.sampleSite(*_rng);
-			ALPHACHAR parentChar = _rootSequence[mutatedSite];
-			ALPHACHAR nextChar = _gillespieSampler[parentChar]->drawSample(*_rng) - 1;
-			_subManager.handleEvent(nodeId, mutatedSite, nextChar, _rateCategories, _sp.get(), _rootSequence);
-
-			lambdaParam = _subManager.getReactantsSum();
-			branchLength = branchLength - waitingTime;
-			std::exponential_distribution<double> distribution(-lambdaParam);
-			waitingTime = distribution(*_rng);
-		}
-	}
-
-	void saveSequence(const int &nodeId, const std::string &name) {
-		sequence temp(_rootSequence);
-		temp.setName(name);
-		temp.setID(nodeId);
+		sequence temp(currentSequence);
 		_simulatedSequences->add(temp);
+	}
+
+	void saveSequenceToDisk(const sequence &currentSequence) {
+		const int nodeId = currentSequence.id();
+		
+		
+		_outputFile << ">" << currentSequence.name() << "\n";
+		
+		// Get gap structure for this sequence
+		if (_alignedSequenceMap != nullptr) {
+			const std::vector<int>& gapStructure = _alignedSequenceMap->at(nodeId);
+			size_t site = 0;
+			for (int blockSize : gapStructure) {
+				if (blockSize < 0) {
+					// Gap block - write gaps
+					_outputFile << std::string(-blockSize, '-');
+				} else {
+					// Non-gap block - write sequence characters
+					for (int i = 0; i < blockSize; ++i) {
+						_outputFile << _alph->fromInt(currentSequence[site++]);
+					}
+				}
+			}
+		} else {
+			for (size_t site = 0; site < currentSequence.seqLen(); ++site) {
+				_outputFile.put(_alph->fromInt(currentSequence[site])[0]);
+			}
+		}
+		_outputFile << "\n";
 	}
 
 	void initGillespieSampler() {
@@ -212,25 +292,26 @@ private:
 		}
 	}
 
-	bool testSumOfRates() {
-		MDOUBLE sumOfRates = 0.0;
-		for (size_t i = 0; i < _rootSequence.seqLen(); i++) {
-			ALPHACHAR currentChar = _rootSequence[i];
-			MDOUBLE currentQii = _sp->Qij(currentChar, currentChar);
-			MDOUBLE currentRate = _sp->rates(_rateCategories[i]);
-			sumOfRates += (currentQii*currentRate);
-		}
-		MDOUBLE preCalculatedSum = _subManager.getReactantsSum();
-		if (abs(preCalculatedSum - sumOfRates) > 1e-6) {
-			std::cout << "preCalculatedSum=" << preCalculatedSum << " "
-					  << "sumOfRates=" << sumOfRates;
-			errorMsg::reportError("Error in sum of rates calculation!");
-		}
-		std::cout << "preCalculatedSum is correct\n" << "preCalculatedSum=" << preCalculatedSum << " "
-					  << "sumOfRates=" << sumOfRates << "\n";
 
-		return true;
-	}
+	// bool testSumOfRates() {
+	// 	MDOUBLE sumOfRates = 0.0;
+	// 	for (size_t i = 0; i < _currentSequence->seqLen(); i++) {
+	// 		ALPHACHAR currentChar = (*_currentSequence)[i];
+	// 		MDOUBLE currentQii = _sp->Qij(currentChar, currentChar);
+	// 		MDOUBLE currentRate = _sp->rates(_rateCategories[i]);
+	// 		sumOfRates += (currentQii*currentRate);
+	// 	}
+	// 	MDOUBLE preCalculatedSum = _subManager.getReactantsSum();
+	// 	if (abs(preCalculatedSum - sumOfRates) > 1e-6) {
+	// 		std::cout << "preCalculatedSum=" << preCalculatedSum << " "
+	// 				  << "sumOfRates=" << sumOfRates;
+	// 		errorMsg::reportError("Error in sum of rates calculation!");
+	// 	}
+	// 	std::cout << "preCalculatedSum is correct\n" << "preCalculatedSum=" << preCalculatedSum << " "
+	// 				  << "sumOfRates=" << sumOfRates << "\n";
+
+	// 	return true;
+	// }
 
 	tree* _et;
 	std::shared_ptr<const stochasticProcess> _sp;
@@ -239,9 +320,10 @@ private:
 	MDOUBLE _invariantSitesProportion;
 	MDOUBLE _siteRateCorrelation;
 
-	computePijGam _cpijGam;
-	sequence _rootSequence;
-	substitutionManager _subManager;
+	CachedTransitionProbabilities _cachedPijt;
+	// computePijGam _cpijGam;
+	// sequence* _currentSequence;
+	// substitutionManager _subManager;
 	std::shared_ptr<std::vector<bool>> _nodesToSave;
 	bool _saveRates;
 	std::vector<std::unique_ptr<DiscreteDistribution>> _gillespieSampler;
@@ -252,8 +334,11 @@ private:
 	std::unique_ptr<DiscreteDistribution> _frequencySampler;
 
 	CategorySampler _rateCategorySampler;
+	std::string _finalMsaPath;
+	const std::unordered_map<size_t, std::vector<int>>* _alignedSequenceMap = nullptr;
 
 	RngType *_rng;
+	std::ofstream _outputFile;  // ADD THIS
 };
 
 #endif

@@ -233,91 +233,22 @@ public:
         _substitutionSim->setSaveRates(saveRates);
     }
 
-    void writeSeqContainerToFiles(const std::unique_ptr<sequenceContainer> seqContainer, const std::string& directory, bool isFirst) {
-        
-        auto seq = seqContainer->constTaxaBegin();
 
-        for(; seq != seqContainer->constTaxaEnd(); ++seq) {
-
-            std::ofstream file(directory + "/" + std::to_string((*seq).id()) + ".fasta", 
-                               isFirst ? std::ios_base::out : std::ios_base::app);
-            if (!file.is_open()) {
-                // Handle error - couldn't open the file
-                continue;
-            }
-            if (isFirst) file << ">" << (*seq).name() << "\n";
-            file << (*seq).toString();
-            file.close();
-
-        }
-    }
-
-    void simulateAndWriteSubstitutions(size_t sequenceLength, const std::string& directory) {
-        size_t chunkSize = 1024;
-        size_t numberOfChunks = (size_t)sequenceLength / chunkSize;
-        size_t remainder = sequenceLength % chunkSize; /* Likely uses the result of the division. */
-        // std::cout << "number of chunks: " << numberOfChunks << ", with remainder: " << remainder << "\n"; 
-
-        for (size_t i = 0; i < numberOfChunks; i++) {
-            // std::cout << i << "\n";
-            _substitutionSim->generate_substitution_log(chunkSize);
-            auto seqContainer = _substitutionSim->getSequenceContainer();
-            if (i == 0) {
-                writeSeqContainerToFiles(std::move(seqContainer), directory, true);
-                continue;
-            }
-            writeSeqContainerToFiles(std::move(seqContainer), directory, false);
-        }
-        if (remainder == 0) return;
-        
-        _substitutionSim->generate_substitution_log(remainder);
-        auto seqContainer = _substitutionSim->getSequenceContainer();
-
-        if (numberOfChunks == 0) {
-            writeSeqContainerToFiles(std::move(seqContainer), directory, true);
-            return;
-        }
-        writeSeqContainerToFiles(std::move(seqContainer), directory, false);
+    void simulateAndWriteSubstitutions(size_t sequenceLength, const std::string& filePath) {
+        _substitutionSim->setWriteFolder(filePath);
+        _substitutionSim->generate_substitution_log(sequenceLength);
     }
 
     std::shared_ptr<sequenceContainer> simulateSubstitutions(size_t sequenceLength) {
-        size_t chunkSize = 1024;
-        size_t numberOfChunks = (size_t)sequenceLength / chunkSize;
-        size_t remainder = sequenceLength % chunkSize; /* Likely uses the result of the division. */
-        // std::cout << "number of chunks: " << numberOfChunks << ", with remainder: " << remainder << "\n"; 
-
-        std::shared_ptr<sequenceContainer> fullSequence;
-        for (size_t i = 0; i < numberOfChunks; i++) {
-            // std::cout << i << "\n";
-            _substitutionSim->generate_substitution_log(chunkSize);
-            auto seqContainer = _substitutionSim->getSequenceContainer();
-            if (i == 0) {
-                fullSequence = std::move(seqContainer);
-                continue;
-            }
-            for (size_t j = 0; j < fullSequence->numberOfSeqs(); ++j) {
-                int idOfSeq = seqContainer->placeToId(j);
-                (*fullSequence)[idOfSeq] += (*seqContainer)[idOfSeq];
-            }
-        }
-        if (remainder == 0) return fullSequence;
-
-        
-        _substitutionSim->generate_substitution_log(remainder);
+        _substitutionSim->generate_substitution_log(sequenceLength);
         auto seqContainer = _substitutionSim->getSequenceContainer();
 
-        if (fullSequence == nullptr) {
-            fullSequence = std::move(seqContainer);
-            return fullSequence;
-        }
-        for (size_t j = 0; j < fullSequence->numberOfSeqs(); ++j) {
-            int idOfSeq = seqContainer->placeToId(j);
-            (*fullSequence)[idOfSeq] += (*seqContainer)[idOfSeq];
-        }
-        
+        return seqContainer;
 
-        return fullSequence;
+    }
 
+    void setAlignedSequenceMap(const std::unordered_map<size_t, std::vector<int>>& alignedSeq) {
+        _substitutionSim->setAlignedSequenceMap(alignedSeq);
     }
 
 

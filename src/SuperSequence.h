@@ -16,6 +16,7 @@ public:
 
 private:
     SequenceType _sequence;
+    std::vector<SequenceType::iterator> _positionToIterator;
     size_t _randomSequenceCounter;
     size_t _leafNum;
     size_t _numSequences;
@@ -25,9 +26,12 @@ public:
         _msaSeqLength = 0;
         _leafNum = 0;
         _numSequences = numSequences;
+        _positionToIterator.resize(sequenceSize + 1);
+
         for (size_t i = 1; i <= sequenceSize; ++i) {
             columnContainer column = {i, std::numeric_limits<size_t>::max(), false};
             _sequence.push_back(column);
+            _positionToIterator[i] = std::prev(_sequence.end());
         }
         _randomSequenceCounter = sequenceSize + 1;
     }
@@ -58,8 +62,10 @@ public:
             newColumn.isColumn = true;
             ++_msaSeqLength;
         }
+        auto inserted_iterator = _sequence.insert(position ,newColumn);
+        _positionToIterator.push_back(inserted_iterator);
 
-        return _sequence.insert(position ,newColumn);
+        return inserted_iterator;
     }
 
 
@@ -103,7 +109,9 @@ public:
     }
 
 
-
+    SequenceType::iterator getIteratorByPosition(size_t position) {
+        return _positionToIterator[position];
+    }
 
 
     void printSequence() {

@@ -4,7 +4,7 @@
 #include <pybind11/stl.h>
 #include <memory>
 
-#include "./pcg_random.hpp"
+#include "../libs/pcg/pcg_random.hpp"
 #include "./Simulator.h"
 
 namespace py = pybind11;

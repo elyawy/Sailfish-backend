@@ -14,14 +14,14 @@ const unsigned char INVALID_CHAR = 255;
 class substitutionManager
 {
 private:
-    using changeMap = std::vector<ALPHACHAR>;
-    std::vector<std::unique_ptr<changeMap>> _substitutionVec;
+    // using changeMap = std::vector<ALPHACHAR>;
+    std::vector<std::unique_ptr<sequence>> _nodeIdToSequencess;
     std::unique_ptr<FastRejectionSampler> _siteSampler;
     MDOUBLE _sumOfReactantsXRates;
     // size_t _changeCounter;
 public:
     substitutionManager(int numberOfTreeNodes) {
-        _substitutionVec.resize(numberOfTreeNodes);
+        _nodeIdToSequencess.resize(numberOfTreeNodes);
         _sumOfReactantsXRates = 0.0;
         // _changeCounter = 0;
     }
@@ -35,13 +35,17 @@ public:
     }
 
 
-    ALPHACHAR getCharacter(const int nodeId, const size_t position, const sequence &rootSeq) {
-        if (_substitutionVec[nodeId] == nullptr) return rootSeq[position];
+    // ALPHACHAR getCharacter(const int nodeId, const size_t position, const sequence &rootSeq) {
+    //     if (_substitutionVec[nodeId] == nullptr) return rootSeq[position];
         
-        changeMap* currentChanges = (_substitutionVec[nodeId].get());
-        size_t isInvalid = ((*currentChanges)[position] == INVALID_CHAR);
-        if (isInvalid) return rootSeq[position];
-        return (*currentChanges)[position];
+    //     changeMap* currentChanges = (_substitutionVec[nodeId].get());
+    //     size_t isInvalid = ((*currentChanges)[position] == INVALID_CHAR);
+    //     if (isInvalid) return rootSeq[position];
+    //     return (*currentChanges)[position];
+    // }
+    void initializeRoot(std::unique_ptr<sequence> rootSeq) {
+        _nodeIdToSequences[0] = std::move(rootSeq);
+        _currentSequence = _nodeIdToSequences[0].get(); // Now just a raw pointer
     }
 
     void handleRootSequence(size_t sequenceLength,
@@ -86,9 +90,9 @@ public:
                     sequence &rootSeq) {
         // std::cout << "Change in node=" << nodeId << " in position=" << position << "\n";
 
-        if (_substitutionVec[nodeId] == nullptr) {
-            _substitutionVec[nodeId] = std::make_unique<changeMap>(rootSeq.seqLen(), INVALID_CHAR);
-        }
+        // if (_substitutionVec[nodeId] == nullptr) {
+        //     _substitutionVec[nodeId] = std::make_unique<changeMap>(rootSeq.seqLen(), INVALID_CHAR);
+        // }
 
         ALPHACHAR previousChar = rootSeq[position];
 
@@ -101,8 +105,8 @@ public:
         _siteSampler->updateWeight(position, newWeight);
 
 
-        (*_substitutionVec[nodeId])[position] = previousChar;
-        rootSeq[position] = change;
+        // (*_substitutionVec[nodeId])[position] = previousChar;
+        // rootSeq[position] = change;
     }
 
     template <typename Generator>

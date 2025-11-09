@@ -21,7 +21,8 @@ private:
 
 public:
     SimulationProtocol(tree* phylotree) : _tree(phylotree),
-                                          _numberOfBranches(phylotree->getNodesNum()-1) {}
+                                          _numberOfBranches(phylotree->getNodesNum()-1),
+                                          _minSequenceSize(0) {}
 
     void setInsertionLengthDistributions(std::vector<DiscreteDistribution*> lengthDistributions) {
         if (lengthDistributions.size() != _numberOfBranches) {
