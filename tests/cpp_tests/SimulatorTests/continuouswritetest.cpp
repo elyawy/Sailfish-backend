@@ -8,7 +8,7 @@
 
 // takes 10 minutes currently
 int main() {
-    tree tree_("../../trees/normalbranches_nLeaves10000.treefile");
+    tree tree_("../../trees/normalbranches_nLeaves1000.treefile");
     // tree tree_("(A:0.1,B:0.2):0.3;", false);
     // tree_.getRoot()->orderSonsByHeight();
     std::time_t t1 = 1;//std::time(0);
@@ -73,9 +73,9 @@ int main() {
     std::cout << msaLength << "\n";
     // std::cin.get();
 
-    sim.setAlignedSequenceMap(msa.getAlignedSequence());
+    sim.setAlignedSequenceMap(msa);
 
-    sim.simulateAndWriteSubstitutions(msaLength, "/home/pupkolab/best.fasta");
+    sim.simulateAndWriteSubstitutions(msaLength, "best.fasta");
     // msa.setSubstitutionsFolder( "/home/elyalab/temp/writing_test");
     // msa.writeMsaFromDir("/home/elyalab/temp1.fasta");
 

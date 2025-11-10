@@ -11,12 +11,12 @@
 #include "rateMatrixSim.h"
 #include "modelFactory.h"
 
-template<typename RngType = std::mt19937_64>
+template<typename RngType = std::mt19937_64, size_t AlphabetSize = 4>
 class Simulator
 {
 private:
     SimulationProtocol* _protocol;
-    std::unique_ptr<rateMatrixSim<RngType>> _substitutionSim;
+    std::unique_ptr<rateMatrixSim<RngType, AlphabetSize>> _substitutionSim;
     size_t _seed;
 	RngType _rng;
     std::uniform_real_distribution<double> _biased_coin;
@@ -180,7 +180,7 @@ public:
     }
 
     void initSubstitionSim(modelFactory& mFac) {
-        _substitutionSim = std::make_unique<rateMatrixSim<RngType>>(mFac, _nodesToSave);
+        _substitutionSim = std::make_unique<rateMatrixSim<RngType, AlphabetSize>>(mFac, _nodesToSave);
         // _substitutionSim->setSeed(_seed);
         _substitutionSim->setRng(&_rng);
     }
