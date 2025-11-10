@@ -13,7 +13,8 @@
 #include "CategorySampler.h"
 #include "CachedTransitionProbabilities.h"
 
-template<typename RngType = std::mt19937_64>
+
+template<typename RngType = std::mt19937_64,size_t AlphabetSize = 4>
 class rateMatrixSim {
 public:
 	explicit rateMatrixSim(modelFactory& mFac, std::shared_ptr<std::vector<bool>> nodesToSave) : 
@@ -25,10 +26,9 @@ public:
 		_rateCategorySampler(buildRateCategoryProbs(mFac), mFac.getSiteRateCorrelation()),
 		_finalMsaPath("") {
 		
-		size_t alphaSize = _sp->alphabetSize();
 		
 		std::vector<MDOUBLE> frequencies;
-		for (int j = 0; j < alphaSize; ++j) {
+		for (int j = 0; j < AlphabetSize; ++j) {
 			frequencies.push_back(_sp->freq(j));
 		}
 		_frequencySampler = std::make_unique<DiscreteDistribution>(frequencies);
@@ -271,19 +271,19 @@ private:
 		_outputFile << "\n";
 	}
 
-	void initGillespieSampler() {
-		_gillespieSampler.resize(_alph->size());
-		for (size_t i = 0; i < _alph->size(); ++i) {
-			std::vector<double> qRates(_alph->size(), 0.0);
-			double sum = -_sp->Qij(i,i);
-			double normalizer = 1.0 / sum;
-			for (size_t j = 0; j < _alph->size(); ++j) {
-				if (i==j) continue;
-				qRates[j] = _sp->Qij(i,j) * normalizer;
-			}
-			_gillespieSampler[i] = std::make_unique<DiscreteDistribution>(qRates);
-		}
-	}
+	// void initGillespieSampler() {
+	// 	_gillespieSampler.resize(_alph->size());
+	// 	for (size_t i = 0; i < _alph->size(); ++i) {
+	// 		std::vector<double> qRates(_alph->size(), 0.0);
+	// 		double sum = -_sp->Qij(i,i);
+	// 		double normalizer = 1.0 / sum;
+	// 		for (size_t j = 0; j < _alph->size(); ++j) {
+	// 			if (i==j) continue;
+	// 			qRates[j] = _sp->Qij(i,j) * normalizer;
+	// 		}
+	// 		_gillespieSampler[i] = std::make_unique<DiscreteDistribution>(qRates);
+	// 	}
+	// }
 
 	void setSaveStateLeaves(const tree::nodeP &node) {
 		for(auto &node: node->getSons()) {
@@ -320,7 +320,7 @@ private:
 	MDOUBLE _invariantSitesProportion;
 	MDOUBLE _siteRateCorrelation;
 
-	CachedTransitionProbabilities _cachedPijt;
+	CachedTransitionProbabilities<AlphabetSize> _cachedPijt;
 	// computePijGam _cpijGam;
 	// sequence* _currentSequence;
 	// substitutionManager _subManager;

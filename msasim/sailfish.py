@@ -415,7 +415,10 @@ class Simulator:
         # verify sim_protocol
         if self._verify_sim_protocol(simProtocol):
             self._simProtocol = simProtocol
-            self._simulator = _Sailfish.Simulator(self._simProtocol._sim)
+            if simulation_type == SIMULATION_TYPE.PROTEIN:
+                self._simulator = _Sailfish.AminoSimulator(self._simProtocol._sim)
+            else:
+                self._simulator = _Sailfish.NucleotideSimulator(self._simProtocol._sim)
         else:
             raise ValueError(f"failed to verify simProtocol")
         

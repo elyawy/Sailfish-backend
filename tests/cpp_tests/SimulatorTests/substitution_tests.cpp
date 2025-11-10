@@ -9,7 +9,7 @@
 
 // takes 10 minutes currently
 int main() {
-    tree tree_("../../trees/normalbranches_nLeaves100000.treefile");
+    tree tree_("../../trees/normalbranches_nLeaves10000.treefile");
     // tree tree_("(A:0.5,B:0.5);", false);
     // tree tree_("(C:0.01,(A:0.01,B:0.01):0.01);", false);
     // tree tree_("((A:0.01,B:0.01):0.01,C:0.01);", false);
@@ -48,7 +48,7 @@ int main() {
 
     protocol.setSeed(t1);
 
-    Simulator<pcg64> sim(&protocol);
+    Simulator<pcg32_fast, 4> sim(&protocol);
     modelFactory mFac(&tree_);
 
     mFac.setAlphabet(alphabetCode::NUCLEOTIDE);
@@ -67,7 +67,7 @@ int main() {
     // sim.setSaveRates(true);
 
     std::cout << "starting subs sim\n";
-    sim.simulateAndWriteSubstitutions(rootLength, "/home/pupkolab/best.fasta");
+    sim.simulateAndWriteSubstitutions(rootLength, "best.fasta");
     // auto seqContainer = sim.simulateSubstitutions(rootLength);
 
     

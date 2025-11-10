@@ -4,13 +4,13 @@
 #include <vector>
 #include <unordered_map>
 #include "../libs/Phylolib/includes/tree.h"
-#include "../libs/Phylolib/includes/DiscreteDistribution.h"
+#include "../libs/Phylolib/includes/DiscreteNDistribution.h"
 #include "../libs/Phylolib/includes/stochasticProcess.h"
 
+template<size_t AlphabetSize>
 class CachedTransitionProbabilities {
 public:
     CachedTransitionProbabilities(const tree& _tree, const stochasticProcess& _sp)
-        : _alphabetSize(_sp.alphabetSize())
     {
         const size_t numNodes = _tree.getNodesNum();
         const size_t numCategories = _sp.categories();
@@ -42,18 +42,18 @@ public:
                     size_t newIndex = _distributions.size();
                     branchLengthToIndex[key] = newIndex;
                     
-                    std::vector<DiscreteDistribution> nodeDistributions;
-                    nodeDistributions.reserve(numCategories * _alphabetSize);
+                    std::vector<DiscreteNDistribution<AlphabetSize>> nodeDistributions;
+                    nodeDistributions.reserve(numCategories * AlphabetSize);
                     
                     for (size_t cat = 0; cat < numCategories; ++cat) {
                         const MDOUBLE rate = _sp.rates(cat);
                         
-                        for (size_t i = 0; i < _alphabetSize; ++i) {
+                        for (size_t i = 0; i < AlphabetSize; ++i) {
                             std::vector<double> probabilities;
-                            probabilities.reserve(_alphabetSize);
+                            probabilities.reserve(AlphabetSize);
                             MDOUBLE normalizingFactor = 0.0;
                             
-                            for (size_t j = 0; j < _alphabetSize; ++j) {
+                            for (size_t j = 0; j < AlphabetSize; ++j) {
                                 MDOUBLE prob = _sp.Pij_t(i, j, branchLength * rate);
                                 // std::cout << "(" << i << j << ")=" <<prob << "\n";
 
@@ -81,18 +81,22 @@ public:
         }
     }
     
-    DiscreteDistribution& getDistribution(int nodeID, int category, int character)  {
+    DiscreteNDistribution<AlphabetSize>& getDistribution(int nodeID, int category, int character)  {
         size_t uniqueIndex = _nodeToUniqueIndex[nodeID];
-        size_t distributionIndex = category * _alphabetSize + character;
+        size_t distributionIndex = category * AlphabetSize + character;
+
         return _distributions[uniqueIndex][distributionIndex];
     }
+
+
 
     size_t getNumUniqueBranches() {return _distributions.size();}
 
 private:
-    std::vector<std::vector<DiscreteDistribution>> _distributions;
+    // std::vector<std::vector<DiscreteNDistribution<20>>> _distributionsAmino;
+    std::vector<std::vector<DiscreteNDistribution<AlphabetSize>>> _distributions;
+
     std::vector<size_t> _nodeToUniqueIndex;
-    const size_t _alphabetSize;
 };
 
 #endif // CACHED_TRANSITION_PROBABILITIES_H

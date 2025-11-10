@@ -30,7 +30,7 @@ PYBIND11_MODULE(_Sailfish, m) {
             Tree
     )pbdoc";
 
-    using SelectedRNG = pcg64;
+    using SelectedRNG = pcg32_fast;
 
     py::class_<Block>(m, "Block")
         .def(py::init<size_t, size_t>());
@@ -132,20 +132,35 @@ PYBIND11_MODULE(_Sailfish, m) {
         .def("reset", &modelFactory::resetFactory);
 
 
-    py::class_<Simulator<SelectedRNG>>(m, "Simulator")
+    py::class_<Simulator<SelectedRNG, 20>>(m, "AminoSimulator")
         .def(py::init<SimulationProtocol*>())
-        .def("reset_sim", &Simulator<SelectedRNG>::resetSimulator)
-        .def("gen_indels", &Simulator<SelectedRNG>::generateSimulation)
-        .def("run_sim", &Simulator<SelectedRNG>::runSimulator)
-        .def("init_substitution_sim", &Simulator<SelectedRNG>::initSubstitionSim)
-        .def("gen_substitutions", &Simulator<SelectedRNG>::simulateSubstitutions)
-        .def("gen_substitutions_to_file", &Simulator<SelectedRNG>::simulateAndWriteSubstitutions)
-        .def("set_aligned_sequence_map", &Simulator<SelectedRNG>::setAlignedSequenceMap)
-        .def("save_site_rates", &Simulator<SelectedRNG>::setSaveRates)
-        .def("get_site_rates", &Simulator<SelectedRNG>::getSiteRates)
-        .def("save_all_nodes_sequences", &Simulator<SelectedRNG>::setSaveAllNodes)
-        .def("save_root_sequence", &Simulator<SelectedRNG>::setSaveRoot)
-        .def("get_saved_nodes_mask", &Simulator<SelectedRNG>::getNodesSaveList);
+        .def("reset_sim", &Simulator<SelectedRNG, 20>::resetSimulator)
+        .def("gen_indels", &Simulator<SelectedRNG, 20>::generateSimulation)
+        .def("run_sim", &Simulator<SelectedRNG, 20>::runSimulator)
+        .def("init_substitution_sim", &Simulator<SelectedRNG, 20>::initSubstitionSim)
+        .def("gen_substitutions", &Simulator<SelectedRNG, 20>::simulateSubstitutions)
+        .def("gen_substitutions_to_file", &Simulator<SelectedRNG, 20>::simulateAndWriteSubstitutions)
+        .def("set_aligned_sequence_map", &Simulator<SelectedRNG, 20>::setAlignedSequenceMap)
+        .def("save_site_rates", &Simulator<SelectedRNG, 20>::setSaveRates)
+        .def("get_site_rates", &Simulator<SelectedRNG, 20>::getSiteRates)
+        .def("save_all_nodes_sequences", &Simulator<SelectedRNG, 20>::setSaveAllNodes)
+        .def("save_root_sequence", &Simulator<SelectedRNG, 20>::setSaveRoot)
+        .def("get_saved_nodes_mask", &Simulator<SelectedRNG, 20>::getNodesSaveList);
+
+    py::class_<Simulator<SelectedRNG, 4>>(m, "NucleotideSimulator")
+        .def(py::init<SimulationProtocol*>())
+        .def("reset_sim", &Simulator<SelectedRNG, 4>::resetSimulator)
+        .def("gen_indels", &Simulator<SelectedRNG, 4>::generateSimulation)
+        .def("run_sim", &Simulator<SelectedRNG, 4>::runSimulator)
+        .def("init_substitution_sim", &Simulator<SelectedRNG, 4>::initSubstitionSim)
+        .def("gen_substitutions", &Simulator<SelectedRNG, 4>::simulateSubstitutions)
+        .def("gen_substitutions_to_file", &Simulator<SelectedRNG, 4>::simulateAndWriteSubstitutions)
+        .def("set_aligned_sequence_map", &Simulator<SelectedRNG, 4>::setAlignedSequenceMap)
+        .def("save_site_rates", &Simulator<SelectedRNG, 4>::setSaveRates)
+        .def("get_site_rates", &Simulator<SelectedRNG, 4>::getSiteRates)
+        .def("save_all_nodes_sequences", &Simulator<SelectedRNG, 4>::setSaveAllNodes)
+        .def("save_root_sequence", &Simulator<SelectedRNG, 4>::setSaveRoot)
+        .def("get_saved_nodes_mask", &Simulator<SelectedRNG, 4>::getNodesSaveList);
 
 
     py::class_<MSA>(m, "Msa")
