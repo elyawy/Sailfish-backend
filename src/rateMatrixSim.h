@@ -268,7 +268,7 @@ private:
 			}
 		} else {
 			for (size_t site = 0; site < currentSequence.seqLen(); ++site) {
-				_outputFile << _charLookup[currentSequence[site++]];
+				_outputFile << _charLookup[currentSequence[site]];
 			}
 		}
 		_outputFile << "\n";
