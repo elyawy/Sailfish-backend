@@ -9,14 +9,14 @@
 
 // takes 10 minutes currently
 int main() {
-    tree tree_("../../trees/normalbranches_nLeaves10000.treefile");
+    tree tree_("../../trees/normalbranches_nLeaves100000.treefile");
     // tree tree_("(A:0.5,B:0.5);", false);
     // tree tree_("(C:0.01,(A:0.01,B:0.01):0.01);", false);
     // tree tree_("((A:0.01,B:0.01):0.01,C:0.01);", false);
 
     // tree tree_("((A:0.0,B:0.0):0.0,C:0.01);", false);
 
-    std::time_t t1 = 42;//std::time(0);
+    std::time_t t1 = 123;//std::time(0);
     vector<DiscreteDistribution*> insertionDists(tree_.getNodesNum() - 1);
     vector<DiscreteDistribution*> deletionDists(tree_.getNodesNum() - 1);
 

@@ -554,9 +554,7 @@ class Simulator:
     
     def simulate_low_memory(self, output_file_path: pathlib.Path) -> Msa:
         if self._simProtocol._is_insertion_rate_zero and self._simProtocol._is_deletion_rate_zero:
-            msa = Msa(sum(self.get_sequences_to_save()),
-                        self._simProtocol.get_sequence_size(),
-                        self.get_sequences_to_save())
+            pass
         else:
             blocktree = self.gen_indels()
             msa = Msa(blocktree._get_Sailfish_blocks(),
@@ -566,8 +564,10 @@ class Simulator:
 
         # sim.init_substitution_sim(mFac)
         if self._simulation_type != SIMULATION_TYPE.NOSUBS:
-            self._simulator.gen_substitutions_to_file(msa.get_length(), str(output_file_path))
-
+            self._simulator.gen_substitutions_to_file(self._simProtocol.get_sequence_size(), 
+                                                      str(output_file_path))
+        else:
+            msa.write_msa(str(output_file_path))
 
     
     def __call__(self) -> Msa:

@@ -24,13 +24,16 @@ public:
 		_cachedPijt(*mFac.getTree(), *mFac.getStochasticProcess()),
 		_nodesToSave(nodesToSave), _saveRates(false),
 		_rateCategorySampler(buildRateCategoryProbs(mFac), mFac.getSiteRateCorrelation()),
+		_numCategories(_sp->categories()),
 		_finalMsaPath("") {
 		
 		
 		std::vector<MDOUBLE> frequencies;
 		for (int j = 0; j < AlphabetSize; ++j) {
 			frequencies.push_back(_sp->freq(j));
+			_charLookup[j] = _alph->fromInt(j);
 		}
+
 		_frequencySampler = std::make_unique<DiscreteDistribution>(frequencies);
 		_simulatedSequences = std::make_unique<sequenceContainer>();
 	}
@@ -75,7 +78,7 @@ public:
 		for (int h = 0; h < seqLength; h++)  {
 			int selectedRandomCategory = _rateCategorySampler.drawSample(*_rng);
 			_rateCategories[h] = selectedRandomCategory;
-			if (selectedRandomCategory >= _sp->categories()) {
+			if (selectedRandomCategory >= _numCategories) {
 				ratesVec[h] = 0.0;
 				continue;
 			}
@@ -134,7 +137,7 @@ private:
         auto sp = mFac.getStochasticProcess();
         MDOUBLE invariantProp = mFac.getInvariantSitesProportion();
         
-        for (int j = 0; j < sp->categories(); ++j) {
+        for (int j = 0; j <  sp->categories(); ++j) {
             MDOUBLE currentRateProb = sp->ratesProb(j);
             currentRateProb = currentRateProb * (1.0 - invariantProp);
             rateCategoriesProbs.push_back(currentRateProb);
@@ -185,7 +188,7 @@ private:
 				// Non-gap block - mutate these sites
 				for (int i = 0; i < blockSize; ++i, ++site) {
 					ALPHACHAR parentChar = currentSequence[site];
-					if (_rateCategories[site] == _sp->categories()) continue;
+					if (_rateCategories[site] == _numCategories) continue;
 					auto &Pijt = _cachedPijt.getDistribution(nodeId, _rateCategories[site], parentChar);
 					ALPHACHAR nextChar = Pijt.drawSample(*_rng) - 1;
 					currentSequence[site] = nextChar;
@@ -195,7 +198,7 @@ private:
 			// Normal mode - mutate all sites
 			for (size_t site = 0; site < currentSequence.seqLen(); ++site) {
 				ALPHACHAR parentChar = currentSequence[site];
-				if (_rateCategories[site] == _sp->categories()) continue;
+				if (_rateCategories[site] == _numCategories) continue;
 				auto &Pijt = _cachedPijt.getDistribution(nodeId, _rateCategories[site], parentChar);
 				ALPHACHAR nextChar = Pijt.drawSample(*_rng) - 1;
 				currentSequence[site] = nextChar;
@@ -259,13 +262,13 @@ private:
 				} else {
 					// Non-gap block - write sequence characters
 					for (int i = 0; i < blockSize; ++i) {
-						_outputFile << _alph->fromInt(currentSequence[site++]);
+						_outputFile << _charLookup[currentSequence[site++]];
 					}
 				}
 			}
 		} else {
 			for (size_t site = 0; site < currentSequence.seqLen(); ++site) {
-				_outputFile.put(_alph->fromInt(currentSequence[site])[0]);
+				_outputFile << _charLookup[currentSequence[site++]];
 			}
 		}
 		_outputFile << "\n";
@@ -335,10 +338,15 @@ private:
 
 	CategorySampler _rateCategorySampler;
 	std::string _finalMsaPath;
+	const size_t _numCategories;
+
+	std::array<std::string, AlphabetSize> _charLookup;
+
 	const std::unordered_map<size_t, std::vector<int>>* _alignedSequenceMap = nullptr;
 
 	RngType *_rng;
-	std::ofstream _outputFile;  // ADD THIS
+	std::ofstream _outputFile;
+
 };
 
 #endif
