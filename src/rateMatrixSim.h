@@ -19,11 +19,11 @@ class rateMatrixSim {
 public:
 	explicit rateMatrixSim(modelFactory& mFac, std::shared_ptr<std::vector<bool>> nodesToSave) : 
 		_et(mFac.getTree()), _sp(mFac.getStochasticProcess()), _alph(mFac.getAlphabet()), 
-		_invariantSitesProportion(mFac.getInvariantSitesProportion()),
-		_siteRateCorrelation(mFac.getSiteRateCorrelation()),
+		// _invariantSitesProportion(mFac.getInvariantSitesProportion()),
+		// _siteRateCorrelation(mFac.getSiteRateCorrelation()),
 		_cachedPijt(*mFac.getTree(), *mFac.getStochasticProcess()),
 		_nodesToSave(nodesToSave), _saveRates(false),
-		_rateCategorySampler(buildRateCategoryProbs(mFac), mFac.getSiteRateCorrelation()),
+		_rateCategorySampler(mFac.getTransitionMatrix(), mFac.getStationaryProbs()),
 		_numCategories(_sp->categories()),
 		_finalMsaPath("") {
 		
@@ -132,20 +132,6 @@ public:
 	}
 
 private:
-    static std::vector<MDOUBLE> buildRateCategoryProbs(modelFactory& mFac) {
-        std::vector<MDOUBLE> rateCategoriesProbs;
-        auto sp = mFac.getStochasticProcess();
-        MDOUBLE invariantProp = mFac.getInvariantSitesProportion();
-        
-        for (int j = 0; j <  sp->categories(); ++j) {
-            MDOUBLE currentRateProb = sp->ratesProb(j);
-            currentRateProb = currentRateProb * (1.0 - invariantProp);
-            rateCategoriesProbs.push_back(currentRateProb);
-        }
-        if (invariantProp > 0.0) rateCategoriesProbs.push_back(invariantProp);
-        
-        return rateCategoriesProbs;
-    }
 
 	sequence generateRootSeq(int seqLength, std::vector<MDOUBLE>& ratesVec) {
 		sequence rootSeq(_alph);
@@ -320,8 +306,8 @@ private:
 	std::shared_ptr<const stochasticProcess> _sp;
 	const alphabet* _alph;
 
-	MDOUBLE _invariantSitesProportion;
-	MDOUBLE _siteRateCorrelation;
+	// MDOUBLE _invariantSitesProportion;
+	// MDOUBLE _siteRateCorrelation;
 
 	CachedTransitionProbabilities<AlphabetSize> _cachedPijt;
 	// computePijGam _cpijGam;

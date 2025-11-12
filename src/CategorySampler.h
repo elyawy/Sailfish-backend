@@ -7,33 +7,72 @@
 #include "../libs/Phylolib/includes/DiscreteDistribution.h"
 
 /**
- * CategorySampler handles sampling rate categories with optional autocorrelation.
+ * CategorySampler handles sampling rate categories with Markov chain autocorrelation.
  * 
- * When correlation = 0: Categories are sampled independently from stationary distribution
- * When correlation > 0: Adjacent sites have correlated categories (autocorrelation model)
+ * Uses a transition matrix P[i][j] = probability of transitioning from category i to j.
+ * The stationary distribution is used only for sampling the initial category.
  * 
- * Uses transition matrix: P[i][j] = ρ * δ(i,j) + (1-ρ) * π[j]
- * where ρ is correlation and π is the stationary distribution
+ * Compatible with Yang (1995) auto-discrete-gamma model and extensions like G+I with autocorrelation.
  */
 class CategorySampler {
 public:
     /**
      * Constructor
-     * @param stationaryProbs - Stationary distribution π (probabilities of each category)
-     * @param correlation - Autocorrelation parameter ρ ∈ [0, 1]
+     * @param transitionMatrix - Transition probability matrix P[i][j] (must be square, rows sum to 1)
+     * @param stationaryProbs - Stationary distribution π for initial sampling (must sum to 1)
      */
-    CategorySampler(const std::vector<MDOUBLE>& stationaryProbs, MDOUBLE correlation)
-        : _stationaryProbs(stationaryProbs), _correlation(correlation), _previousCategory(-1) {
+    CategorySampler(const std::vector<std::vector<MDOUBLE>>& transitionMatrix,
+                   const std::vector<MDOUBLE>& stationaryProbs)
+        : _stationaryProbs(stationaryProbs), _previousCategory(-1) {
         
-        if (correlation < 0.0 || correlation > 1.0) {
-            errorMsg::reportError("CategorySampler: correlation must be between 0 and 1");
-        }
-        
+        // Validate inputs
         if (stationaryProbs.empty()) {
             errorMsg::reportError("CategorySampler: stationary probabilities cannot be empty");
         }
         
-        buildTransitionMatrix();
+        if (transitionMatrix.empty()) {
+            errorMsg::reportError("CategorySampler: transition matrix cannot be empty");
+        }
+        
+        size_t numCategories = stationaryProbs.size();
+        
+        // Check matrix is square and matches stationary probs dimensions
+        if (transitionMatrix.size() != numCategories) {
+            errorMsg::reportError("CategorySampler: transition matrix dimensions don't match stationary probabilities");
+        }
+        
+        MDOUBLE stationarySum = 0.0;
+        for (size_t i = 0; i < numCategories; ++i) {
+            if (transitionMatrix[i].size() != numCategories) {
+                errorMsg::reportError("CategorySampler: transition matrix must be square");
+            }
+            
+            // Validate row sums to 1 and non-negative
+            MDOUBLE rowSum = 0.0;
+            for (size_t j = 0; j < numCategories; ++j) {
+                if (transitionMatrix[i][j] < 0.0) {
+                    errorMsg::reportError("CategorySampler: transition probabilities must be non-negative");
+                }
+                rowSum += transitionMatrix[i][j];
+            }
+            
+            if (std::abs(rowSum - 1.0) > 1e-6) {
+                errorMsg::reportError("CategorySampler: each row of transition matrix must sum to 1");
+            }
+            
+            // Validate stationary probs
+            if (stationaryProbs[i] < 0.0) {
+                errorMsg::reportError("CategorySampler: stationary probabilities must be non-negative");
+            }
+            stationarySum += stationaryProbs[i];
+        }
+        
+        if (std::abs(stationarySum - 1.0) > 1e-6) {
+            errorMsg::reportError("CategorySampler: stationary probabilities must sum to 1");
+        }
+        
+        // Build transition samplers from provided matrix
+        buildTransitionSamplers(transitionMatrix);
     }
     
     /**
@@ -61,50 +100,18 @@ public:
         // Sample new initial category from stationary distribution
         _previousCategory = -1;
     }
-    
-    /**
-     * Get current correlation parameter
-     */
-    MDOUBLE getCorrelation() const { return _correlation; }
-    
-    /**
-     * Update correlation parameter and rebuild transition matrix
-     */
-    void setCorrelation(MDOUBLE correlation) {
-        if (correlation < 0.0 || correlation > 1.0) {
-            errorMsg::reportError("CategorySampler: correlation must be between 0 and 1");
-        }
-        
-        if (_correlation == correlation) return;
-        
-        _correlation = correlation;
-        buildTransitionMatrix();
-        // Note: _previousCategory is not reset, allowing smooth transition
-    }
 
 private:
-    void buildTransitionMatrix() {
-        size_t numCategories = _stationaryProbs.size();
+    void buildTransitionSamplers(const std::vector<std::vector<MDOUBLE>>& transitionMatrix) {
+        size_t numCategories = transitionMatrix.size();
         _transitionSamplers.clear();
         _transitionSamplers.reserve(numCategories);
         
         for (size_t i = 0; i < numCategories; ++i) {
-            std::vector<MDOUBLE> transitionProbs(numCategories);
-            
-            for (size_t j = 0; j < numCategories; ++j) {
-                // P[i][j] = ρ * δ(i,j) + (1-ρ) * π[j]
-                if (i == j) {
-                    transitionProbs[j] = _correlation + (1.0 - _correlation) * _stationaryProbs[j];
-                } else {
-                    transitionProbs[j] = (1.0 - _correlation) * _stationaryProbs[j];
-                }
-            }
-            
-            _transitionSamplers.emplace_back(transitionProbs);
+            _transitionSamplers.emplace_back(transitionMatrix[i]);
         }
     }
     
-    MDOUBLE _correlation;
     std::vector<MDOUBLE> _stationaryProbs;
     int _previousCategory;
     std::vector<DiscreteDistribution> _transitionSamplers;

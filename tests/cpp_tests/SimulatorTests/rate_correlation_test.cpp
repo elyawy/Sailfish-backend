@@ -53,7 +53,13 @@ int main() {
     mFac.setReplacementModel(modelCode::LG);
     // mFac.setModelParameters({0.25,0.25,0.25,0.25,0.1,0.2,0.3,0.4,0.5,0.6});
     mFac.setGammaParameters(2.0, 4);
-    mFac.setSiteRateCorrelation(0.7);
+    mFac.setStationaryProbs({0.25, 0.25, 0.25, 0.25});
+    mFac.setTransitionMatrix({{0.59636944,0.27093557,0.11095153,0.02174347},
+                              {0.2725427 ,0.35467176,0.26895975,0.10382579},
+                              {0.11021473,0.27076059,0.35111379,0.2679109},
+                              {0.0213646 ,0.10750572,0.2688647, 0.60226497}});
+
+                              
 
     // mFac.setInvariantSitesProportion(0.9);
     if (!mFac.isModelValid()) return 1;
@@ -72,9 +78,9 @@ int main() {
     auto fullContainer = sim.simulateSubstitutions(rootLength);
     auto rates = sim.getSiteRates();
 
-    // std::cout << rates << "\n";
+    std::cout << rates << "\n";
 
-    msa.fillSubstitutions(fullContainer);
+    // msa.fillSubstitutions(fullContainer);
     // msa.printFullMsa();
     
     

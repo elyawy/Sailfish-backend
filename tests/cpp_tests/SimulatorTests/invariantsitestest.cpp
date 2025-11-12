@@ -50,8 +50,15 @@ int main() {
     mFac.setReplacementModel(modelCode::JONES);
     // mFac.setModelParameters({0.25,0.25,0.25,0.25,0.1,0.2,0.3,0.4,0.5,0.6});
     mFac.setGammaParameters(1.0, 4);
-    // mFac.setInvariantSitesProportion(0.5);
-    mFac.setSiteRateCorrelation(0.8);
+    // mFac.setInvariantSitesProportion(0.6);
+    mFac.setStationaryProbs({0.1, 0.1, 0.1, 0.1, 0.6});
+    mFac.setTransitionMatrix({{0.1,0.1,0.1,0.1, 0.6},
+                              {0.1,0.1,0.1,0.1, 0.6},
+                              {0.1,0.1,0.1,0.1, 0.6},
+                              {0.1,0.1,0.1,0.1, 0.6},
+                              {0.1,0.1,0.1,0.1, 0.6}});
+
+
     if (!mFac.isModelValid()) return 0;
     sim.initSubstitionSim(mFac);
 

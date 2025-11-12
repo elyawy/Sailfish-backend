@@ -127,8 +127,9 @@ PYBIND11_MODULE(_Sailfish, m) {
         .def("set_amino_replacement_model_file" , &modelFactory::setCustomAAModelFile)
         .def("set_model_parameters" , &modelFactory::setModelParameters)
         .def("set_gamma_parameters" , &modelFactory::setGammaParameters)
-        .def("set_invariant_sites_proportion", &modelFactory::setInvariantSitesProportion)
-        .def("set_site_rate_correlation", &modelFactory::setSiteRateCorrelation)
+        .def("set_transition_matrix", &modelFactory::setTransitionMatrix)
+        .def("set_stationary_probs", &modelFactory::setStationaryProbs)
+        .def("set_custom_rate_categories", &modelFactory::setCustomRateCategories)
         .def("reset", &modelFactory::resetFactory);
 
 
