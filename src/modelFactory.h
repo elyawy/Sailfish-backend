@@ -165,7 +165,7 @@ public:
 
     void setSiteRateModel(const std::vector<MDOUBLE>& rates,
                          const std::vector<MDOUBLE>& stationaryProbs,
-                         const std::vector<std::vector<MDOUBLE>>& transitionMatrix) {
+                         const std::vector<std::vector<MDOUBLE>>& transitionMatrix = {}) {
         if (_state != factoryState::SITERATES && _state != factoryState::COMPLETE) {
             std::cout << "Please set gamma parameters before setting site rate model.\n";
             return;
@@ -176,9 +176,18 @@ public:
         _state = factoryState::COMPLETE;
     }
 
-    const std::vector<std::vector<MDOUBLE>>& getTransitionMatrix() const {
+    std::vector<std::vector<MDOUBLE>> getEffectiveTransitionMatrix() const {
+        if (_transitionMatrix.empty()) {
+            // Independent rates: P[i][j] = π[j]
+            size_t n = _stationaryProbs.size();
+            return std::vector<std::vector<MDOUBLE>>(n, _stationaryProbs);
+        }
         return _transitionMatrix;
     }
+
+    // const std::vector<std::vector<MDOUBLE>>& getTransitionMatrix() const {
+    //     return _transitionMatrix;
+    // }
 
     const std::vector<MDOUBLE>& getStationaryProbs() const {
         return _stationaryProbs;

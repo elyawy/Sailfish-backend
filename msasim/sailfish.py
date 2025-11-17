@@ -456,6 +456,43 @@ class Simulator:
     def reset_sim(self):
         # TODO, complete
         pass
+
+    def _create_site_rate_model(
+        self,
+        gamma_alpha: float = 1.0,
+        gamma_categories: int = 1,
+        invariant_proportion: float = 0.0
+    ) -> tuple[List[float], List[float]]:
+        """
+        Create rate categories and probabilities for the site rate model.
+        
+        Args:
+            gamma_alpha: Alpha parameter for gamma distribution
+            gamma_categories: Number of gamma rate categories
+            invariant_proportion: Proportion of invariant sites (0 to <1)
+        
+        Returns:
+            Tuple of (rates, probabilities)
+        """
+        if invariant_proportion < 0.0 or invariant_proportion >= 1.0:
+            raise ValueError(f"invariant_proportion must be in [0, 1), received: {invariant_proportion}")
+        
+        # Create gamma distribution
+        gamma_dist = _Sailfish.gammaDistribution(gamma_alpha, gamma_categories)
+        rates = list(gamma_dist.getAllRates())
+        probs = list(gamma_dist.getAllRatesProb())
+        
+        # Add invariant sites category if requested
+        if invariant_proportion > 0.0:
+            # Scale existing probabilities
+            scale_factor = 1.0 - invariant_proportion
+            probs = [p * scale_factor for p in probs]
+            
+            # Add invariant category at the beginning
+            rates.insert(0, 0.0)
+            probs.insert(0, invariant_proportion)
+        
+        return rates, probs
     
     def _init_sub_model(self) -> None:
         self._model_factory = _Sailfish.modelFactory(self._simProtocol._get_Sailfish_tree())
@@ -466,7 +503,12 @@ class Simulator:
         else:
             warnings.warn(f"replacement matrix not provided -> running with default parameters: JC model")
             self._model_factory.set_replacement_model(_Sailfish.modelCode.NUCJC)
-        self._model_factory.set_gamma_parameters(1.0, 1)
+
+    
+        rates, probs = self._create_site_rate_model()
+        self._model_factory.setSiteRateModel(rates, probs)    
+
+
 
         self._simulator.init_substitution_sim(self._model_factory)
         self._is_sub_model_init = True
@@ -505,9 +547,13 @@ class Simulator:
             else:
                 self._model_factory.set_model_parameters(model_parameters)
 
-        self._model_factory.set_gamma_parameters(gamma_parameters_alpha, gamma_parameters_categories)
-        self._model_factory.set_invariant_sites_proportion(invariant_sites_proportion)
-        self._model_factory.set_site_rate_correlation(site_rate_correlation)
+
+        rates, probs = self._create_site_rate_model(
+            gamma_alpha=gamma_parameters_alpha,
+            gamma_categories=gamma_parameters_categories,
+            invariant_proportion=invariant_sites_proportion
+        )
+        self._model_factory.setSiteRateModel(rates, probs)
 
         self._simulator.init_substitution_sim(self._model_factory)
 

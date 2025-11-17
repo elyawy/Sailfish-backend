@@ -23,7 +23,7 @@ public:
 		// _siteRateCorrelation(mFac.getSiteRateCorrelation()),
 		_cachedPijt(*mFac.getTree(), *mFac.getStochasticProcess()),
 		_nodesToSave(nodesToSave), _saveRates(false),
-		_rateCategorySampler(mFac.getTransitionMatrix(), mFac.getStationaryProbs()),
+		_rateCategorySampler(mFac.getEffectiveTransitionMatrix(), mFac.getStationaryProbs()),
 		_finalMsaPath("") {
 		
 		
