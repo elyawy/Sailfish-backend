@@ -187,7 +187,7 @@ public:
 
     std::vector<double> getSiteRates() {
         std::vector<double> temp = _substitutionSim->getSiteRates();
-        _substitutionSim->clearRatesVec();
+        // _substitutionSim->clearRatesVec();
         return temp;
     }
 

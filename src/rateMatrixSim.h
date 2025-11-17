@@ -24,7 +24,6 @@ public:
 		_cachedPijt(*mFac.getTree(), *mFac.getStochasticProcess()),
 		_nodesToSave(nodesToSave), _saveRates(false),
 		_rateCategorySampler(mFac.getTransitionMatrix(), mFac.getStationaryProbs()),
-		_numCategories(_sp->categories()),
 		_finalMsaPath("") {
 		
 		
@@ -78,10 +77,6 @@ public:
 		for (int h = 0; h < seqLength; h++)  {
 			int selectedRandomCategory = _rateCategorySampler.drawSample(*_rng);
 			_rateCategories[h] = selectedRandomCategory;
-			if (selectedRandomCategory >= _numCategories) {
-				ratesVec[h] = 0.0;
-				continue;
-			}
 			ratesVec[h] = _sp->rates(selectedRandomCategory);
 			sumOfRatesAcrossSites += ratesVec[h];
 		}
@@ -174,7 +169,6 @@ private:
 				// Non-gap block - mutate these sites
 				for (int i = 0; i < blockSize; ++i, ++site) {
 					ALPHACHAR parentChar = currentSequence[site];
-					if (_rateCategories[site] == _numCategories) continue;
 					auto &Pijt = _cachedPijt.getDistribution(nodeId, _rateCategories[site], parentChar);
 					ALPHACHAR nextChar = Pijt.drawSample(*_rng) - 1;
 					currentSequence[site] = nextChar;
@@ -184,7 +178,6 @@ private:
 			// Normal mode - mutate all sites
 			for (size_t site = 0; site < currentSequence.seqLen(); ++site) {
 				ALPHACHAR parentChar = currentSequence[site];
-				if (_rateCategories[site] == _numCategories) continue;
 				auto &Pijt = _cachedPijt.getDistribution(nodeId, _rateCategories[site], parentChar);
 				ALPHACHAR nextChar = Pijt.drawSample(*_rng) - 1;
 				currentSequence[site] = nextChar;
@@ -324,7 +317,6 @@ private:
 
 	CategorySampler _rateCategorySampler;
 	std::string _finalMsaPath;
-	const size_t _numCategories;
 
 	std::array<std::string, AlphabetSize> _charLookup;
 

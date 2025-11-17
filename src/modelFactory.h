@@ -21,38 +21,37 @@
 #include "allModels.h"
 
 // wrapper for all the information about the substitution model:
-// alphabet = Amino acids / Nucleotides
+// alphabet = aa/nc
 // model = JC/GTR/WAG etc...
-// Nucleotide transition matrix parameters = a b c d e f
-// gamma shape parameter = alpha
-// discrete gamma categories = 1,2,3,4...
+// matrix_parameters = a b c d e f
+// gamma = alpha
+// gamma_categories = 1,2,3,4...
 
 enum factoryState {
     ALPHABET,
     MODEL,
     PARAMETERS,
     MODEL_FILE,
-    GAMMA,
+    SITERATES,
     COMPLETE
 };
 
 enum alphabetCode {
     NULLCODE,
     NUCLEOTIDE,
-    AMINOACID,
-    CODON
+    AMINOACID
 };
 
 
 enum modelCode {
-    // Nucleotide models:
+    // nc:
     NUCJC,
+    AAJC,
     GTR,
     HKY,
     TAMURA92,
     WYANGMODEL,
-    // Amino acid models:
-    AAJC,
+    // AA:
     CPREV45,
     DAYHOFF,
     JONES,	// THIS IS JTT
@@ -61,6 +60,7 @@ enum modelCode {
     HIVB,
     HIVW,
     LG,
+    EMPIRICODON,
     EX_BURIED, 
     EX_EXPOSED,
     EHO_EXTENDED,
@@ -72,10 +72,7 @@ enum modelCode {
     EX_EHO_EXP_EXT,
     EX_EHO_EXP_HEL,
     EX_EHO_EXP_OTH,
-    // Custom amino acids models:
-    CUSTOM,
-    // Codon models:
-    EMPIRICODON
+    CUSTOM
 };
 
 
@@ -104,8 +101,8 @@ public:
         }
         _model = model;
         _state = factoryState::PARAMETERS;
-        if (_alphabet == alphabetCode::AMINOACID) _state = factoryState::GAMMA;
-        if (_model == modelCode::AAJC || _model == modelCode::NUCJC) _state = factoryState::GAMMA;
+        if (_alphabet == alphabetCode::AMINOACID) _state = factoryState::SITERATES;
+        if (_model == modelCode::AAJC || _model == modelCode::NUCJC) _state = factoryState::SITERATES;
         if (_model == modelCode::CUSTOM) _state = factoryState::MODEL_FILE;
     }
 
@@ -142,7 +139,7 @@ public:
         }
 
         _parameters = params;
-        _state = factoryState::GAMMA;
+        _state = factoryState::SITERATES;
     }
 
     void setCustomAAModelFile(const std::string &fileName) {
@@ -151,57 +148,32 @@ public:
             return;
         }
         _modelFilePath = fileName;
-        _state = factoryState::GAMMA;
+        _state = factoryState::SITERATES;
     }
 
     void setGammaParameters(MDOUBLE alpha, size_t numCategories) {
-        if (_state != factoryState::GAMMA) {
+        if (_state != factoryState::SITERATES) {
             std::cout << "Please specify a model and its correct parameters before proceeding.\n";
             return;
         }
         _alpha = alpha;
         _gammaCategories = numCategories;
-        _state = factoryState::GAMMA;  // Stay in GAMMA state, not COMPLETE
+        _state = factoryState::SITERATES;  // Stay in SITERATES state, not COMPLETE
+        // Note: This method is kept for state machine progression
+        // Actual rate categories should be set via setSiteRateModel()
     }
 
-    void setCustomRateCategories(const std::vector<MDOUBLE>& rates) {
-        if (_state != factoryState::GAMMA && _state != factoryState::COMPLETE) {
-            std::cout << "Please set gamma parameters before setting custom rate categories.\n";
+    void setSiteRateModel(const std::vector<MDOUBLE>& rates,
+                         const std::vector<MDOUBLE>& stationaryProbs,
+                         const std::vector<std::vector<MDOUBLE>>& transitionMatrix) {
+        if (_state != factoryState::SITERATES && _state != factoryState::COMPLETE) {
+            std::cout << "Please set gamma parameters before setting site rate model.\n";
             return;
         }
         _customRates = rates;
-        _useCustomRates = true;
-        
-        // If transition matrix and stationary probs are set, transition to COMPLETE
-        if (!_transitionMatrix.empty() && !_stationaryProbs.empty()) {
-            _state = factoryState::COMPLETE;
-        }
-    }
-
-    void setTransitionMatrix(const std::vector<std::vector<MDOUBLE>>& transitionMatrix) {
-        if (_state != factoryState::GAMMA) {
-            std::cout << "Please set gamma parameters before setting transition matrix.\n";
-            return;
-        }
-        _transitionMatrix = transitionMatrix;
-        
-        // If stationary probs are also set, transition to COMPLETE
-        if (!_stationaryProbs.empty()) {
-            _state = factoryState::COMPLETE;
-        }
-    }
-
-    void setStationaryProbs(const std::vector<MDOUBLE>& stationaryProbs) {
-        if (_state != factoryState::GAMMA && _state != factoryState::COMPLETE) {
-            std::cout << "Please set gamma parameters before setting stationary probabilities.\n";
-            return;
-        }
         _stationaryProbs = stationaryProbs;
-        
-        // If transition matrix is also set, transition to COMPLETE
-        if (!_transitionMatrix.empty()) {
-            _state = factoryState::COMPLETE;
-        }
+        _transitionMatrix = transitionMatrix;
+        _state = factoryState::COMPLETE;
     }
 
     const std::vector<std::vector<MDOUBLE>>& getTransitionMatrix() const {
@@ -216,7 +188,6 @@ public:
         _state = factoryState::ALPHABET;
         _transitionMatrix.clear();
         _stationaryProbs.clear();
-        _useCustomRates = false;
         _customRates.clear();
     }
 
@@ -370,14 +341,10 @@ public:
             pij = std::make_unique<trivialAccelerator>(repModel.get());
         }
 
-            // Choose distribution based on whether custom rates are provided
-        if (_useCustomRates) {
-            customDistribution dist(_customRates, _stationaryProbs);
-            return std::make_shared<stochasticProcess>(&dist, pij.get());
-        } else {
-            gammaDistribution dist(_alpha, _gammaCategories);
-            return std::make_shared<stochasticProcess>(&dist, pij.get());
-        }
+        // Always use custom distribution
+        customDistribution dist(_customRates, _stationaryProbs);
+
+        return std::make_shared<stochasticProcess>(&dist, pij.get());
     }
 
     ~modelFactory() {}
@@ -390,14 +357,11 @@ private:
     modelCode _model;
     std::string _modelFilePath;
     std::vector<MDOUBLE> _parameters;
-    // among site rate variation:
-    MDOUBLE _alpha;
-    size_t _gammaCategories;
+    MDOUBLE _alpha;  // Kept for potential future use, not currently used
+    size_t _gammaCategories;  // Kept for potential future use, not currently used
+    std::vector<MDOUBLE> _customRates;
     std::vector<std::vector<MDOUBLE>> _transitionMatrix;
     std::vector<MDOUBLE> _stationaryProbs;
-    // non-parametric rate variation:
-    bool _useCustomRates = false;
-    std::vector<MDOUBLE> _customRates;
 
 };
 
