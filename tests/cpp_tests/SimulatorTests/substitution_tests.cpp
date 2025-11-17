@@ -9,14 +9,14 @@
 
 // takes 10 minutes currently
 int main() {
-    tree tree_("../../trees/normalbranches_nLeaves100000.treefile");
+    tree tree_("../../trees/normalbranches_nLeaves10000.treefile");
     // tree tree_("(A:0.5,B:0.5);", false);
     // tree tree_("(C:0.01,(A:0.01,B:0.01):0.01);", false);
-    // tree tree_("((A:0.01,B:0.01):0.01,C:0.01);", false);
+    // tree tree_("((A:0.0,B:0.0):0.0,(D:0.0, C:0.0):0.01);", false);
 
     // tree tree_("((A:0.0,B:0.0):0.0,C:0.01);", false);
 
-    std::time_t t1 = 123;//std::time(0);
+    std::time_t t1 = 23;//std::time(0);
     vector<DiscreteDistribution*> insertionDists(tree_.getNodesNum() - 1);
     vector<DiscreteDistribution*> deletionDists(tree_.getNodesNum() - 1);
 
@@ -42,17 +42,17 @@ int main() {
     protocol.setInsertionRates(insertionRates);
     protocol.setDeletionRates(deletionRates);
 
-    int rootLength = 30000;
+    int rootLength = 1000;
     protocol.setSequenceSize(rootLength);
 
 
     protocol.setSeed(t1);
 
-    Simulator<pcg32_fast, 4> sim(&protocol);
+    Simulator<pcg64_fast, 20> sim(&protocol);
     modelFactory mFac(&tree_);
 
-    mFac.setAlphabet(alphabetCode::NUCLEOTIDE);
-    mFac.setReplacementModel(modelCode::NUCJC);
+    mFac.setAlphabet(alphabetCode::AMINOACID);
+    mFac.setReplacementModel(modelCode::WAG);
     // mFac.setModelParameters({0.25,0.25,0.25,0.25,0.1,0.2,0.3,0.4,0.5,0.6});
     mFac.setGammaParameters(1.0, 4);
     // mFac.setSiteRateCorrelation(0.2);

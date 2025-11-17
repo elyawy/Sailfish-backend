@@ -30,7 +30,7 @@ PYBIND11_MODULE(_Sailfish, m) {
             Tree
     )pbdoc";
 
-    using SelectedRNG = pcg32_fast;
+    using SelectedRNG = pcg64_fast;
 
     py::class_<Block>(m, "Block")
         .def(py::init<size_t, size_t>());
