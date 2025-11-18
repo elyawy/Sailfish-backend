@@ -3,11 +3,43 @@
 import _Sailfish
 import warnings
 import pathlib
-from typing import Optional, List
+from typing import Dict, Optional, List
 from .protocol import SimProtocol
 from .distributions import PoissonDistribution
 from .msa import Msa
 from .constants import MODEL_CODES, SIMULATION_TYPE
+
+
+# TODO delete one of this (I think the above if not used)
+class BlockTreePython:
+    '''
+    Used to contain the events on a multiple branches (entire tree).
+    '''
+    def __init__(self, branch_block_dict: Dict[str, _Sailfish.Block]):
+        self._branch_block_dict = branch_block_dict
+        # dictionary of {str: List of blocks}
+        self._branch_block_dict_python = {i: x for i, x in branch_block_dict.items()}
+    
+    def _get_Sailfish_blocks(self) -> Dict[str, _Sailfish.Block]:
+        return self._branch_block_dict
+    
+    def get_branches_str(self) -> str:
+        return {i: self._branch_block_dict[i].print_tree() for i in list(self._branch_block_dict.keys())}
+    
+    def get_specific_branch(self, branch: str) -> str:
+        if not branch in self._branch_block_dict_python:
+            raise ValueError(f"branch not in the _branch_block, aviable branches are: {list(self._branch_block_dict_python.keys())}")
+        return self._branch_block_dict[branch].print_tree()
+    
+    def print_branches(self) -> str:
+        for i in list(self._branch_block_dict.keys()):
+            print(f"branch = {i}")
+            print(self._branch_block_dict[i].print_tree())
+    
+    def block_list(self)  -> List:
+        if not branch in self._branch_block_dict_python:
+            raise ValueError(f"branch not in the _branch_block, aviable branches are: {list(self._branch_block_dict_python.keys())}")
+        return self._branch_block_dict_python[branch]
 
 class Simulator:
     """Simulate MSAs based on SimProtocol"""
@@ -95,7 +127,7 @@ class Simulator:
             raise ValueError(f"invariant_proportion must be in [0, 1), received: {invariant_proportion}")
         
         # Create gamma distribution
-        gamma_dist = _Sailfish.gammaDistribution(gamma_alpha, gamma_categories)
+        gamma_dist = _Sailfish.GammaDistribution(gamma_alpha, gamma_categories)
         rates = list(gamma_dist.getAllRates())
         probs = list(gamma_dist.getAllRatesProb())
         
@@ -176,8 +208,8 @@ class Simulator:
 
         self._is_sub_model_init = True
     
-    # def gen_indels(self) -> BlockTreePython:
-    #     return BlockTreePython(self._simulator.gen_indels())
+    def gen_indels(self) -> BlockTreePython:
+        return BlockTreePython(self._simulator.gen_indels())
     
     def get_sequences_to_save(self) -> List[bool]:
         return self._simulator.get_saved_nodes_mask()

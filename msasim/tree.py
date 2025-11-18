@@ -6,9 +6,13 @@ from re import split
 
 def is_newick(tree: str) -> bool:
     """Validate newick format"""
-    tokens = split(r'[\d.]+|[A-za-z]+|\(|\)|;|:|,', tree)
+    # from: https://github.com/ila/Newick-validator/blob/master/Newick_Validator.py
+    # dividing the string into tokens, to check them singularly
+    tokens = split(r'([A-Za-z]+[^A-Za-z,)]+[A-Za-z]+|[0-9.]*[A-Za-z]+[0-9.]+|[0-9.]+\s+[0-9.]+|[0-9.]+|[A-za-z]+|\(|\)|;|:|,)', tree)
+    # removing spaces and empty strings (spaces within labels are still present)
     parsed_tokens = list(filter(lambda x: not (x.isspace() or not x), tokens))
-    
+
+    # checking whether the tree ends with ;
     if parsed_tokens[-1] != ';':
         raise ValueError(f"Tree must end with ';'. Got: {tree}")
     return True
