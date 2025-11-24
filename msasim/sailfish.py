@@ -560,11 +560,12 @@ class Simulator:
             msa = Msa(blocktree._get_Sailfish_blocks(),
                         self._simProtocol._get_root(),
                         self.get_sequences_to_save())
+            msa_length = msa.get_length()
             self._simulator.set_aligned_sequence_map(msa._msa)
 
         # sim.init_substitution_sim(mFac)
         if self._simulation_type != SIMULATION_TYPE.NOSUBS:
-            self._simulator.gen_substitutions_to_file(self._simProtocol.get_sequence_size(), 
+            self._simulator.gen_substitutions_to_file(msa_length, 
                                                       str(output_file_path))
         else:
             msa.write_msa(str(output_file_path))
