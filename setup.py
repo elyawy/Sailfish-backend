@@ -6,7 +6,7 @@ from setuptools import setup, find_packages
 
 
 
-__version__ = "25.11.10"
+__version__ = "25.11.11"
 
 # The main interface is through Pybind11Extension.
 # * You can add cxx_std=11/14/17, and then build_ext can be removed.
