@@ -14,3 +14,4 @@ tests/cpp_tests/a.out
 a.out
 .venv
 test_outputs
+tests/python_tests/_Sailfish.cpython-310-x86_64-linux-gnu.so

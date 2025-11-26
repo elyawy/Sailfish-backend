@@ -80,7 +80,7 @@ public:
 			ratesVec[h] = _sp->rates(selectedRandomCategory);
 			sumOfRatesAcrossSites += ratesVec[h];
 		}
-
+		_siteRates.clear();
 		if (_saveRates) _siteRates.insert(_siteRates.end(), ratesVec.begin(), ratesVec.end());
 
 		// _currentSequence->resize(seqLength);
