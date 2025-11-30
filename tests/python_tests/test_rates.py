@@ -14,7 +14,7 @@ simulator = sim.Simulator(simulation_protocol, simulation_type=sim.SIMULATION_TY
 simulator.set_replacement_model(model=sim.MODEL_CODES.NUCJC,
                                 gamma_parameters_alpha=2.0,
                                 gamma_parameters_categories=10,
-                                site_rate_correlation=0.7)
+                                site_rate_correlation=0.9)
 
 simulator.save_rates(True)
 

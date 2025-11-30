@@ -110,8 +110,9 @@ class Simulator:
         self,
         gamma_alpha: float = 1.0,
         gamma_categories: int = 1,
-        invariant_proportion: float = 0.0
-    ) -> tuple[List[float], List[float]]:
+        invariant_proportion: float = 0.0,
+        site_rate_correlation: float = 0.0
+    ) -> tuple[List[float], List[float], List[List[float]]]:
         """
         Create rate categories and probabilities for the site rate model.
         
@@ -119,12 +120,29 @@ class Simulator:
             gamma_alpha: Alpha parameter for gamma distribution
             gamma_categories: Number of gamma rate categories
             invariant_proportion: Proportion of invariant sites (0 to <1)
+            site_rate_correlation: Correlation between adjacent sites (0 to <1)
+                This is the ρ parameter for bivariate normal correlation.
+                The realized discrete gamma correlation ρ_dG will be somewhat different.
         
         Returns:
-            Tuple of (rates, probabilities)
+            Tuple of (rates, probabilities, transition_matrix)
+            - rates: List of rate values for each category
+            - probabilities: Stationary probabilities for each category
+            - transition_matrix: K×K matrix for correlated rates (empty list if no correlation)
         """
         if invariant_proportion < 0.0 or invariant_proportion >= 1.0:
             raise ValueError(f"invariant_proportion must be in [0, 1), received: {invariant_proportion}")
+        
+        if site_rate_correlation < 0.0 or site_rate_correlation >= 1.0:
+            raise ValueError(f"site_rate_correlation must be in [0, 1), received: {site_rate_correlation}")
+        
+        # Validate correlation requires multiple categories
+        if site_rate_correlation > 0.0 and gamma_categories == 1:
+            warnings.warn(
+                "site_rate_correlation > 0 requires gamma_categories > 1. "
+                "Setting site_rate_correlation to 0.0"
+            )
+            site_rate_correlation = 0.0
         
         # Create gamma distribution
         gamma_dist = _Sailfish.GammaDistribution(gamma_alpha, gamma_categories)
@@ -141,7 +159,31 @@ class Simulator:
             rates.insert(0, 0.0)
             probs.insert(0, invariant_proportion)
         
-        return rates, probs
+        # Build transition matrix for correlated rates
+        transition_matrix = []
+        if site_rate_correlation > 0.0:
+            if invariant_proportion > 0.0:
+                warnings.warn(
+                    "site_rate_correlation and invariant_sites_proportion cannot be used together. "
+                    "Using invariant sites only, ignoring correlation."
+                )
+            else:
+                try:
+                    from msasim.correlation import build_auto_gamma_transition_matrix
+                    
+                    transition_matrix = build_auto_gamma_transition_matrix(
+                        alpha=gamma_alpha,
+                        categories=gamma_categories,
+                        rho=site_rate_correlation
+                    )
+                    
+                except ImportError:
+                    warnings.warn(
+                        "site_rate_correlation > 0 requires scipy. "
+                        "Install with: pip install scipy or pip install 'msasim[correlation]'. "
+                        "Ignoring correlation parameter."
+                    )
+        return rates, probs, transition_matrix
     
     def _init_sub_model(self) -> None:
         self._model_factory = _Sailfish.modelFactory(self._simProtocol._get_Sailfish_tree())
@@ -197,12 +239,13 @@ class Simulator:
                 self._model_factory.set_model_parameters(model_parameters)
 
 
-        rates, probs = self._create_site_rate_model(
+        rates, probs, transition_matrix = self._create_site_rate_model(
             gamma_alpha=gamma_parameters_alpha,
             gamma_categories=gamma_parameters_categories,
-            invariant_proportion=invariant_sites_proportion
+            invariant_proportion=invariant_sites_proportion,
+            site_rate_correlation=site_rate_correlation
         )
-        self._model_factory.setSiteRateModel(rates, probs)
+        self._model_factory.setSiteRateModel(rates, probs, transition_matrix)
 
         self._simulator.init_substitution_sim(self._model_factory)
 

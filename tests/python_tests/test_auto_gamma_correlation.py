@@ -3,10 +3,10 @@ Tests for auto-discrete-gamma correlation model implementation.
 """
 
 import numpy as np
-from msasim.auto_gamma_correlation import (
+from typing import List
+from msasim.correlation import (
     build_auto_gamma_transition_matrix,
     calculate_discrete_gamma_correlation,
-    reproduce_yang_figure3
 )
 
 
@@ -130,6 +130,72 @@ def test_large_alpha_approaches_diagonal():
         f"For large α, ρ_dG should approach ρ: {rho_dG_values[-1]} vs {rho}"
     
     print("✓ Large alpha behavior verified")
+
+
+def reproduce_yang_figure3(
+    alpha_values: List[float] = [0.1, 0.3, 0.5, 1.0, 5.0],
+    rho_range: tuple = (-1, 1),
+    n_points: int = 30,
+    K: int = 8,
+    save_path: str = "yang_figure3_reproduction.png"
+):
+    """
+    Reproduce Yang (1995) Figure 3: ρ_dG vs ρ for different α values.
+    
+    This validates the implementation by comparing to published results.
+    
+    Args:
+        alpha_values: List of gamma shape parameters to plot
+        rho_range: Range of ρ values to plot
+        n_points: Number of points to compute
+        K: Number of rate categories
+        save_path: Where to save the figure
+    """
+    import matplotlib.pyplot as plt
+    
+    # Avoid exact boundaries where covariance matrix becomes singular
+    rho_min = max(rho_range[0], -0.99)
+    rho_max = min(rho_range[1], 0.99)
+    rho_values = np.linspace(rho_min, rho_max, n_points)
+    
+    plt.figure(figsize=(10, 7))
+    
+    for alpha in alpha_values:
+        rho_dG_values = []
+        
+        print(f"Computing for α = {alpha}...")
+        
+        for rho in rho_values:
+            # Build transition matrix
+            M = build_auto_gamma_transition_matrix(alpha, K, rho)
+            
+            # Calculate discrete gamma correlation
+            rho_dG = calculate_discrete_gamma_correlation(M, alpha, K)
+            rho_dG_values.append(rho_dG)
+        
+        plt.plot(rho_values, rho_dG_values, label=f'α = {alpha}', linewidth=2)
+    
+    plt.xlabel('ρ', fontsize=14)
+    plt.ylabel('ρ_dG', fontsize=14)
+    plt.legend(fontsize=12, loc='best')
+    plt.grid(True, alpha=0.3)
+    plt.title('Yang (1995) Figure 3: Relationship between ρ and ρ_dG', fontsize=14)
+    
+    # Add reference lines
+    plt.axhline(y=0, color='k', linestyle='-', linewidth=0.5, alpha=0.5)
+    plt.axvline(x=0, color='k', linestyle='-', linewidth=0.5, alpha=0.5)
+    
+    # Add diagonal reference (ρ_dG = ρ)
+    plt.plot(rho_values, rho_values, 'k--', alpha=0.3, linewidth=1, label='ρ_dG = ρ')
+    
+    plt.xlim(-1, 1)
+    plt.ylim(-1, 1)
+    plt.legend(fontsize=11, loc='best')
+    
+    plt.tight_layout()
+    plt.savefig(save_path, dpi=150, bbox_inches='tight')
+    print(f"\nFigure saved to: {save_path}")
+    plt.show()
 
 
 def test_reproduce_figure3_visual():
