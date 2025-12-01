@@ -106,7 +106,11 @@ public:
     }
 
     void setSeed(size_t seed) {
-        _seed = seed;
+        // Golden Ratio constant used for better hash scattering
+        // Makes close by seeds produce very different _seed values
+        // which reduces correlation when used in multiple simulations with close by seeds
+        uint64_t phi = 0x9e3779b97f4a7c15;
+        _seed = seed*phi;
     }
 
     size_t getSeed() {
