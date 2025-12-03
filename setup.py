@@ -6,7 +6,7 @@ from setuptools import setup, find_packages
 
 
 
-__version__ = "25.11.11"
+__version__ = "25.12.1"
 
 # The main interface is through Pybind11Extension.
 # * You can add cxx_std=11/14/17, and then build_ext can be removed.
@@ -46,7 +46,7 @@ setup(
     long_description=open("README.md", 'r').read(),
     long_description_content_type='text/markdown',
     ext_modules=ext_modules,
-    extras_require={"test": "pytest"},
+    extras_require={"test": "pytest", "correlation": ["scipy>=1.0.0"]},
     cmdclass={"build_ext": build_ext},
     zip_safe=False,
     python_requires=">=3.6",

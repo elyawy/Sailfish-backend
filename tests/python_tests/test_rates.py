@@ -14,20 +14,21 @@ simulator = sim.Simulator(simulation_protocol, simulation_type=sim.SIMULATION_TY
 simulator.set_replacement_model(model=sim.MODEL_CODES.NUCJC,
                                 gamma_parameters_alpha=2.0,
                                 gamma_parameters_categories=10,
-                                site_rate_correlation=0.7)
+                                site_rate_correlation=0.9)
 
 simulator.save_rates(True)
 
 msa = simulator()
-print(simulator.get_rates()) # after calling this function the list is emptied
-print(simulator.get_rates()) # this is empty []
-
-msa = simulator() # filled rates back with new simulation.
-msa.print_msa()
 rates = simulator.get_rates()
 
+with open("rates_1.txt", 'w') as f:
+    f.write("\n".join(map(str,rates)))
 
-with open("rates.txt", 'w') as f:
+
+msa = simulator() # filled rates back with new simulation.
+rates = simulator.get_rates()
+
+with open("rates_2.txt", 'w') as f:
     f.write("\n".join(map(str,rates)))
 
 

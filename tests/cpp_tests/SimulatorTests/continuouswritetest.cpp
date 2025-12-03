@@ -61,10 +61,18 @@ int main() {
 
     modelFactory mFac(&tree_);
 
-    mFac.setAlphabet(alphabetCode::NUCLEOTIDE);
-    mFac.setReplacementModel(modelCode::NUCJC);
+    mFac.setAlphabet(alphabetCode::AMINOACID);
+    mFac.setReplacementModel(modelCode::WAG);
 
-    mFac.setGammaParameters(1.0, 4); 
+    // mFac.setGammaParameters(1.0, 4); 
+    mFac.setSiteRateModel({0.01, 0.0,2.0,4.0},
+                        {0.25, 0.25, 0.25, 0.25},
+                        {
+                        {0.59636944,0.27093557,0.11095153,0.02174347},
+                        {0.2725427 ,0.35467176,0.26895975,0.10382579},
+                        {0.11021473,0.27076059,0.35111379,0.2679109},
+                        {0.0213646 ,0.10750572,0.2688647, 0.60226497}
+                        });
     if (!mFac.isModelValid()) return 0;
 
     sim.initSubstitionSim(mFac);

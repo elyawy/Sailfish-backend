@@ -20,7 +20,7 @@ simulation.set_replacement_model(model=MODEL_CODES.WAG,
                                  gamma_parameters_alpha=1.0, 
                                  gamma_parameters_categories=4)
 
-home_path = pathlib.Path.home() / "test.fasta"
+home_path = pathlib.Path.home() / "test_sim.fasta"
 simulation.simulate_low_memory(home_path)
 # counter = 0
 # while True:

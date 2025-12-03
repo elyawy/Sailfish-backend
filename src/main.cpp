@@ -5,6 +5,7 @@
 #include <memory>
 
 #include "../libs/pcg/pcg_random.hpp"
+#include "../libs/Phylolib/includes/gammaDistribution.h"
 #include "./Simulator.h"
 
 namespace py = pybind11;
@@ -118,7 +119,22 @@ PYBIND11_MODULE(_Sailfish, m) {
         .value("CUSTOM", modelCode::CUSTOM)
         .export_values();
 
-
+    py::class_<gammaDistribution>(m, "GammaDistribution")
+        .def(py::init<MDOUBLE, int>())
+        .def("getAllRates", [](const gammaDistribution& g) {
+            std::vector<MDOUBLE> result;
+            for (size_t i = 0; i < g.categories(); ++i) {
+                result.push_back(g.rates(i));
+            }
+            return result;
+        })
+        .def("getAllRatesProb", [](const gammaDistribution& g) {
+            std::vector<MDOUBLE> result;
+            for (size_t i = 0; i < g.categories(); ++i) {
+                result.push_back(g.ratesProb(i));
+            }
+            return result;
+        });
 
     py::class_<modelFactory>(m, "modelFactory")
         .def(py::init<tree*>())
@@ -126,9 +142,10 @@ PYBIND11_MODULE(_Sailfish, m) {
         .def("set_replacement_model" , &modelFactory::setReplacementModel)
         .def("set_amino_replacement_model_file" , &modelFactory::setCustomAAModelFile)
         .def("set_model_parameters" , &modelFactory::setModelParameters)
-        .def("set_gamma_parameters" , &modelFactory::setGammaParameters)
-        .def("set_invariant_sites_proportion", &modelFactory::setInvariantSitesProportion)
-        .def("set_site_rate_correlation", &modelFactory::setSiteRateCorrelation)
+        .def("setSiteRateModel", &modelFactory::setSiteRateModel,
+            py::arg("rates"),
+            py::arg("stationary_probs"),
+            py::arg("transition_matrix") = std::vector<std::vector<MDOUBLE>>())
         .def("reset", &modelFactory::resetFactory);
 
 

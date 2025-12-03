@@ -4,19 +4,45 @@
 #include <cmath>
 #include "../../../src/CategorySampler.h"
 
+// Helper function to build transition matrix for autocorrelation model
+// P[i][j] = ρ * δ(i,j) + (1-ρ) * π[j]
+std::vector<std::vector<MDOUBLE>> buildTransitionMatrix(
+    const std::vector<MDOUBLE>& stationaryProbs,
+    MDOUBLE correlation) {
+    
+    size_t numCategories = stationaryProbs.size();
+    std::vector<std::vector<MDOUBLE>> matrix(numCategories, 
+                                              std::vector<MDOUBLE>(numCategories));
+    
+    for (size_t i = 0; i < numCategories; ++i) {
+        for (size_t j = 0; j < numCategories; ++j) {
+            if (i == j) {
+                matrix[i][j] = correlation + (1.0 - correlation) * stationaryProbs[j];
+            } else {
+                matrix[i][j] = (1.0 - correlation) * stationaryProbs[j];
+            }
+        }
+    }
+    
+    return matrix;
+}
+
 void testIndependentSampling() {
     std::cout << "=== Test 1: Independent Sampling (correlation = 0) ===" << std::endl;
     
     // 4 categories with equal probabilities
     std::vector<MDOUBLE> probs = {0.25, 0.25, 0.25, 0.25};
-    CategorySampler sampler(probs, 0.0);
+    auto transitionMatrix = buildTransitionMatrix(probs, 0.0);
+    CategorySampler sampler(transitionMatrix, probs);
+
+    std::mt19937_64 rng(42);
     
     // Sample 10000 sites
     std::map<int, int> counts;
     const int numSamples = 10000;
     
     for (int i = 0; i < numSamples; ++i) {
-        int category = sampler.drawSample();
+        int category = sampler.drawSample(rng);
         counts[category]++;
     }
     
@@ -34,17 +60,19 @@ void testPerfectCorrelation() {
     std::cout << "=== Test 2: Perfect Correlation (correlation = 1.0) ===" << std::endl;
     
     std::vector<MDOUBLE> probs = {0.25, 0.25, 0.25, 0.25};
-    CategorySampler sampler(probs, 1.0);
-    
+    auto transitionMatrix = buildTransitionMatrix(probs, 1.0);
+    CategorySampler sampler(transitionMatrix, probs);
+    std::mt19937_64 rng(42);
+
     // Sample 100 sites - should all be the same
-    int firstCategory = sampler.drawSample();
+    int firstCategory = sampler.drawSample(rng);
     bool allSame = true;
     
     std::cout << "First category: " << firstCategory << std::endl;
     std::cout << "Next 99 categories: ";
     
     for (int i = 0; i < 99; ++i) {
-        int category = sampler.drawSample();
+        int category = sampler.drawSample(rng);
         if (i < 10) std::cout << category << " ";
         if (category != firstCategory) {
             allSame = false;
@@ -60,15 +88,17 @@ void testModerateCorrelation() {
     std::cout << "=== Test 3: Moderate Correlation (correlation = 0.7) ===" << std::endl;
     
     std::vector<MDOUBLE> probs = {0.25, 0.25, 0.25, 0.25};
-    CategorySampler sampler(probs, 0.7);
-    
+    auto transitionMatrix = buildTransitionMatrix(probs, 0.7);
+    CategorySampler sampler(transitionMatrix, probs);
+    std::mt19937_64 rng(42);
+
     // Count transitions
     int numTransitions = 0;
-    int previousCategory = sampler.drawSample();
+    int previousCategory = sampler.drawSample(rng);
     const int numSamples = 1000;
     
     for (int i = 0; i < numSamples - 1; ++i) {
-        int currentCategory = sampler.drawSample();
+        int currentCategory = sampler.drawSample(rng);
         if (currentCategory != previousCategory) {
             numTransitions++;
         }
@@ -93,13 +123,15 @@ void testNonUniformDistribution() {
     
     // Heavily skewed distribution
     std::vector<MDOUBLE> probs = {0.1, 0.2, 0.3, 0.4};
-    CategorySampler sampler(probs, 0.0);  // Independent sampling
-    
+    auto transitionMatrix = buildTransitionMatrix(probs, 0.0);  // Independent sampling
+    CategorySampler sampler(transitionMatrix, probs);
+    std::mt19937_64 rng(42);
+
     std::map<int, int> counts;
     const int numSamples = 10000;
     
     for (int i = 0; i < numSamples; ++i) {
-        int category = sampler.drawSample();
+        int category = sampler.drawSample(rng);
         counts[category]++;
     }
     
@@ -116,17 +148,19 @@ void testReset() {
     std::cout << "=== Test 5: Reset Functionality ===" << std::endl;
     
     std::vector<MDOUBLE> probs = {0.25, 0.25, 0.25, 0.25};
-    CategorySampler sampler(probs, 1.0);  // Perfect correlation
-    
-    int firstSeq = sampler.drawSample();
+    auto transitionMatrix = buildTransitionMatrix(probs, 1.0);  // Perfect correlation
+    CategorySampler sampler(transitionMatrix, probs);
+    std::mt19937_64 rng(42);
+
+    int firstSeq = sampler.drawSample(rng);
     std::cout << "First sequence starts with category: " << firstSeq << std::endl;
     
     for (int i = 0; i < 10; ++i) {
-        sampler.drawSample();  // Should all be same
+        sampler.drawSample(rng);  // Should all be same
     }
     
     sampler.reset();
-    int secondSeq = sampler.drawSample();
+    int secondSeq = sampler.drawSample(rng);
     std::cout << "After reset, new sequence starts with category: " << secondSeq << std::endl;
     std::cout << "Categories differ after reset? " << (firstSeq != secondSeq ? "Possibly (good)" : "No (might be same by chance)") << std::endl;
     std::cout << std::endl;
@@ -145,13 +179,15 @@ void testWithInvariantSites() {
         invariantProp               // 0.20 (invariant)
     };
     
-    CategorySampler sampler(probs, 0.0);
-    
+    auto transitionMatrix = buildTransitionMatrix(probs, 0.0);
+    CategorySampler sampler(transitionMatrix, probs);
+    std::mt19937_64 rng(42);
+
     std::map<int, int> counts;
     const int numSamples = 10000;
     
     for (int i = 0; i < numSamples; ++i) {
-        int category = sampler.drawSample();
+        int category = sampler.drawSample(rng);
         counts[category]++;
     }
     
@@ -171,8 +207,10 @@ void testNonUniformModerateCorrelation() {
     // Heavily skewed distribution
     std::vector<MDOUBLE> probs = {0.1, 0.2, 0.3, 0.4};
     double correlation = 0.6;
-    CategorySampler sampler(probs, correlation);
-    
+    auto transitionMatrix = buildTransitionMatrix(probs, correlation);
+    CategorySampler sampler(transitionMatrix, probs);
+    std::mt19937_64 rng(42);
+
     const int numSamples = 10000000;  // Larger sample for better statistics
     
     // Count category frequencies
@@ -181,12 +219,12 @@ void testNonUniformModerateCorrelation() {
     std::map<int, int> fromCounts;
     std::map<int, std::map<int, int>> transitionCounts;
     
-    int previousCategory = sampler.drawSample();
+    int previousCategory = sampler.drawSample(rng);
     counts[previousCategory]++;
     // fromCounts[previousCategory]++;
     
     for (int i = 0; i < numSamples - 1; ++i) {
-        int currentCategory = sampler.drawSample();
+        int currentCategory = sampler.drawSample(rng);
         counts[currentCategory]++;
         transitionCounts[previousCategory][currentCategory]++;
         fromCounts[previousCategory]++;
@@ -285,12 +323,13 @@ void testAliasMethodAccuracy() {
     
     std::vector<double> probs = {0.25, 0.25, 0.25, 0.25};
     DiscreteDistribution sampler(probs);
-    
+    std::mt19937_64 rng(42);
+
     std::map<int, int> counts;
     const int numSamples = 1000000;  // 1 million samples
     
     for (int i = 0; i < numSamples; ++i) {
-        int sample = sampler.drawSample();
+        int sample = sampler.drawSample(rng);
         counts[sample]++;
     }
     

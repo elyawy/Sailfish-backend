@@ -19,12 +19,11 @@ class rateMatrixSim {
 public:
 	explicit rateMatrixSim(modelFactory& mFac, std::shared_ptr<std::vector<bool>> nodesToSave) : 
 		_et(mFac.getTree()), _sp(mFac.getStochasticProcess()), _alph(mFac.getAlphabet()), 
-		_invariantSitesProportion(mFac.getInvariantSitesProportion()),
-		_siteRateCorrelation(mFac.getSiteRateCorrelation()),
+		// _invariantSitesProportion(mFac.getInvariantSitesProportion()),
+		// _siteRateCorrelation(mFac.getSiteRateCorrelation()),
 		_cachedPijt(*mFac.getTree(), *mFac.getStochasticProcess()),
 		_nodesToSave(nodesToSave), _saveRates(false),
-		_rateCategorySampler(buildRateCategoryProbs(mFac), mFac.getSiteRateCorrelation()),
-		_numCategories(_sp->categories()),
+		_rateCategorySampler(mFac.getEffectiveTransitionMatrix(), mFac.getStationaryProbs()),
 		_finalMsaPath("") {
 		
 		
@@ -78,14 +77,10 @@ public:
 		for (int h = 0; h < seqLength; h++)  {
 			int selectedRandomCategory = _rateCategorySampler.drawSample(*_rng);
 			_rateCategories[h] = selectedRandomCategory;
-			if (selectedRandomCategory >= _numCategories) {
-				ratesVec[h] = 0.0;
-				continue;
-			}
 			ratesVec[h] = _sp->rates(selectedRandomCategory);
 			sumOfRatesAcrossSites += ratesVec[h];
 		}
-
+		_siteRates.clear();
 		if (_saveRates) _siteRates.insert(_siteRates.end(), ratesVec.begin(), ratesVec.end());
 
 		// _currentSequence->resize(seqLength);
@@ -132,20 +127,6 @@ public:
 	}
 
 private:
-    static std::vector<MDOUBLE> buildRateCategoryProbs(modelFactory& mFac) {
-        std::vector<MDOUBLE> rateCategoriesProbs;
-        auto sp = mFac.getStochasticProcess();
-        MDOUBLE invariantProp = mFac.getInvariantSitesProportion();
-        
-        for (int j = 0; j <  sp->categories(); ++j) {
-            MDOUBLE currentRateProb = sp->ratesProb(j);
-            currentRateProb = currentRateProb * (1.0 - invariantProp);
-            rateCategoriesProbs.push_back(currentRateProb);
-        }
-        if (invariantProp > 0.0) rateCategoriesProbs.push_back(invariantProp);
-        
-        return rateCategoriesProbs;
-    }
 
 	sequence generateRootSeq(int seqLength, std::vector<MDOUBLE>& ratesVec) {
 		sequence rootSeq(_alph);
@@ -188,7 +169,6 @@ private:
 				// Non-gap block - mutate these sites
 				for (int i = 0; i < blockSize; ++i, ++site) {
 					ALPHACHAR parentChar = currentSequence[site];
-					if (_rateCategories[site] == _numCategories) continue;
 					auto &Pijt = _cachedPijt.getDistribution(nodeId, _rateCategories[site], parentChar);
 					ALPHACHAR nextChar = Pijt.drawSample(*_rng) - 1;
 					currentSequence[site] = nextChar;
@@ -198,7 +178,6 @@ private:
 			// Normal mode - mutate all sites
 			for (size_t site = 0; site < currentSequence.seqLen(); ++site) {
 				ALPHACHAR parentChar = currentSequence[site];
-				if (_rateCategories[site] == _numCategories) continue;
 				auto &Pijt = _cachedPijt.getDistribution(nodeId, _rateCategories[site], parentChar);
 				ALPHACHAR nextChar = Pijt.drawSample(*_rng) - 1;
 				currentSequence[site] = nextChar;
@@ -320,8 +299,8 @@ private:
 	std::shared_ptr<const stochasticProcess> _sp;
 	const alphabet* _alph;
 
-	MDOUBLE _invariantSitesProportion;
-	MDOUBLE _siteRateCorrelation;
+	// MDOUBLE _invariantSitesProportion;
+	// MDOUBLE _siteRateCorrelation;
 
 	CachedTransitionProbabilities<AlphabetSize> _cachedPijt;
 	// computePijGam _cpijGam;
@@ -338,7 +317,6 @@ private:
 
 	CategorySampler _rateCategorySampler;
 	std::string _finalMsaPath;
-	const size_t _numCategories;
 
 	std::array<std::string, AlphabetSize> _charLookup;
 
