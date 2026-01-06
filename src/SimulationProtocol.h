@@ -1,3 +1,6 @@
+#ifndef SIMULATIONPROTOCOL_H
+#define SIMULATIONPROTOCOL_H
+
 #include <sstream>
 
 #include "../libs/Phylolib/includes/tree.h"
@@ -142,3 +145,5 @@ public:
 
     ~SimulationProtocol() {}
 };
+
+#endif // SIMULATIONPROTOCOL_H

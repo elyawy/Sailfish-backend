@@ -1,0 +1,57 @@
+# Sailfish Simulation Configuration
+
+# ==================== BASIC SETTINGS ====================
+[basic]
+tree_file = "../../trees/normalbranches_nLeaves10.treefile"
+seed = 42
+root_sequence_size = 100
+min_sequence_size = 10
+
+# ==================== INDEL SETTINGS ====================
+[indels]
+# Rates can be either a single value (uniform) or array (per-branch)
+insertion_rate = 0.01
+deletion_rate = 0.01
+
+# Distribution types: "zipf", "geometric", "poisson"
+[indels.insertion_distribution]
+type = "zipf"
+parameter = 1.7
+truncation = 50
+
+[indels.deletion_distribution]
+type = "zipf"
+parameter = 1.7
+truncation = 50
+
+# ==================== SUBSTITUTION MODEL ====================
+[substitution]
+# alphabet: "protein" or "nucleotide" or "none" (indels only)
+alphabet = "protein"
+
+# Model codes for proteins: WAG, LG, JONES, DAYHOFF, MTREV24, etc.
+# Model codes for nucleotides: NUCJC, HKY, GTR, TAMURA92
+model = "WAG"
+
+# For nucleotide models (HKY example):
+# model_parameters = [0.25, 0.25, 0.25, 0.25, 2.0]  # [freq_A, freq_C, freq_G, freq_T, kappa]
+
+# Gamma rate heterogeneity
+gamma_alpha = 1.0
+gamma_categories = 4
+
+
+# ==================== OUTPUT SETTINGS ====================
+[output]
+# What to save
+save_root_sequence = true
+save_all_nodes = false
+save_site_rates = false
+
+# Output format: "console" or "file"
+output_mode = "file"
+output_file = "test_output.fasta"
+
+# If output_mode = "console", these control what to print
+print_msa = true
+print_indels = false
