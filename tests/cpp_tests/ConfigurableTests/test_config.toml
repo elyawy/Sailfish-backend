@@ -2,16 +2,16 @@
 
 # ==================== BASIC SETTINGS ====================
 [basic]
-tree_file = "../../trees/normalbranches_nLeaves10.treefile"
+tree_file = "../../trees/normalbranches_nLeaves10000.treefile"
 seed = 42
-root_sequence_size = 100
+root_sequence_size = 1000
 min_sequence_size = 10
 
 # ==================== INDEL SETTINGS ====================
 [indels]
 # Rates can be either a single value (uniform) or array (per-branch)
-insertion_rate = 0.01
-deletion_rate = 0.01
+insertion_rate = 0.0
+deletion_rate = 0.0
 
 # Distribution types: "zipf", "geometric", "poisson"
 [indels.insertion_distribution]
