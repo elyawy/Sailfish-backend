@@ -2,16 +2,17 @@
 
 # ==================== BASIC SETTINGS ====================
 [basic]
-tree_file = "../../trees/normalbranches_nLeaves10000.treefile"
+tree_file = "../../trees/short_nLeaves10.treefile"
 seed = 42
-root_sequence_size = 1000
+root_sequence_size = 10000000
 min_sequence_size = 10
 
 # ==================== INDEL SETTINGS ====================
 [indels]
+no_indels = true
 # Rates can be either a single value (uniform) or array (per-branch)
-insertion_rate = 0.0
-deletion_rate = 0.0
+insertion_rate = 0.01
+deletion_rate = 0.01
 
 # Distribution types: "zipf", "geometric", "poisson"
 [indels.insertion_distribution]
@@ -40,6 +41,7 @@ model = "WAG"
 gamma_alpha = 1.0
 gamma_categories = 4
 
+gillespie_threshold = 1e-9
 
 # ==================== OUTPUT SETTINGS ====================
 [output]

@@ -9,9 +9,10 @@
 #include "../libs/Phylolib/includes/sequenceContainer.h"
 
 #include "modelFactory.h"
-// #include "substitutionManager.h"
+#include "SubstitutionsGillespie.h"
 #include "CategorySampler.h"
 #include "CachedTransitionProbabilities.h"
+
 
 
 template<typename RngType = std::mt19937_64,size_t AlphabetSize = 4>
@@ -19,9 +20,8 @@ class rateMatrixSim {
 public:
 	explicit rateMatrixSim(modelFactory& mFac, std::shared_ptr<std::vector<bool>> nodesToSave) : 
 		_et(mFac.getTree()), _sp(mFac.getStochasticProcess()), _alph(mFac.getAlphabet()), 
-		// _invariantSitesProportion(mFac.getInvariantSitesProportion()),
-		// _siteRateCorrelation(mFac.getSiteRateCorrelation()),
 		_cachedPijt(*mFac.getTree(), *mFac.getStochasticProcess()),
+		_gillespieThreshold(1e-9),
 		_nodesToSave(nodesToSave), _saveRates(false),
 		_rateCategorySampler(mFac.getEffectiveTransitionMatrix(), mFac.getStationaryProbs()),
 		_finalMsaPath("") {
@@ -33,7 +33,7 @@ public:
 			_charLookup[j] = _alph->fromInt(j);
 		}
 
-		_frequencySampler = std::make_unique<DiscreteDistribution>(frequencies);
+		_frequencySampler = std::make_unique<DiscreteNDistribution<AlphabetSize>>(frequencies);
 		_simulatedSequences = std::make_unique<sequenceContainer>();
 	}
 
@@ -83,7 +83,6 @@ public:
 		_siteRates.clear();
 		if (_saveRates) _siteRates.insert(_siteRates.end(), ratesVec.begin(), ratesVec.end());
 
-		// _currentSequence->resize(seqLength);
 		sequence rootSequence = generateRootSeq(seqLength, ratesVec);
 
 		if ((*_nodesToSave)[_et->getRoot()->id()]){ 
@@ -92,7 +91,6 @@ public:
 
 		mutateSeqRecuresively(rootSequence, _et->getRoot());
 
-		// _subManager.clear();
 	}
 
 	void mutateSeqRecuresively(const sequence& currentSequence, tree::nodeP currentNode) {
@@ -126,6 +124,14 @@ public:
 		_alignedSequenceMap = &alignedSeq;
 	}
 
+	void setGillespieThreshold(MDOUBLE threshold) {
+		_gillespieThreshold = threshold;
+	}
+
+	MDOUBLE getGillespieThreshold() const {
+		return _gillespieThreshold;
+	}
+
 private:
 
 	sequence generateRootSeq(int seqLength, std::vector<MDOUBLE>& ratesVec) {
@@ -149,7 +155,19 @@ private:
 
 	void mutateSeqAlongBranch(sequence& currentSequence, const MDOUBLE& distToFather) {
 		// const MDOUBLE distToFather = currentNode->dis2father();
-		mutateEntireSeq(currentSequence);
+		  if (distToFather < _gillespieThreshold) {
+			// Lazy initialization of Gillespie simulator
+			if (!_gillespieSimulator) {
+				_gillespieSimulator = std::make_unique<SubstitutionGillespie<RngType, AlphabetSize>>(
+					_sp.get(), _rng
+				);
+			}
+			// Use Gillespie for short branches
+			_gillespieSimulator->mutate(currentSequence, distToFather, _rateCategories);
+		} else {
+			// Use cached probabilities for longer branches to mutate entire sequence
+			mutateEntireSeq(currentSequence);
+		}	
 	}
 
 	void mutateEntireSeq(sequence& currentSequence) {
@@ -313,7 +331,7 @@ private:
 	std::vector<size_t> _rateCategories;
 	std::vector<double> _siteRates;
 	std::unique_ptr<sequenceContainer> _simulatedSequences;
-	std::unique_ptr<DiscreteDistribution> _frequencySampler;
+	std::unique_ptr<DiscreteNDistribution<AlphabetSize>> _frequencySampler;
 
 	CategorySampler _rateCategorySampler;
 	std::string _finalMsaPath;
@@ -324,6 +342,9 @@ private:
 
 	RngType *_rng;
 	std::ofstream _outputFile;
+
+	MDOUBLE _gillespieThreshold;
+    std::unique_ptr<SubstitutionGillespie<RngType, AlphabetSize>> _gillespieSimulator;
 
 };
 

@@ -82,6 +82,7 @@ modelCode getModelCode(const std::string& model) {
     exit(1);
 }
 
+
 int main(int argc, char* argv[]) {
     // Parse command line argument for config file
     std::string config_file = "test_config.toml";
@@ -122,6 +123,7 @@ int main(int argc, char* argv[]) {
     protocol.setMinSequenceSize(min_seq_size);
     
     // ==================== LOAD INDEL SETTINGS ====================
+    bool no_indels = config["indels"]["no_indels"].value_or(false);
     double insertion_rate = config["indels"]["insertion_rate"].value_or(0.0);
     double deletion_rate = config["indels"]["deletion_rate"].value_or(0.0);
     
@@ -186,7 +188,12 @@ int main(int argc, char* argv[]) {
         }
         
         sim.initSubstitionSim(mFac);
+        // set threshold for switching to Gillespie simulator
+        double gillespieThreshold = config["substitution"]["gillespie_threshold"].value_or(1e-5);
+        sim.setGillespieThreshold(gillespieThreshold);
         
+        std::cout << "Set Gillespie threshold to: " << gillespieThreshold << std::endl;
+
         // ==================== OUTPUT SETTINGS ====================
         bool save_root = config["output"]["save_root_sequence"].value_or(false);
         bool save_all = config["output"]["save_all_nodes"].value_or(false);
@@ -209,18 +216,33 @@ int main(int argc, char* argv[]) {
         
         // ==================== RUN SIMULATION ====================
         std::cout << "\nRunning simulation..." << std::endl;
+        BlockMap blockmap;
+        MSA msa(0,0, std::vector<bool>()); // Dummy init
+        int msa_length = config["basic"]["root_sequence_size"].value_or(100);
+        if (no_indels) {
+            std::cout << "Indels are disabled for this simulation." << std::endl;
+        } else {
+            blockmap = sim.generateSimulation();
+            std::cout << "Generated indels" << std::endl;
+            msa = MSA(blockmap, phylo_tree.getRoot(), saveList);
+            msa_length = msa.getMSAlength();
+        }
         
-        auto blockmap = sim.generateSimulation();
-        std::cout << "Generated indels" << std::endl;
-        
-        MSA msa(blockmap, phylo_tree.getRoot(), saveList);
-        int msa_length = msa.getMSAlength();
         std::cout << "MSA length: " << msa_length << std::endl;
         
-        auto seq_container = sim.simulateSubstitutions(msa_length);
-        std::cout << "Generated substitutions" << std::endl;
         
-        msa.fillSubstitutions(seq_container);
+        if (!no_indels) {
+            auto seq_container = sim.simulateSubstitutions(msa_length);
+            std::cout << "Generated substitutions" << std::endl;
+            msa.fillSubstitutions(seq_container);
+            sim.setAlignedSequenceMap(msa);
+        } else {
+            std::string output_file = config["output"]["output_file"].value_or("output.fasta");
+
+            sim.simulateAndWriteSubstitutions(msa_length, output_file);
+            std::cout << "Wrote substitutions to file: " << output_file << std::endl;
+            return 0;
+        }
         
         if (save_rates) {
             auto rates = sim.getSiteRates();
@@ -294,6 +316,10 @@ int main(int argc, char* argv[]) {
         }
         
         sim.initSubstitionSim(mFac);
+        // set threshold for switching to Gillespie simulator
+        double gillespieThreshold = config["substitution"]["gillespie_threshold"].value_or(1e-5);
+        sim.setGillespieThreshold(gillespieThreshold);
+
         
         // Run simulation (similar to protein)
         bool save_root = config["output"]["save_root_sequence"].value_or(false);

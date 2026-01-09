@@ -9,7 +9,7 @@
 #include "../libs/Phylolib/includes/definitions.h"
 #include "../libs/Phylolib/includes/stochasticProcess.h"
 #include "../libs/Phylolib/includes/sequence.h"
-#include "../libs/Phylolib/includes/DiscreteDistribution.h"
+#include "../libs/Phylolib/includes/DiscreteNDistribution.h"
 #include "FastRejectionSampler.h"
 
 template<typename RngType, size_t AlphabetSize>
@@ -17,7 +17,7 @@ class SubstitutionGillespie {
 private:
     const stochasticProcess* _sp;
     RngType* _rng;
-    std::vector<std::unique_ptr<DiscreteDistribution>> _gillespieSampler;
+    std::vector<std::unique_ptr<DiscreteNDistribution<AlphabetSize>>> _gillespieSampler;
     MDOUBLE _minWeight;
     MDOUBLE _maxWeight;
 
@@ -31,7 +31,7 @@ private:
                 if (i == j) continue;
                 qRates[j] = _sp->Qij(i, j) * normalizer;
             }
-            _gillespieSampler[i] = std::make_unique<DiscreteDistribution>(qRates);
+            _gillespieSampler[i] = std::make_unique<DiscreteNDistribution<AlphabetSize>>(qRates);
         }
     }
 

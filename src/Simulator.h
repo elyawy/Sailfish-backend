@@ -252,6 +252,12 @@ public:
         _substitutionSim->setAlignedSequenceMap(alignedSeq);
     }
 
+    void setGillespieThreshold(MDOUBLE threshold) {
+        if (_substitutionSim) {
+            _substitutionSim->setGillespieThreshold(threshold);
+        }
+    }
+
 
     ~Simulator(){}
 };
