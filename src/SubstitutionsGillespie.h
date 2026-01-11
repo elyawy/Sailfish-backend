@@ -20,6 +20,7 @@ private:
     std::vector<std::unique_ptr<DiscreteNDistribution<AlphabetSize>>> _gillespieSampler;
     MDOUBLE _minWeight;
     MDOUBLE _maxWeight;
+    std::unique_ptr<FastRejectionSampler> _siteSampler;
 
     void initializeCharacterSamplers() {
         _gillespieSampler.resize(AlphabetSize);
@@ -60,9 +61,26 @@ private:
 
 public:
     SubstitutionGillespie(const stochasticProcess* sp, RngType* rng)
-        : _sp(sp), _rng(rng) {
+        : _sp(sp), _rng(rng), _siteSampler(nullptr) {
         initializeCharacterSamplers();
         computeWeightBounds();
+    }
+
+    void initializeSiteSampler(const sequence& seq, const std::vector<size_t>& rateCategories) {
+        const size_t seqLength = seq.seqLen();
+        std::vector<double> siteWeights(seqLength);
+        for (size_t site = 0; site < seqLength; ++site) {
+            ALPHACHAR currentChar = seq[site];
+            MDOUBLE rate = _sp->rates(rateCategories[site]);
+            siteWeights[site] = -_sp->Qij(currentChar, currentChar) * rate;
+        }
+        if (!_siteSampler) {
+            _siteSampler = std::make_unique<FastRejectionSampler>(siteWeights, _minWeight, _maxWeight);
+            return;
+        } else {
+            std::cout << "updating site sampler weights\n";
+            _siteSampler->updateWeightBulk(siteWeights);
+        }
     }
 
     /**
@@ -75,26 +93,21 @@ public:
     void mutate(
         sequence& currentSequence,
         MDOUBLE branchLength,
-        const std::vector<size_t>& rateCategories)
+        const std::vector<size_t>& rateCategories,
+        bool rebuildGillespieSiteSampler)
     {
         const size_t seqLength = currentSequence.seqLen();
-        
-        // Initialize site weights: weight[site] = -Qii * rate_category
-        std::vector<double> siteWeights(seqLength);
-        for (size_t site = 0; site < seqLength; ++site) {
-            ALPHACHAR currentChar = currentSequence[site];
-            MDOUBLE rate = _sp->rates(rateCategories[site]);
-            siteWeights[site] = -_sp->Qij(currentChar, currentChar) * rate;
+                
+        // Initialize fast rejection sampler for this branch if needed
+        if (!_siteSampler || rebuildGillespieSiteSampler) {
+            initializeSiteSampler(currentSequence, rateCategories);
         }
-        
-        // Initialize fast rejection sampler for this branch
-        FastRejectionSampler siteSampler(siteWeights, _minWeight, _maxWeight);
-        
+
         // Gillespie loop
         MDOUBLE totalTime = 0.0;
         while (totalTime < branchLength) {
             // Sample waiting time
-            MDOUBLE lambda = siteSampler.getSumOfWeights();
+            MDOUBLE lambda = _siteSampler->getSumOfWeights();
             std::exponential_distribution<double> exp_dist(lambda);
             MDOUBLE dt = exp_dist(*_rng);
             totalTime += dt;
@@ -102,7 +115,7 @@ public:
             if (totalTime >= branchLength) break;
             
             // Sample which site mutates (proportional to rate)
-            size_t mutatedSite = siteSampler.sample(*_rng);
+            size_t mutatedSite = _siteSampler->sample(*_rng);
             ALPHACHAR oldChar = currentSequence[mutatedSite];
             
             // Sample new character from Q matrix row
@@ -111,7 +124,7 @@ public:
             
             // Update weight for mutated site
             MDOUBLE newWeight = -_sp->Qij(newChar, newChar) * _sp->rates(rateCategories[mutatedSite]);
-            siteSampler.updateWeight(mutatedSite, newWeight);
+            _siteSampler->updateWeight(mutatedSite, newWeight);
         }
     }
 };

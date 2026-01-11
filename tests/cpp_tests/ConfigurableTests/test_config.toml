@@ -2,17 +2,17 @@
 
 # ==================== BASIC SETTINGS ====================
 [basic]
-tree_file = "../../trees/short_nLeaves10.treefile"
+tree_file = "../../trees/normalbranches_nLeaves1000.treefile"
 seed = 42
-root_sequence_size = 10000000
+root_sequence_size = 10000
 min_sequence_size = 10
 
 # ==================== INDEL SETTINGS ====================
 [indels]
 no_indels = true
 # Rates can be either a single value (uniform) or array (per-branch)
-insertion_rate = 0.01
-deletion_rate = 0.01
+insertion_rate = 0.0
+deletion_rate = 0.0
 
 # Distribution types: "zipf", "geometric", "poisson"
 [indels.insertion_distribution]
@@ -28,11 +28,11 @@ truncation = 50
 # ==================== SUBSTITUTION MODEL ====================
 [substitution]
 # alphabet: "protein" or "nucleotide" or "none" (indels only)
-alphabet = "protein"
+alphabet = "nucleotide"
 
 # Model codes for proteins: WAG, LG, JONES, DAYHOFF, MTREV24, etc.
 # Model codes for nucleotides: NUCJC, HKY, GTR, TAMURA92
-model = "WAG"
+model = "NUCJC"
 
 # For nucleotide models (HKY example):
 # model_parameters = [0.25, 0.25, 0.25, 0.25, 2.0]  # [freq_A, freq_C, freq_G, freq_T, kappa]
@@ -41,12 +41,12 @@ model = "WAG"
 gamma_alpha = 1.0
 gamma_categories = 4
 
-gillespie_threshold = 1e-9
+gillespie_threshold = 1e-2
 
 # ==================== OUTPUT SETTINGS ====================
 [output]
 # What to save
-save_root_sequence = true
+save_root_sequence = false
 save_all_nodes = false
 save_site_rates = false
 

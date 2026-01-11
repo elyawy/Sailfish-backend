@@ -163,10 +163,12 @@ private:
 				);
 			}
 			// Use Gillespie for short branches
-			_gillespieSimulator->mutate(currentSequence, distToFather, _rateCategories);
+			_gillespieSimulator->mutate(currentSequence, distToFather, _rateCategories, _rebuildGillespieSiteSampler);
+			_rebuildGillespieSiteSampler = false;
 		} else {
 			// Use cached probabilities for longer branches to mutate entire sequence
 			mutateEntireSeq(currentSequence);
+			_rebuildGillespieSiteSampler = true;
 		}	
 	}
 
@@ -345,6 +347,7 @@ private:
 
 	MDOUBLE _gillespieThreshold;
     std::unique_ptr<SubstitutionGillespie<RngType, AlphabetSize>> _gillespieSimulator;
+	bool _rebuildGillespieSiteSampler = true;
 
 };
 

@@ -1,5 +1,4 @@
 #include <vector>
-#include <unordered_map>
 
 #include <cmath>
 #include <random>
@@ -18,7 +17,7 @@ private:
     double _totalWeightsSum;
 
     std::vector<std::vector<size_t>> _levelToWeights;
-    std::unordered_map<size_t, size_t> _weightIndexToBin;
+    std::vector<size_t> _weightIndexToBin;  // Changed from unordered_map to vector
 
     int _minWeightLevel;
     int _maxWeightLevel;
@@ -36,6 +35,7 @@ public:
 
         _levelToWeights.resize(numLevels);
         _levelsWeights.resize(numLevels, 0.0);
+        _weightIndexToBin.resize(_weights.size());  // Initialize vector
 
 
         for(size_t i=0; i < _weights.size(); ++i) {
@@ -96,7 +96,7 @@ public:
         }
         double oldWeight = _weights[weightIndex];
         int oldLevel = static_cast<int>(std::log2(_weights[weightIndex]));
-        size_t oldBinIndex = _weightIndexToBin.at(weightIndex);
+        size_t oldBinIndex = _weightIndexToBin[weightIndex];  // Changed from .at() to []
         if (oldLevel >= 0) oldLevel += 1;
         int oldLevelIndex = oldLevel - _minWeightLevel;
 
@@ -138,6 +138,14 @@ public:
 
     }
 
+    void updateWeightBulk(const std::vector<double>& newWeights) {
+        for (size_t i = 0; i < newWeights.size(); ++i) {
+            if (_weights[i] != newWeights[i]) {
+                updateWeight(i, newWeights[i]);
+            }
+        }
+    }
+
     const std::vector<double> & getLevelsWeights() {
         return _levelsWeights;
     }
@@ -174,4 +182,3 @@ public:
 
     ~FastRejectionSampler(){};
 };
-
