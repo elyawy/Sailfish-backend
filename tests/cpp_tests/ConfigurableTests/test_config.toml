@@ -2,7 +2,7 @@
 
 # ==================== BASIC SETTINGS ====================
 [basic]
-tree_file = "../../trees/normalbranches_nLeaves1000.treefile"
+tree_file = "../../trees/short_nLeaves10.treefile"
 seed = 42
 root_sequence_size = 10000
 min_sequence_size = 10
@@ -41,7 +41,7 @@ model = "NUCJC"
 gamma_alpha = 1.0
 gamma_categories = 4
 
-gillespie_threshold = 1e-2
+gillespie_threshold = 1e-8
 
 # ==================== OUTPUT SETTINGS ====================
 [output]

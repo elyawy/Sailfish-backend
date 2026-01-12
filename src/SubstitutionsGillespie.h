@@ -78,7 +78,6 @@ public:
             _siteSampler = std::make_unique<FastRejectionSampler>(siteWeights, _minWeight, _maxWeight);
             return;
         } else {
-            std::cout << "updating site sampler weights\n";
             _siteSampler->updateWeightBulk(siteWeights);
         }
     }
