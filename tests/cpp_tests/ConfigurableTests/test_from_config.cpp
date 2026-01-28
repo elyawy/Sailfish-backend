@@ -369,6 +369,16 @@ int main(int argc, char* argv[]) {
 
             sim.simulateAndWriteSubstitutions(msa_length, output_file);
             std::cout << "Wrote substitutions to file: " << output_file << std::endl;
+            // output rates if requested
+            if (save_rates) {
+                auto rates = sim.getSiteRates();
+                std::cout << "\nSite rates (" << rates.size() << " sites):" << std::endl;
+                for (size_t i = 0; i < std::min(rates.size(), size_t(20)); ++i) {
+                    std::cout << rates[i] << " ";
+                }
+                if (rates.size() > 20) std::cout << "...";
+                std::cout << std::endl;
+            }
             return 0;
         }
         
@@ -379,6 +389,15 @@ int main(int argc, char* argv[]) {
             msa.writeFullMsa(output_file.c_str());
         } else {
             msa.printFullMsa();
+        }
+        if (save_rates) {
+            auto rates = sim.getSiteRates();
+            std::cout << "\nSite rates (" << rates.size() << " sites):" << std::endl;
+            for (size_t i = 0; i < std::min(rates.size(), size_t(20)); ++i) {
+                std::cout << rates[i] << " ";
+            }
+            if (rates.size() > 20) std::cout << "...";
+            std::cout << std::endl;
         }
         
     } else {

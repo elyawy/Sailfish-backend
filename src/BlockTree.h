@@ -5,9 +5,7 @@
 #include <unordered_map>
 #include <tuple>
 #include "AvlTree.h"
-
-
-typedef std::unordered_map<size_t, std::tuple<BlockList, size_t>> BlockMap;
+#include "Event.h"
 
 
 enum class BLOCK {
@@ -85,12 +83,5 @@ public:
   }
 };
 
-// class BlockContainer {
-// private:
-//   std::map<std::string, BlockTree*> nodeToBlock;
-// public:
-//   BlockContainer() {}
-
-// }
 
 #endif
