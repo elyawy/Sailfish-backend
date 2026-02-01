@@ -14,7 +14,7 @@
 #include "../libs/Phylolib/includes/sequenceContainer.h"
 
 #include "Sequence.h"
-
+#include "Event.h"
 
 using namespace std;
 
@@ -23,19 +23,8 @@ class MSA
 public:
 	using iteratorType = std::list<SuperSequence::columnContainer>::iterator;
 
-    static std::vector<MSA> generateMSAs(std::vector<BlockMap> &blockmaps, tree::nodeP rootNode,
-                                        const std::vector<bool>& nodesToSave) {
-        std::vector<MSA> msas;
 
-        for(auto &blockmap: blockmaps) {
-            msas.push_back(MSA(blockmap, rootNode, nodesToSave));
-        }
-
-        return msas;
-    }
-
-    MSA (BlockMap &blockmap,const tree::nodeP rootNode, const std::vector<bool>& nodesToSave) {
-        size_t sequenceSize = std::get<static_cast<int>(BLOCKLIST::LENGTH)>(blockmap.at(rootNode->id()))-1;
+    MSA (EventMap &eventmap, size_t sequenceSize, const tree::nodeP rootNode, const std::vector<bool>& nodesToSave) {
 
         size_t numberOfSeqs = 0;
         _sequencesToSave.clear();
@@ -54,14 +43,14 @@ public:
         finalSequences.reserve(_numberOfSequences);
         // std::vector<Sequence> finalSequences;
 
-        buildMsaRecursively(finalSequences, blockmap, *rootNode, superSequence, rootSequence, nodesToSave);
-        blockmap.clear();
+        buildMsaRecursively(finalSequences, eventmap, *rootNode, superSequence, rootSequence, nodesToSave);
+        eventmap.clear();
         
         fillMSA(finalSequences, superSequence);
     }
 
     void buildMsaRecursively(std::vector<CompressedSequence> &finalSequences,
-                             BlockMap &blockmap,const tree::TreeNode &parrentNode,
+                             EventMap &eventmap, const tree::TreeNode &parrentNode,
                              SuperSequence &superSequence, const Sequence& parentSequence, 
                              const std::vector<bool>& nodesToSave) {
         if ((nodesToSave)[parrentNode.id()]) finalSequences.emplace_back(parentSequence.compress());
@@ -71,9 +60,9 @@ public:
             tree::TreeNode* childNode = parrentNode.getSon(i);
             Sequence currentSequence(superSequence, nodesToSave[childNode->id()], childNode->id());
 
-            auto blocks = std::get<static_cast<int>(BLOCKLIST::BLOCKS)>(blockmap.at(childNode->id()));//simulateAlongBranch(sequences.top().size(), currentNode->dis2father(), nodePosition);
-            currentSequence.generateSequence(blocks, &parentSequence);
-            buildMsaRecursively(finalSequences, blockmap, *childNode, superSequence, currentSequence, nodesToSave);
+            auto events = eventmap.at(childNode->id());
+            currentSequence.generateSequence(events, &parentSequence);
+            buildMsaRecursively(finalSequences, eventmap, *childNode, superSequence, currentSequence, nodesToSave);
         }
         
     }

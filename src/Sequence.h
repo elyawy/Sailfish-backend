@@ -10,6 +10,7 @@
 #include <iterator>
 
 #include "SuperSequence.h"
+#include "Event.h"
 #include "BlockTree.h"
 
 struct CompressedSequence {
@@ -29,21 +30,14 @@ private:
     size_t _nodeID;
     SequenceType _sequence;
     const Sequence* _parent;
+    BlockTree blocks;
 
-    // size_t _numLeaf;
 public:
 
     Sequence(SuperSequence& superSeq, bool isSaveSeq, size_t nodeID) : 
         _superSequence(&superSeq), _isSaveSequence(isSaveSeq), _nodeID(nodeID) {}
 
-    // Sequence(const Sequence &seq) {
-    //     for (size_t i = 0; i < seq._sequence.size(); i++) {
-    //         _sequence.push_back(seq._sequence[i]);
-    //     }
-    //     _superSequence = seq._superSequence;
-    //     _isSaveSequence = seq._isSaveSequence;
-    //     _nodeID = seq._nodeID;
-    // }
+
     Sequence(const CompressedSequence& compressed, SuperSequence& superSeq) 
         : _superSequence(&superSeq), _isSaveSequence(true), _nodeID(compressed.nodeID) {
         
@@ -68,7 +62,8 @@ public:
         }
     }
 
-    void generateSequence (const BlockList &blocklist,const Sequence *parentSeq) {
+
+    void generateSequence (const EventSequence &eventlist,const Sequence *parentSeq) {
         _sequence.reserve(parentSeq->_sequence.size());
 
         size_t position;
@@ -76,16 +71,22 @@ public:
         size_t insertion;
         size_t randomPos = _superSequence->getRandomSequencePosition();
         _parent = (parentSeq);
-        // std::cout << parentSeq.getSequenceNodeID() << "\n";
-        for (auto it = blocklist.begin(); it != blocklist.end(); ++it) {
-            position = (*it)[static_cast<int>(BLOCK::POSITION)];//(&it)->key();
-            length = (*it)[static_cast<int>(BLOCK::LENGTH)];//(*it).length;
-            insertion = (*it)[static_cast<int>(BLOCK::INSERTION)];//(*it).insertion;
 
-            // std::cout << "current Block is: " << position <<"|" << length << "|" << insertion << "\n";
+        // apply events on BlockTree
+        blocks.initTree(parentSeq->_sequence.size());
+        for (const auto& eventlist: eventlist) {
+            // std::cout << "applying event: " << eventlist.type << " " << eventlist.position << " " << eventlist.length << "\n";
+            blocks.handleEvent(eventlist.type, eventlist.position, eventlist.length);
+        }
+
+
+        for (auto it = blocks.begin(); it != blocks.end(); ++it) {
+            position = it.key();
+            length = (*it).length;
+            insertion = (*it).insertion;
+
 
             if (position==0 && length==1 && insertion==0) {
-                // _sequence.push_back(parentSeq._sequence[0]);
                 continue;
             }
 

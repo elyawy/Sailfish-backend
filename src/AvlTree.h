@@ -39,6 +39,18 @@
 //
 ///////////////////////////////////////////////////////////////////////////////
 
+// This file was originally part of the 'avl_array' library by Marco Paland.
+// It was modified to fit the Sailfish project requirements, specifically to
+// handle the block tree data structure needed for fast indel simulations.
+// The core AVL tree implementation remains intact, ensuring efficient
+// performance for block tree operations.
+// The changes were introduces by Elya Wygoda according to the algorithm described in:
+// Elya Wygoda, Asher Moshe, Nimrod Serok, Edo Dotan, Noa Ecker, Naiel Jabareen, 
+// Omer Israeli, Itsik Pe’er, Tal Pupko, 
+// Efficient algorithms for simulating sequences along a phylogenetic tree, 
+// Bioinformatics, Volume 42, Issue 1, January 2026, btaf686, 
+// https://doi.org/10.1093/bioinformatics/btaf686
+
 #ifndef _AVL_ARRAY_H_
 #define _AVL_ARRAY_H_
 
@@ -47,6 +59,7 @@
 #include <vector>
 #include <array>
 #include <tuple>
+#include "Event.h"
 
 struct Block {
     size_t length;
@@ -55,13 +68,6 @@ struct Block {
 
 typedef std::vector<std::array<size_t, 3>> BlockList;
 
-
-enum event {
-  INSERTION,
-  DELETION
-};
-
-const char* event_txt[] = {"INSERTION", "DELETION"};
 
 /**
  * \param Key The key type. The type (class) must provide a 'less than' and

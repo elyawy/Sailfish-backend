@@ -1,0 +1,196 @@
+
+#include <stack>
+#include <random>
+#include <memory>
+
+#include "SimulationProtocol.h"
+#include "Event.h"
+
+template<typename RngType = std::mt19937_64>
+class IndelSimulator
+{
+private:
+    SimulationProtocol* _protocol;
+    size_t _seed;
+	RngType _rng;
+    std::uniform_real_distribution<double> _biased_coin;
+    std::shared_ptr<std::vector<bool>> _nodesToSave;
+
+public:
+    IndelSimulator(SimulationProtocol* protocol): _protocol(protocol),
+    _seed(protocol->getSeed()), _rng(protocol->getSeed()),
+    _biased_coin(0,1) {
+        _nodesToSave = std::make_shared<std::vector<bool>>(_protocol->getTree()->getNodesNum(), false);
+        setSaveStateLeaves(_protocol->getTree()->getRoot());
+    }
+
+    void initSimulator() {
+        _seed = _protocol->getSeed();
+        _rng.seed(_seed);
+    }
+
+    void resetSimulator(SimulationProtocol* newProtocol) {
+        _protocol = newProtocol;
+        initSimulator();
+    }
+
+
+    // return pointer to rng
+    RngType* getRng() {
+        return &_rng;
+    }
+
+
+    EventMap generateSimulation() {
+        size_t sequenceSize = _protocol->getSequenceSize();
+        tree::TreeNode *rootNode = _protocol->getTree()->getRoot();
+
+        EventMap nodeToEventMap;
+        nodeToEventMap.resize(_protocol->getTree()->getNodesNum());
+        generateIndelsRecursively(nodeToEventMap, sequenceSize, *rootNode);
+        return nodeToEventMap;
+    }
+
+    void generateIndelsRecursively(EventMap &eventmap, size_t parentSequenceLength ,const tree::TreeNode &currentNode) {
+        if (currentNode.isLeaf()) {
+            return;
+        }
+
+        for (size_t i = 0; i < currentNode.getNumberOfSons(); i++) {
+            tree::TreeNode* childNode =  currentNode.getSon(i);
+            auto eventTuple = simulateAlongBranch(parentSequenceLength, childNode->dis2father(), childNode->id()-1);
+            // get the new sequence length after indels
+            size_t newSequenceLength = eventTuple.second;
+            // store the events for the current node
+            eventmap[childNode->id()] = eventTuple.first;
+            generateIndelsRecursively(eventmap, newSequenceLength, *(currentNode.getSon(i)));
+        }
+    }
+
+
+    std::pair<EventSequence, size_t> simulateAlongBranch(size_t seqSize, double branchLength, size_t nodePosition) {
+        EventSequence events;
+        
+        size_t sequenceSize = seqSize;
+        size_t minSequenceSize = _protocol->getMinSequenceSize();
+
+        double insertionRate = _protocol->getInsertionRate(nodePosition);
+        double deletionRate = _protocol->getDeletionRate(nodePosition);
+
+        DiscreteDistribution* insertionLengthDistribution = _protocol->getInsertionDistribution(nodePosition);
+        DiscreteDistribution* deletionLengthDistribution = _protocol->getDeletionDistribution(nodePosition);
+
+        double sampledDeletionLength = deletionLengthDistribution->drawSample(_rng);
+
+        double sequenceWiseInsertionRate = 1.0 * insertionRate * (sequenceSize + 1);
+        double sequenceWiseDeletionRate = 1.0 * deletionRate * (sequenceSize + (sampledDeletionLength - 1));
+        if (sequenceSize <= minSequenceSize) sequenceWiseDeletionRate = 0.0;
+
+        double lambdaParam = sequenceWiseInsertionRate + sequenceWiseDeletionRate;
+        std::exponential_distribution<double> distribution(lambdaParam);
+
+
+        double waitingTime = distribution(_rng);
+
+        while (waitingTime < branchLength) {
+
+            double insertionProbability = sequenceWiseInsertionRate / (sequenceWiseInsertionRate + sequenceWiseDeletionRate);
+
+            int eventIndex;
+            size_t eventLength;
+            event eventType;
+
+            double coinFlip = _biased_coin(_rng);
+
+            if (coinFlip < insertionProbability) {
+                auto _fair_die = std::uniform_int_distribution<int>(0, sequenceSize);
+                eventIndex = _fair_die(_rng);
+
+                eventLength = insertionLengthDistribution->drawSample(_rng);
+                eventType = event::INSERTION;
+            } else {
+                auto _fair_die = std::uniform_int_distribution<int>(1 - (sampledDeletionLength-1), sequenceSize);
+                eventIndex = _fair_die(_rng);
+                eventLength = sampledDeletionLength;
+                if (eventIndex < 1) {
+                    eventLength = eventLength + (eventIndex-1);
+                    eventIndex = 1;
+                }
+
+                if (eventLength + eventIndex > sequenceSize) {
+                    eventLength = sequenceSize - eventIndex + 1;
+                }
+                eventType = event::DELETION;
+            }
+            events.push_back({eventType, static_cast<size_t>(eventIndex), eventLength});
+            // std::cout << "  Event: " << (eventType == INSERTION ? "Insertion" : "Deletion") << " at " << eventIndex << " length " << eventLength << "\n";
+
+            if (eventType == INSERTION) {
+                sequenceSize += eventLength;
+            } else {  // DELETION
+                sequenceSize -= eventLength;
+            }
+
+            sampledDeletionLength = deletionLengthDistribution->drawSample(_rng);
+
+            branchLength = branchLength - waitingTime;
+            sequenceWiseInsertionRate = 1.0 * insertionRate * (sequenceSize + 1);
+            sequenceWiseDeletionRate =  1.0 * deletionRate * (sequenceSize + (sampledDeletionLength - 1));
+            if (sequenceSize <= minSequenceSize) sequenceWiseDeletionRate = 0.0;
+
+            lambdaParam = sequenceWiseInsertionRate + sequenceWiseDeletionRate;
+            std::exponential_distribution<double> distribution(lambdaParam);
+            waitingTime = distribution(_rng);
+
+        }
+
+        return std::make_pair(events, sequenceSize);
+    }
+
+
+
+    void setNodesToSave(std::vector<size_t> nodeIDs) {
+        std::fill(_nodesToSave->begin(), _nodesToSave->end(), false);
+        for(auto &nodeID: nodeIDs) {
+            (*_nodesToSave)[nodeID] = true;
+        }
+    }
+
+    void setSaveAllNodes() {
+        for (size_t i = 0; i < _nodesToSave->size(); i++) {
+            (*_nodesToSave)[i] = true;
+        }
+    }
+
+    void setSaveRoot() {
+        (*_nodesToSave)[0] = true;
+    }
+
+
+    void changeNodeSaveState(size_t nodeID) {
+        (*_nodesToSave)[nodeID] = !(*_nodesToSave)[nodeID];
+    }
+    bool getNodeSaveState(size_t nodeID) {
+        return (*_nodesToSave)[nodeID];
+    }
+
+
+    //returns a shared pointer to the nodes to save list
+    std::shared_ptr<std::vector<bool>> getNodesToSavePtr() {
+        return _nodesToSave;
+    }
+    
+    const std::vector<bool> getNodesSaveList() {
+        return (*_nodesToSave);
+    }
+
+    void setSaveStateLeaves(const tree::nodeP &node) {
+        for(auto &node: node->getSons()) {
+            if (node->isLeaf()) (*_nodesToSave)[node->id()] = true;
+            setSaveStateLeaves(node);
+        }
+    }
+
+
+    ~IndelSimulator(){}
+};
