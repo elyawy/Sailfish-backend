@@ -8,21 +8,18 @@
 class SimulationProtocol
 {
 private:
-    tree* _tree;
     size_t _numberOfBranches;
     size_t _sequenceSize;
     size_t _minSequenceSize;
-    size_t _seed;
     std::vector<DiscreteDistribution*> _insertionLengthDistributions;
     std::vector<DiscreteDistribution*> _deletionLengthDistributions;
     std::vector<double> _insertionRates;
     std::vector<double> _deletionRates;
-    bool _isSaveAncestral;
 
 public:
-    SimulationProtocol(tree* phylotree) : _tree(phylotree),
-                                          _numberOfBranches(phylotree->getNodesNum()-1),
-                                          _minSequenceSize(0) {}
+    SimulationProtocol(size_t numberOfBranches) : 
+    _numberOfBranches(numberOfBranches),
+    _sequenceSize(0), _minSequenceSize(0) {}
 
     void setInsertionLengthDistributions(std::vector<DiscreteDistribution*> lengthDistributions) {
         if (lengthDistributions.size() != _numberOfBranches) {
@@ -105,21 +102,8 @@ public:
         _minSequenceSize = minSequenceSize;
     }
 
-    void setSeed(size_t seed) {
-        // Golden Ratio constant used for better hash scattering
-        // Makes close by seeds produce very different _seed values
-        // which reduces correlation when used in multiple simulations with close by seeds
-        uint64_t phi = 0x9e3779b97f4a7c15;
-        _seed = seed*phi;
-    }
 
-    size_t getSeed() {
-        return _seed;
-    }
 
-    tree* getTree(){
-        return _tree;
-    }
 
     size_t getSequenceSize(){
         return _sequenceSize;
@@ -128,16 +112,6 @@ public:
     size_t getMinSequenceSize(){
         return _minSequenceSize;
     }
-
-    void setSaveAncestral(bool saveAncestral) {
-        _isSaveAncestral = saveAncestral;
-    }
-
-    bool getSaveAncestral() {
-        return _isSaveAncestral;
-    }
-
-
 
 
     ~SimulationProtocol() {}

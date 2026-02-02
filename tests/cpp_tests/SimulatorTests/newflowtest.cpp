@@ -1,15 +1,8 @@
-#include <ctime>
+#include <chrono>
 
 #include "../../../src/IndelSimulator.h"
 #include "../../../src/SubstitutionSimulator.h"
 #include "../../../libs/pcg/pcg_random.hpp"
-
-
-
-// Trying to refactor the simulator and separate between indel simulation and substitution simulation.
-// Simulator should be renamed to IndelSimulator, and handle only indel simulation,
-// and rateMatrixSim should be renamed to SubstitutionSimulator and handle substitution simulation only.
-// Not sure if an orechstrating class is needed to combine both simulations, or if the user should call both simulators separately.
 
 
 // takes 10 minutes currently
@@ -17,6 +10,13 @@ int main() {
     tree tree_("../../trees/normalbranches_nLeaves10.treefile");
 
     std::time_t t1 = 42;//std::time(0);
+
+    // time general simulation setup
+
+    auto start = std::chrono::high_resolution_clock::now();
+    SimulationContext<pcg64_fast> simContext(&tree_, t1);
+    simContext.setSaveLeaves();
+    
     vector<DiscreteDistribution*> insertionDists(tree_.getNodesNum() - 1);
     vector<DiscreteDistribution*> deletionDists(tree_.getNodesNum() - 1);
 
@@ -34,7 +34,7 @@ int main() {
     fill(insertionRates.begin(), insertionRates.end(), 0.01);
     fill(deletionRates.begin(), deletionRates.end(), 0.01);
 
-    SimulationProtocol protocol(&tree_);
+    SimulationProtocol protocol(simContext.getTree()->getNodesNum() - 1);
 
 
     protocol.setInsertionLengthDistributions(insertionDists);
@@ -42,29 +42,31 @@ int main() {
     protocol.setInsertionRates(insertionRates);
     protocol.setDeletionRates(deletionRates);
 
-    int rootLength = 100000;
+    int rootLength = 50;
     protocol.setSequenceSize(rootLength);
-
-
-    protocol.setSeed(t1);
+    auto end = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+    std::cout << "General simulation setup took " << duration << " microseconds.\n";
 
     std::cout << "Starting indel simulation...\n";
+    // time indel simulator initialization in microseconds
+    start = std::chrono::high_resolution_clock::now();
+    IndelSimulator<pcg64_fast> indelSim(simContext, &protocol);
+    end = std::chrono::high_resolution_clock::now();
+    duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+    std::cout << "Indel simulator initialization took " << duration << " microseconds.\n";
 
-    IndelSimulator<pcg64_fast> indelSim(&protocol);
+    //time event generation in microseconds
 
-    std::cout << "Indel simulator initialized.\n";
-
-    //time event generation in nanoseconds
-    std::time_t start = std::time(0);
+    start = std::chrono::high_resolution_clock::now();
     auto eventMap = indelSim.generateSimulation();
-    std::time_t end = std::time(0);
-    double dif = difftime(end, start);
+    end = std::chrono::high_resolution_clock::now();
+    duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+    std::cout << "Indel simulation took " << duration << " microseconds.\n";
 
-    std::cout << "Indel simulation time: " << dif << " seconds\n";
-
-    modelFactory mFac(&tree_);
-
-
+    modelFactory mFac;
+    // time model setup in microseconds
+    start = std::chrono::high_resolution_clock::now();
     mFac.setAlphabet(alphabetCode::AMINOACID);
     mFac.setReplacementModel(modelCode::LG);
     // mFac.setModelParameters({0.25,0.25,0.25,0.25,0.1,0.2,0.3,0.4,0.5,0.6});
@@ -78,22 +80,35 @@ int main() {
                           });
 
     if (!mFac.isModelValid()) return 1;
-    auto saveListPtr = indelSim.getNodesToSavePtr();
-    SubstitutionSimulator<pcg64_fast, 20> substitutionSim(mFac, saveListPtr);
+    end =  std::chrono::high_resolution_clock::now();
+    duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+    std::cout << "Model setup took " << duration << " microseconds.\n";
 
-
-    auto msa = MSA(eventMap, rootLength, tree_.getRoot(), *saveListPtr);
-
+    // time substitution simulator initialization in microseconds
+    start = std::chrono::high_resolution_clock::now();
+    SubstitutionSimulator<pcg64_fast, 20> substitutionSim(mFac, simContext);
+    end = std::chrono::high_resolution_clock::now();
+    duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+    std::cout << "Substitution simulator initialization took " << duration << " microseconds.\n";
+    
+    //time MSA construction in microseconds
+    start = std::chrono::high_resolution_clock::now();
+    auto msa = MSA(eventMap, rootLength, tree_.getRoot(), simContext.getNodesToSave());
+    end = std::chrono::high_resolution_clock::now();
+    duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+    std::cout << "MSA construction took " << duration << " microseconds.\n";
     std::cout << "MSA built. Number of sequences: " << msa.getNumberOfSequences() 
               << ", MSA length: " << msa.getMSAlength() << "\n";
 
-    substitutionSim.setRng(indelSim.getRng());
-
     // substitutionSim.simulateAndWriteSubstitutions(msa.getMSAlength(), "output_newflowtest.fasta");
+    // time substitution simulation in microseconds
+    start = std::chrono::high_resolution_clock::now();
     auto fullContainer = substitutionSim.simulateSubstitutions(msa.getMSAlength());
-
+    end = std::chrono::high_resolution_clock::now();
+    duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+    std::cout << "Substitution simulation took " << duration << " microseconds.\n";
     msa.fillSubstitutions(fullContainer);
-    
+    // msa.printFullMsa();
 
     return 0;
 

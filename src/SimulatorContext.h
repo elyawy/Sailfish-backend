@@ -5,20 +5,26 @@
 #include <random>
 #include "../libs/Phylolib/includes/tree.h"
 
+constexpr uint64_t PHI = 0x9e3779b97f4a7c15;
+
 template<typename RngType = std::mt19937_64>
 class SimulationContext {
 public:
     SimulationContext(tree* t, size_t seed) 
-        : _tree(t), _seed(seed), _rng(seed), 
+        : _tree(t), _seed(seed), _rng(seed*PHI), 
           _nodesToSave(t->getNodesNum(), false) {}
 
-    RngType* getRng() { return &_rng; }
+    tree* getTree() const { return _tree; }
+
+    tree::nodeP getRoot() const { return _tree->getRoot(); }
+
+    RngType& getRng() { return _rng; }
     
     size_t getSeed() const { return _seed; }
     
     void reseed(size_t seed) { 
         _seed = seed;
-        _rng.seed(seed); 
+        _rng.seed(seed*PHI); 
     }
 
     const std::vector<bool>& getNodesToSave() const { return _nodesToSave; }

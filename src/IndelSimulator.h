@@ -3,6 +3,7 @@
 #include <random>
 #include <memory>
 
+#include "SimulatorContext.h"
 #include "SimulationProtocol.h"
 #include "Event.h"
 
@@ -11,42 +12,33 @@ class IndelSimulator
 {
 private:
     SimulationProtocol* _protocol;
-    size_t _seed;
-	RngType _rng;
+    tree* _tree;
+    tree::TreeNode* _rootNode;
     std::uniform_real_distribution<double> _biased_coin;
-    std::shared_ptr<std::vector<bool>> _nodesToSave;
+    const std::vector<bool>& _nodesToSave;
+    RngType& _rng;
 
 public:
-    IndelSimulator(SimulationProtocol* protocol): _protocol(protocol),
-    _seed(protocol->getSeed()), _rng(protocol->getSeed()),
-    _biased_coin(0,1) {
-        _nodesToSave = std::make_shared<std::vector<bool>>(_protocol->getTree()->getNodesNum(), false);
-        setSaveStateLeaves(_protocol->getTree()->getRoot());
-    }
+    IndelSimulator(SimulationContext<RngType>& simContext, SimulationProtocol* protocol):
+    _protocol(protocol),
+    _tree(simContext.getTree()),
+    _rootNode(simContext.getRoot()),
+    _biased_coin(0,1),
+    _nodesToSave(simContext.getNodesToSave()),
+    _rng(simContext.getRng()) {}
 
-    void initSimulator() {
-        _seed = _protocol->getSeed();
-        _rng.seed(_seed);
-    }
 
-    void resetSimulator(SimulationProtocol* newProtocol) {
+    void updateSimulationProtocol(SimulationProtocol* newProtocol) {
         _protocol = newProtocol;
-        initSimulator();
-    }
-
-
-    // return pointer to rng
-    RngType* getRng() {
-        return &_rng;
     }
 
 
     EventMap generateSimulation() {
         size_t sequenceSize = _protocol->getSequenceSize();
-        tree::TreeNode *rootNode = _protocol->getTree()->getRoot();
+        tree::TreeNode *rootNode = _rootNode;
 
         EventMap nodeToEventMap;
-        nodeToEventMap.resize(_protocol->getTree()->getNodesNum());
+        nodeToEventMap.resize(_tree->getNodesNum());
         generateIndelsRecursively(nodeToEventMap, sequenceSize, *rootNode);
         return nodeToEventMap;
     }
@@ -146,51 +138,6 @@ public:
 
         return std::make_pair(events, sequenceSize);
     }
-
-
-
-    void setNodesToSave(std::vector<size_t> nodeIDs) {
-        std::fill(_nodesToSave->begin(), _nodesToSave->end(), false);
-        for(auto &nodeID: nodeIDs) {
-            (*_nodesToSave)[nodeID] = true;
-        }
-    }
-
-    void setSaveAllNodes() {
-        for (size_t i = 0; i < _nodesToSave->size(); i++) {
-            (*_nodesToSave)[i] = true;
-        }
-    }
-
-    void setSaveRoot() {
-        (*_nodesToSave)[0] = true;
-    }
-
-
-    void changeNodeSaveState(size_t nodeID) {
-        (*_nodesToSave)[nodeID] = !(*_nodesToSave)[nodeID];
-    }
-    bool getNodeSaveState(size_t nodeID) {
-        return (*_nodesToSave)[nodeID];
-    }
-
-
-    //returns a shared pointer to the nodes to save list
-    std::shared_ptr<std::vector<bool>> getNodesToSavePtr() {
-        return _nodesToSave;
-    }
-    
-    const std::vector<bool> getNodesSaveList() {
-        return (*_nodesToSave);
-    }
-
-    void setSaveStateLeaves(const tree::nodeP &node) {
-        for(auto &node: node->getSons()) {
-            if (node->isLeaf()) (*_nodesToSave)[node->id()] = true;
-            setSaveStateLeaves(node);
-        }
-    }
-
 
     ~IndelSimulator(){}
 };

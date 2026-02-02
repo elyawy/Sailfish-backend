@@ -19,6 +19,7 @@
 #include "../libs/Phylolib/includes/customDistribution.h"
 
 #include "allModels.h"
+#include "OptimizedChebyshevFactory.h"
 
 // wrapper for all the information about the substitution model:
 // alphabet = aa/nc
@@ -43,47 +44,13 @@ enum alphabetCode {
 };
 
 
-enum modelCode {
-    // nc:
-    NUCJC,
-    AAJC,
-    GTR,
-    HKY,
-    TAMURA92,
-    WYANGMODEL,
-    // AA:
-    CPREV45,
-    DAYHOFF,
-    JONES,	// THIS IS JTT
-    MTREV24,
-    WAG,
-    HIVB,
-    HIVW,
-    LG,
-    EMPIRICODON,
-    EX_BURIED, 
-    EX_EXPOSED,
-    EHO_EXTENDED,
-    EHO_HELIX,
-    EHO_OTHER,
-    EX_EHO_BUR_EXT,
-    EX_EHO_BUR_HEL,
-    EX_EHO_BUR_OTH,
-    EX_EHO_EXP_EXT,
-    EX_EHO_EXP_HEL,
-    EX_EHO_EXP_OTH,
-    CUSTOM
-};
-
-
 
 class modelFactory
 {
 
 public:
-    modelFactory(tree* tr): 
-        _state(factoryState::ALPHABET),
-        _tree(tr) {}
+    modelFactory(): 
+        _state(factoryState::ALPHABET) {}
 
     void setAlphabet(alphabetCode alphabet) {
         if (_state != factoryState::ALPHABET) {
@@ -199,8 +166,6 @@ public:
         _stationaryProbs.clear();
         _customRates.clear();
     }
-
-    tree* getTree() { return _tree; }
 
     bool isModelValid() {
         return (_state == factoryState::COMPLETE);
@@ -345,6 +310,7 @@ public:
         std::unique_ptr<pijAccelerator> pij;
 
         if (_alphabet == alphabetCode::AMINOACID) {
+            // pij = std::make_unique<chebyshevAccelerator>(repModel.get());
             pij = std::make_unique<chebyshevAccelerator>(repModel.get());
         } else if (_alphabet == alphabetCode::NUCLEOTIDE) {
             pij = std::make_unique<trivialAccelerator>(repModel.get());
@@ -360,7 +326,6 @@ public:
 
 private:
     factoryState _state;
-    tree* _tree;
     std::unique_ptr<alphabet> _alphPtr;
     alphabetCode _alphabet;
     modelCode _model;
