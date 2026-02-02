@@ -310,7 +310,6 @@ public:
         std::unique_ptr<pijAccelerator> pij;
 
         if (_alphabet == alphabetCode::AMINOACID) {
-            // pij = std::make_unique<chebyshevAccelerator>(repModel.get());
             pij = std::make_unique<chebyshevAccelerator>(repModel.get());
         } else if (_alphabet == alphabetCode::NUCLEOTIDE) {
             pij = std::make_unique<trivialAccelerator>(repModel.get());
