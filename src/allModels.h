@@ -16,7 +16,7 @@
 enum modelCode {
     // nc:
     NUCJC,
-    AAJC,
+    AAJC, // amino acid JC
     GTR,
     HKY,
     TAMURA92,

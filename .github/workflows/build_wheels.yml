@@ -48,6 +48,17 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Cache Phylolib
+        id: cache-phylolib
+        uses: actions/cache@v4
+        with:
+          path: |
+            libs/libPhylolib.a
+            libs/Phylolib.lib
+          key: phylolib-${{ matrix.config.id }}-${{ hashFiles('libs/Phylolib/**') }}
+          restore-keys: |
+            phylolib-${{ matrix.config.id }}-
+
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.23.2
         with:

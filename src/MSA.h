@@ -235,17 +235,6 @@ public:
 		std::cout << _msaLength << "\n";
 	}
 
-	void printIndels() {
-
-		for (auto const &sequence: _alignedSequence)
-		{
-            for (auto const &site: sequence.second) {
-                 std::cout << site << " ";     //std::bitset<8>(column);
-            }
-            std::cout << std::endl;
-
-		}
-	}
 
     std::string generateMsaStringWithoutSubs() {
         // std::stringstream msaString;
@@ -309,59 +298,6 @@ public:
     void printFullMsa() {
         std::cout << generateMsaString();
 	}
-
-
-    void writeMsaFromDir(const char * filePath) {
-        std::ofstream msafile (filePath);
-
-        if (msafile.is_open()) {
-            for (size_t row = 0; row < _numberOfSequences; row++) {
-                int passedSeq = 0;
-                auto & seqPath = _substitutionPaths[row].path();
-                int id = std::stoi(seqPath.stem());
-
-                std::ifstream seqFile(seqPath);
-                char currentChar;
-                while (seqFile.get(currentChar)) {
-                    msafile << currentChar;
-                    if (currentChar == '\n') break;;
-                }
-                
-                if (_alignedSequence.empty()) {
-                    while (seqFile.get(currentChar)) {
-                        msafile << currentChar;
-                    }
-                    continue;
-                }
-
-                for (size_t col = 0; col < _alignedSequence[id].size(); col++) {
-                    int strSize = _alignedSequence[id][col];
-                    if (strSize < 0) {
-                        strSize = -strSize;
-                        size_t readCounter = strSize;
-                        while (readCounter > 0) {
-                            msafile << '-';
-                            seqFile.get(currentChar); 
-                            readCounter--;
-                        }
-                    } else {
-                        size_t readCounter = strSize;
-                        while (readCounter > 0) {
-                            seqFile.get(currentChar);
-                            msafile << currentChar;
-                            readCounter--;
-                        }
-                    }
-                    passedSeq += strSize;
-                }
-                msafile << '\n'; 
-                seqFile.close(); 
-                std::filesystem::remove(seqPath); // delete taxa sequence file              
-            }
-            msafile.close();
-        }
-        else cout << "Unable to open file";
-    }
 
 
     void writeFullMsa(const char * filePath) {

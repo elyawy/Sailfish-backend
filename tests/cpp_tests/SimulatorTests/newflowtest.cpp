@@ -31,8 +31,8 @@ int main() {
     vector<double> insertionRates(tree_.getNodesNum() - 1);
     vector<double> deletionRates(tree_.getNodesNum() - 1);
 
-    fill(insertionRates.begin(), insertionRates.end(), 0.01);
-    fill(deletionRates.begin(), deletionRates.end(), 0.01);
+    fill(insertionRates.begin(), insertionRates.end(), 0.1);
+    fill(deletionRates.begin(), deletionRates.end(), 0.1);
 
     SimulationProtocol protocol(simContext.getTree()->getNodesNum() - 1);
 
@@ -67,7 +67,7 @@ int main() {
     modelFactory mFac;
     // time model setup in microseconds
     start = std::chrono::high_resolution_clock::now();
-    mFac.setAlphabet(alphabetCode::AMINOACID);
+
     mFac.setReplacementModel(modelCode::LG);
     // mFac.setModelParameters({0.25,0.25,0.25,0.25,0.1,0.2,0.3,0.4,0.5,0.6});
     mFac.setSiteRateModel({0.01, 0.0,2.0,4.0},
@@ -80,6 +80,7 @@ int main() {
                           });
 
     if (!mFac.isModelValid()) return 1;
+    mFac.buildReplacementModel(); // to force model building
     end =  std::chrono::high_resolution_clock::now();
     duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
     std::cout << "Model setup took " << duration << " microseconds.\n";
@@ -108,7 +109,12 @@ int main() {
     duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
     std::cout << "Substitution simulation took " << duration << " microseconds.\n";
     msa.fillSubstitutions(fullContainer);
-    // msa.printFullMsa();
+
+    start = std::chrono::high_resolution_clock::now();
+    auto msaStr = msa.generateMsaString();
+    end = std::chrono::high_resolution_clock::now();
+    duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+    std::cout << "MSA printing took " << duration << " microseconds.\n";
 
     return 0;
 
