@@ -3,7 +3,7 @@
 #include <random>
 #include <memory>
 
-#include "SimulatorContext.h"
+#include "SimulationContext.h"
 #include "SimulationProtocol.h"
 #include "Event.h"
 

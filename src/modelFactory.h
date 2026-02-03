@@ -391,8 +391,8 @@ public:
         }
 
         if (!_cachedPij) {
-            std::cout << "Please call buildReplacementModel() before getStochasticProcess().\n";
-            return nullptr;
+            // build replacement model if not already built
+            buildReplacementModel();
         }
 
         // Create distribution with current rate model parameters

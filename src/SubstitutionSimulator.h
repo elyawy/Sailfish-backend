@@ -6,7 +6,7 @@
 #include "../libs/Phylolib/includes/stochasticProcess.h"
 #include "../libs/Phylolib/includes/sequenceContainer.h"
 
-#include "SimulatorContext.h"
+#include "SimulationContext.h"
 #include "MSA.h"
 #include "modelFactory.h"
 #include "CategorySampler.h"

@@ -201,19 +201,8 @@ public:
         _substitutions = _seqContainer;
     }
 
-    void setSubstitutionsFolder(const std::string& substitutionsDir) {
-        _substitutionsDir = substitutionsDir;
-// std::stoi(entry.path().stem())
 
-        for (const auto& entry : std::filesystem::directory_iterator(_substitutionsDir)) {
-            
-            _substitutionPaths.push_back(entry);
-        }
-        // std::cout << _substitutionPaths.size() << "\n";
-    }
-
-
-	MSA(size_t numSequences, size_t msaLength,const std::vector<bool>& nodesToSave): 
+	MSA(size_t numSequences, size_t msaLength, const std::vector<bool>& nodesToSave): 
         _numberOfSequences(numSequences), _msaLength(msaLength) {
         _sequencesToSave.clear();
         for (size_t i=0; i < (nodesToSave).size(); i++) {
@@ -322,8 +311,6 @@ private:
 	size_t _numberOfSequences; // NUMBER OF SEQUENCES IN THE MSA
     size_t _msaLength; // Length of the MSA
     std::shared_ptr<sequenceContainer> _substitutions;
-    std::string _substitutionsDir;
-    std::vector<std::filesystem::directory_entry> _substitutionPaths;
 
 	std::unordered_map<size_t, std::vector<int>> _alignedSequence;
     std::vector<size_t> _sequencesToSave;
