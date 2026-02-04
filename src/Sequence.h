@@ -75,7 +75,7 @@ public:
         // apply events on BlockTree
         blocks.initTree(parentSeq->_sequence.size());
         for (const auto& eventlist: eventlist) {
-            // std::cout << "applying event: " << eventlist.type << " " << eventlist.position << " " << eventlist.length << "\n";
+            std::cout << "applying event: " << eventlist.type << " " << eventlist.position << " " << eventlist.length << "\n";
             blocks.handleEvent(eventlist.type, eventlist.position, eventlist.length);
         }
 

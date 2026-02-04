@@ -1,6 +1,7 @@
 """Simulation protocol configuration"""
 
 import _Sailfish
+from time import time_ns
 from typing import List, Optional, Dict
 from .tree import Tree
 from .distributions import Distribution, ZipfDistribution
@@ -17,7 +18,7 @@ class SimProtocol:
         deletion_dist: Distribution = None,
         insertion_dist: Distribution = None,
         minimum_seq_size: int = 100,
-        seed: int = 0,
+        seed: int = time_ns(),
     ):
         # Handle defaults
         if deletion_dist is None:
@@ -33,9 +34,11 @@ class SimProtocol:
         else:
             raise ValueError("tree must be Tree object or newick string/path")
         
+
         self._num_branches = self._tree.get_num_nodes() - 1
-        self._sim = _Sailfish.SimProtocol(self._tree._get_Sailfish_tree())
+        self._sim_protocol = _Sailfish.SimProtocol(self._num_branches)
         self.set_seed(seed)
+        self._sim_context = _Sailfish.SimulationContext(self._tree, self._seed)
         self.set_sequence_size(root_seq_size)
         self._is_deletion_rate_zero = not deletion_rate
         self._is_insertion_rate_zero = not insertion_rate
@@ -48,6 +51,9 @@ class SimProtocol:
     def get_tree(self) -> Tree:
         return self._tree
     
+    def get_sim_context(self) -> _Sailfish.SimulationContext:
+        return self._sim_context
+    
     def _get_Sailfish_tree(self) -> _Sailfish.Tree:
         return self._tree._get_Sailfish_tree()
     
@@ -59,20 +65,19 @@ class SimProtocol:
     
     def set_seed(self, seed: int) -> None:
         self._seed = seed
-        self._sim.set_seed(seed)
     
     def get_seed(self) -> int:
         return self._seed
     
     def set_sequence_size(self, sequence_size: int) -> None:
-        self._sim.set_sequence_size(sequence_size)
+        self._sim_protocol.set_sequence_size(sequence_size)
         self._root_seq_size = sequence_size
     
     def get_sequence_size(self) -> int:
         return self._root_seq_size
     
     def set_min_sequence_size(self, min_sequence_size: int) -> None:
-        self._sim.set_minimum_sequence_size(min_sequence_size)
+        self._sim_protocol.set_minimum_sequence_size(min_sequence_size)
         self._min_seq_size = min_sequence_size
 
     
@@ -91,12 +96,12 @@ class SimProtocol:
         else:
             raise ValueError("please provide one of the following: insertion_rate (a single value used for all branches), or a insertion_rates (a list of values, each corresponding to a different branch)")
         
-        self._sim.set_insertion_rates(self.insertion_rates)
+        self._sim_protocol.set_insertion_rates(self.insertion_rates)
     
     def get_insertion_rate(self, branch_num: int) -> float:
         if branch_num >= self._num_branches:
             raise ValueError(f"The branch number should be between 0 to {self._num_branches} (not included). Received value of {branch_num}")
-        return self._sim.get_insertion_rate(branch_num)
+        return self._sim_protocol.get_insertion_rate(branch_num)
     
     def get_all_insertion_rates(self) -> Dict:
         return {i: self.get_insertion_rate(i) for i in range(self._num_branches)}
@@ -116,12 +121,12 @@ class SimProtocol:
         else:
             raise ValueError("please provide one of the following: deletion_rate (a single value used for all branches), or a deletion_rates (a list of values, each corresponding to a different branch)")
         
-        self._sim.set_deletion_rates(self.deletion_rates)
+        self._sim_protocol.set_deletion_rates(self.deletion_rates)
     
     def get_deletion_rate(self, branch_num: int) -> float:
         if branch_num >= self._num_branches:
             raise ValueError(f"The branch number should be between 0 to {self._num_branches} (not included). Received value of {branch_num}")
-        return self._sim.get_deletion_rate(branch_num)
+        return self._sim_protocol.get_deletion_rate(branch_num)
     
     def get_all_deletion_rates(self) -> Dict:
         return {i: self.get_deletion_rate(i) for i in range(self._num_branches)}
@@ -136,7 +141,7 @@ class SimProtocol:
         else:
             raise ValueError("please provide one of the following: deletion_rate (a single value used for all branches), or a deletion_rates (a list of values, each corresponding to a different branch)")
         
-        self._sim.set_insertion_length_distributions([dist._get_Sailfish_dist() for dist in self.insertion_dists])
+        self._sim_protocol.set_insertion_length_distributions([dist._get_Sailfish_dist() for dist in self.insertion_dists])
     
     def get_insertion_length_distribution(self, branch_num: int) -> Distribution:
         if branch_num >= self._num_branches:
@@ -156,7 +161,7 @@ class SimProtocol:
         else:
             raise ValueError("please provide one of the following: deletion_rate (a single value used for all branches), or a deletion_rates (a list of values, each corresponding to a different branch)")
         
-        self._sim.set_deletion_length_distributions([dist._get_Sailfish_dist() for dist in self.deletion_dists])
+        self._sim_protocol.set_deletion_length_distributions([dist._get_Sailfish_dist() for dist in self.deletion_dists])
     
     def get_deletion_length_distribution(self, branch_num: int) -> Distribution:
         if branch_num >= self._num_branches:

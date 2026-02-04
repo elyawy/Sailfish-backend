@@ -131,36 +131,69 @@ PYBIND11_MODULE(_Sailfish, m) {
     py::class_<SimulationContext<SelectedRNG>>(m, "SimulationContext")
         .def(py::init<tree*, size_t>())
         .def("get_tree", &SimulationContext<SelectedRNG>::getTree)
-        .def("get_nodes_to_save", &SimulationContext<SelectedRNG>::getNodesToSave);
+        .def("get_nodes_to_save", &SimulationContext<SelectedRNG>::getNodesToSave)
+        .def("set_save_leaves", &SimulationContext<SelectedRNG>::setSaveLeaves)
+        .def("set_save_root", &SimulationContext<SelectedRNG>::setSaveRoot)
+        .def("set_save_all", &SimulationContext<SelectedRNG>::setSaveAll)
+        .def("reseed", &SimulationContext<SelectedRNG>::reseed);
+
+    //event enum bindings
+    py::enum_<event>(m, "IndelEventType")
+        .value("INSERTION", event::INSERTION)
+        .value("DELETION", event::DELETION)
+        .export_values();
+
+    //Indel event struct bindings
+    py::class_<Event>(m, "IndelEvent")
+        .def_readonly("type", &Event::type)
+        .def_readonly("position", &Event::position)
+        .def_readonly("length", &Event::length)
+        .def("__repr__", [](const Event& e) {
+            std::string type_name;
+            switch(e.type) {
+                case event::INSERTION: type_name = "INSERTION"; break;
+                case event::DELETION: type_name = "DELETION"; break;
+                default: type_name = "UNKNOWN"; break;
+            }
+            return "<IndelEvent type=" + type_name + 
+                " position=" + std::to_string(e.position) + 
+                " length=" + std::to_string(e.length) + ">";
+        });
 
     // bindings for IndelSimulator
     py::class_<IndelSimulator<SelectedRNG>>(m, "IndelSimulator")
         .def(py::init<SimulationContext<SelectedRNG>&, SimulationProtocol*>())
         .def("update_protocol", &IndelSimulator<SelectedRNG>::updateSimulationProtocol)
-        .def("generate_simulation", &IndelSimulator<SelectedRNG>::generateSimulation);
+        .def("generate_events", &IndelSimulator<SelectedRNG>::generateSimulation);
 
     // bindings for SubstitutionSimulator (amino)
     py::class_<SubstitutionSimulator<SelectedRNG, 20>>(m, "AminoSubstitutionSimulator")
         .def(py::init<modelFactory&, SimulationContext<SelectedRNG>&>())
+        .def("simulate_substitutions", &SubstitutionSimulator<SelectedRNG, 20>::simulateSubstitutions)
+        .def("simulate_and_write_substitutions", &SubstitutionSimulator<SelectedRNG, 20>::simulateAndWriteSubstitutions)
         .def("init_substitution_sim", &SubstitutionSimulator<SelectedRNG, 20>::initSubstitionSim)
         .def("set_save_rates", &SubstitutionSimulator<SelectedRNG, 20>::setSaveRates)
         .def("clear_rates_vec", &SubstitutionSimulator<SelectedRNG, 20>::clearRatesVec)
         .def("get_sequence_container", &SubstitutionSimulator<SelectedRNG, 20>::getSequenceContainer)
+        .def("set_aligned_sequence_map", &SubstitutionSimulator<SelectedRNG, 20>::setAlignedSequenceMap)
         .def("get_site_rates", &SubstitutionSimulator<SelectedRNG, 20>::getSiteRates);
 
     // bindings for SubstitutionSimulator (nucleotide)
     py::class_<SubstitutionSimulator<SelectedRNG, 4>>(m, "NucleotideSubstitutionSimulator")
         .def(py::init<modelFactory&, SimulationContext<SelectedRNG>&>())
+        .def("simulate_substitutions", &SubstitutionSimulator<SelectedRNG, 4>::simulateSubstitutions)
+        .def("simulate_and_write_substitutions", &SubstitutionSimulator<SelectedRNG, 4>::simulateAndWriteSubstitutions)
         .def("init_substitution_sim", &SubstitutionSimulator<SelectedRNG, 4>::initSubstitionSim)
         .def("set_save_rates", &SubstitutionSimulator<SelectedRNG, 4>::setSaveRates)
         .def("clear_rates_vec", &SubstitutionSimulator<SelectedRNG, 4>::clearRatesVec)
         .def("get_sequence_container", &SubstitutionSimulator<SelectedRNG, 4>::getSequenceContainer)
+        .def("set_aligned_sequence_map", &SubstitutionSimulator<SelectedRNG, 4>::setAlignedSequenceMap)
         .def("get_site_rates", &SubstitutionSimulator<SelectedRNG, 4>::getSiteRates);
 
 
     py::class_<MSA>(m, "Msa")
         .def(py::init<size_t, size_t, const std::vector<bool>& >())
-        .def(py::init<EventMap&, size_t, tree::TreeNode*, const std::vector<bool>& >())
+        .def(py::init<EventMap&, tree::TreeNode*, const std::vector<bool>& >())
         .def("length", &MSA::getMSAlength)
         .def("num_sequences", &MSA::getNumberOfSequences)
         .def("fill_substitutions", &MSA::fillSubstitutions)

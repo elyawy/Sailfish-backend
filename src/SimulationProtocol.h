@@ -32,6 +32,10 @@ public:
         _insertionLengthDistributions = lengthDistributions;
     }
 
+    void setGlobalInsertionLengthDistribution(DiscreteDistribution* lengthDistribution) {
+        _insertionLengthDistributions.resize(_numberOfBranches, lengthDistribution);
+    }
+
     DiscreteDistribution* getInsertionDistribution(size_t position) {
         if (_insertionLengthDistributions[position] == nullptr) {
             errorMsg::reportError("Null insertion length distribution accessed\n");
@@ -48,6 +52,10 @@ public:
             errorMsg::reportError(errorstr.str());
         }
         _deletionLengthDistributions = lengthDistributions;
+    }
+
+    void setGlobalDeletionLengthDistribution(DiscreteDistribution* lengthDistribution) {
+        _deletionLengthDistributions.resize(_numberOfBranches, lengthDistribution);
     }
 
     DiscreteDistribution* getDeletionDistribution(size_t position) {
@@ -69,6 +77,10 @@ public:
         _insertionRates = rates;
     }
 
+    void setGlobalInsertionRate(double rate) {
+        _insertionRates.resize(_numberOfBranches, rate);
+    }
+
     double getInsertionRate(size_t position) {
         if (position >= _insertionRates.size()) {
             errorMsg::reportError("Null insertion rate accessed\n");
@@ -87,6 +99,10 @@ public:
         _deletionRates = rates;
     }
 
+    void setGlobalDeletionRate(double rate) {
+        _deletionRates.resize(_numberOfBranches, rate);
+    }
+
     double getDeletionRate(size_t position) {
         if (position >= _deletionRates.size()) {
             errorMsg::reportError("Null deletion rate accessed\n");
@@ -98,21 +114,17 @@ public:
         _sequenceSize = sequenceSize;
     }
 
-    void setMinSequenceSize(size_t minSequenceSize) {
-        _minSequenceSize = minSequenceSize;
-    }
-
-
-
-
     size_t getSequenceSize(){
         return _sequenceSize;
+    }
+    
+    void setMinSequenceSize(size_t minSequenceSize) {
+        _minSequenceSize = minSequenceSize;
     }
 
     size_t getMinSequenceSize(){
         return _minSequenceSize;
     }
-
 
     ~SimulationProtocol() {}
 };

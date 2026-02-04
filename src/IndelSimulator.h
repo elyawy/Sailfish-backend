@@ -39,6 +39,8 @@ public:
 
         EventMap nodeToEventMap;
         nodeToEventMap.resize(_tree->getNodesNum());
+        // set root sequence size by inserting a dummy event list with a single insertion of length sequenceSize
+        nodeToEventMap[rootNode->id()] = EventSequence{{event::INSERTION, 0, sequenceSize}};
         generateIndelsRecursively(nodeToEventMap, sequenceSize, *rootNode);
         return nodeToEventMap;
     }

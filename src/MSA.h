@@ -24,7 +24,7 @@ public:
 	using iteratorType = std::list<SuperSequence::columnContainer>::iterator;
 
 
-    MSA (EventMap &eventmap, size_t sequenceSize, const tree::nodeP rootNode, const std::vector<bool>& nodesToSave) {
+    MSA (EventMap &eventmap, const tree::nodeP rootNode, const std::vector<bool>& nodesToSave) {
 
         size_t numberOfSeqs = 0;
         _sequencesToSave.clear();
@@ -33,7 +33,9 @@ public:
             if ((nodesToSave)[i]) _sequencesToSave.push_back(i);
         }
         _numberOfSequences = numberOfSeqs;
-        // SuperSequence superSequence(sequenceSize, rootNode->getNumberLeaves());
+        
+        // Retrieve root sequence size from dummy insertion event in event map
+        size_t sequenceSize = eventmap.at(rootNode->id())[0].length;
         SuperSequence superSequence(sequenceSize, numberOfSeqs);
         Sequence rootSequence(superSequence, nodesToSave[rootNode->id()], rootNode->id());
         rootSequence.initSequence();
@@ -59,7 +61,7 @@ public:
         for (size_t i = 0; i < parrentNode.getNumberOfSons(); i++) {
             tree::TreeNode* childNode = parrentNode.getSon(i);
             Sequence currentSequence(superSequence, nodesToSave[childNode->id()], childNode->id());
-
+            std::cout << "Generating sequence for node " << childNode->id() << "\n";
             auto events = eventmap.at(childNode->id());
             currentSequence.generateSequence(events, &parentSequence);
             buildMsaRecursively(finalSequences, eventmap, *childNode, superSequence, currentSequence, nodesToSave);

@@ -15,7 +15,6 @@ int main() {
 
     auto start = std::chrono::high_resolution_clock::now();
     SimulationContext<pcg64_fast> simContext(&tree_, t1);
-    simContext.setSaveLeaves();
     
     vector<DiscreteDistribution*> insertionDists(tree_.getNodesNum() - 1);
     vector<DiscreteDistribution*> deletionDists(tree_.getNodesNum() - 1);
@@ -94,7 +93,7 @@ int main() {
     
     //time MSA construction in microseconds
     start = std::chrono::high_resolution_clock::now();
-    auto msa = MSA(eventMap, rootLength, tree_.getRoot(), simContext.getNodesToSave());
+    auto msa = MSA(eventMap, tree_.getRoot(), simContext.getNodesToSave());
     end = std::chrono::high_resolution_clock::now();
     duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
     std::cout << "MSA construction took " << duration << " microseconds.\n";
@@ -115,6 +114,7 @@ int main() {
     end = std::chrono::high_resolution_clock::now();
     duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
     std::cout << "MSA printing took " << duration << " microseconds.\n";
+    std::cout << "MSA:\n" << msaStr << "\n";
 
     return 0;
 

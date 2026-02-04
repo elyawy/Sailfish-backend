@@ -12,7 +12,10 @@ class SimulationContext {
 public:
     SimulationContext(tree* t, size_t seed) 
         : _tree(t), _seed(seed), _rng(seed*PHI), 
-          _nodesToSave(t->getNodesNum(), false) {}
+          _nodesToSave(t->getNodesNum(), false) {
+            // By default, save leaves only
+            setSaveLeaves();
+          }
 
     tree* getTree() const { return _tree; }
 
@@ -47,6 +50,8 @@ private:
             _nodesToSave[node->id()] = true;
             return;
         }
+        // Not a leaf - do not save
+        _nodesToSave[node->id()] = false;
         for (auto& child : node->getSons()) {
             setSaveLeavesRecursive(child);
         }

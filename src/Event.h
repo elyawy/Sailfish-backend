@@ -8,7 +8,7 @@
 // Event type enum
 enum event {
   INSERTION,
-  DELETION
+  DELETION,
 };
 
 // Event structure representing a single indel event
