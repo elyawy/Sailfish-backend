@@ -15,7 +15,6 @@
 
 struct CompressedSequence {
     std::vector<std::pair<size_t, size_t>> runs; // (start_position, length)
-    size_t nodeID;
     size_t uncompressedSize;
 };
 
@@ -27,19 +26,19 @@ class Sequence
 private:
     SuperSequence* _superSequence;
     bool _isSaveSequence;
-    size_t _nodeID;
+
     SequenceType _sequence;
     const Sequence* _parent;
     BlockTree blocks;
 
 public:
 
-    Sequence(SuperSequence& superSeq, bool isSaveSeq, size_t nodeID) : 
-        _superSequence(&superSeq), _isSaveSequence(isSaveSeq), _nodeID(nodeID) {}
+    Sequence(SuperSequence& superSeq, bool isSaveSeq) : 
+        _superSequence(&superSeq), _isSaveSequence(isSaveSeq) {}
 
 
     Sequence(const CompressedSequence& compressed, SuperSequence& superSeq) 
-        : _superSequence(&superSeq), _isSaveSequence(true), _nodeID(compressed.nodeID) {
+        : _superSequence(&superSeq), _isSaveSequence(true) {
         
         _sequence.reserve(compressed.uncompressedSize);
         
@@ -75,7 +74,6 @@ public:
         // apply events on BlockTree
         blocks.initTree(parentSeq->_sequence.size());
         for (const auto& eventlist: eventlist) {
-            std::cout << "applying event: " << eventlist.type << " " << eventlist.position << " " << eventlist.length << "\n";
             blocks.handleEvent(eventlist.type, eventlist.position, eventlist.length);
         }
 
@@ -169,14 +167,9 @@ public:
         return true;
     }
 
-    size_t getSequenceNodeID() {
-        return _nodeID;
-    }
-
 
     CompressedSequence compress() const {
         CompressedSequence result;
-        result.nodeID = _nodeID;
         result.uncompressedSize = _sequence.size();
         result.runs.reserve(_sequence.size() / 10); // Reserve space assuming average run length of 10
         if (_sequence.empty()) return result;

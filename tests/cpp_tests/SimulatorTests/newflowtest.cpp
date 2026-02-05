@@ -7,7 +7,7 @@
 
 // takes 10 minutes currently
 int main() {
-    tree tree_("../../trees/normalbranches_nLeaves10.treefile");
+    tree tree_("../../trees/normalbranches_nLeaves1000.treefile");
 
     std::time_t t1 = 42;//std::time(0);
 
@@ -30,8 +30,8 @@ int main() {
     vector<double> insertionRates(tree_.getNodesNum() - 1);
     vector<double> deletionRates(tree_.getNodesNum() - 1);
 
-    fill(insertionRates.begin(), insertionRates.end(), 0.1);
-    fill(deletionRates.begin(), deletionRates.end(), 0.1);
+    fill(insertionRates.begin(), insertionRates.end(), 0.03);
+    fill(deletionRates.begin(), deletionRates.end(), 0.09);
 
     SimulationProtocol protocol(simContext.getTree()->getNodesNum() - 1);
 
@@ -41,7 +41,7 @@ int main() {
     protocol.setInsertionRates(insertionRates);
     protocol.setDeletionRates(deletionRates);
 
-    int rootLength = 50;
+    int rootLength = 10000;
     protocol.setSequenceSize(rootLength);
     auto end = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
@@ -93,13 +93,14 @@ int main() {
     
     //time MSA construction in microseconds
     start = std::chrono::high_resolution_clock::now();
-    auto msa = MSA(eventMap, tree_.getRoot(), simContext.getNodesToSave());
+    auto msa = MSA<pcg64_fast>(eventMap, simContext);
     end = std::chrono::high_resolution_clock::now();
     duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
     std::cout << "MSA construction took " << duration << " microseconds.\n";
     std::cout << "MSA built. Number of sequences: " << msa.getNumberOfSequences() 
               << ", MSA length: " << msa.getMSAlength() << "\n";
 
+    substitutionSim.setAlignedSequenceMap(msa);
     // substitutionSim.simulateAndWriteSubstitutions(msa.getMSAlength(), "output_newflowtest.fasta");
     // time substitution simulation in microseconds
     start = std::chrono::high_resolution_clock::now();
@@ -109,12 +110,12 @@ int main() {
     std::cout << "Substitution simulation took " << duration << " microseconds.\n";
     msa.fillSubstitutions(fullContainer);
 
-    start = std::chrono::high_resolution_clock::now();
-    auto msaStr = msa.generateMsaString();
-    end = std::chrono::high_resolution_clock::now();
-    duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
-    std::cout << "MSA printing took " << duration << " microseconds.\n";
-    std::cout << "MSA:\n" << msaStr << "\n";
+    // start = std::chrono::high_resolution_clock::now();
+    // msa.printFullMsa();
+    // end = std::chrono::high_resolution_clock::now();
+    // duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+    // std::cout << "MSA printing took " << duration << " microseconds.\n";
+
 
     return 0;
 

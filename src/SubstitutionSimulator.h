@@ -18,7 +18,8 @@ public:
 	explicit SubstitutionSimulator(modelFactory& mFac, SimulationContext<RngType>& simContext): 
 		_tree(simContext.getTree()), 
 		_stochasticProcess(mFac.getStochasticProcess()), _alphabet(mFac.getAlphabet()), 
-		_nodesToSave(simContext.getNodesToSave()), _saveRates(false),
+		_nodesToSave(simContext.getNodesToSave()), _idToRowInMSA(simContext.getIdToSaveIndices()),
+		_saveRates(false),
 		_rateCategorySampler(mFac.getEffectiveTransitionMatrix(), mFac.getStationaryProbs()),
 		_rng(simContext.getRng()),
 		_finalMsaPath("") {
@@ -128,8 +129,8 @@ public:
         return getSequenceContainer();
     }
 
-    void setAlignedSequenceMap(const MSA& msa) {
-        _alignedSequenceMap = msa.getAlignedSequence();
+    void setAlignedSequenceMap(MSA<RngType>& msa) {
+        _alignedSequenceMap = msa.getSparseMSA();
     }
 
 
@@ -158,10 +159,10 @@ private:
 	void mutateEntireSeq(sequence& currentSequence, const MDOUBLE& branchLength) {
 		const int nodeId = currentSequence.id();
 		BranchTransitionProbabilities<AlphabetSize> cachedPijt(branchLength, *_stochasticProcess);
-		
+		size_t actualRowInMSA = _idToRowInMSA[nodeId];
 		// Check if this is a leaf we're saving (low memory mode)
 		if (_alignedSequenceMap != nullptr && _nodesToSave[nodeId]) {
-			const std::vector<int>& gapStructure = _alignedSequenceMap->at(nodeId);
+			const std::vector<int>& gapStructure = _alignedSequenceMap->at(actualRowInMSA);
 			
 			size_t site = 0;
 			for (int blockSize : gapStructure) {
@@ -201,13 +202,13 @@ private:
 
 	void saveSequenceToDisk(const sequence &currentSequence) {
 		const int nodeId = currentSequence.id();
-		
+		size_t actualRowInMSA = _idToRowInMSA[nodeId];
 		
 		_outputFile << ">" << currentSequence.name() << "\n";
 		
 		// Get gap structure for this sequence
 		if (_alignedSequenceMap != nullptr) {
-			const std::vector<int>& gapStructure = _alignedSequenceMap->at(nodeId);
+			const std::vector<int>& gapStructure = _alignedSequenceMap->at(actualRowInMSA);
 			size_t site = 0;
 			for (int blockSize : gapStructure) {
 				if (blockSize < 0) {
@@ -235,6 +236,7 @@ private:
 	const alphabet* _alphabet;
 
 	const std::vector<bool>& _nodesToSave;
+	const std::vector<size_t>& _idToRowInMSA;
 	bool _saveRates;
 
 	std::vector<size_t> _rateCategories;
@@ -247,7 +249,7 @@ private:
 
 	std::array<std::string, AlphabetSize> _charLookup;
 
-	const std::unordered_map<size_t, std::vector<int>>* _alignedSequenceMap = nullptr;
+	std::shared_ptr<const SparseMSA> _alignedSequenceMap = nullptr;
 
 	RngType &_rng;
 	std::ofstream _outputFile;
