@@ -4,6 +4,12 @@
 #include <vector>
 #include <random>
 #include "../libs/Phylolib/includes/tree.h"
+#include "../libs/Phylolib/includes/sequence.h"
+
+typedef std::string SparseSequence;
+typedef std::vector<SparseSequence> SparseSequenceContainer;
+
+
 
 constexpr uint64_t PHI = 0x9e3779b97f4a7c15;
 

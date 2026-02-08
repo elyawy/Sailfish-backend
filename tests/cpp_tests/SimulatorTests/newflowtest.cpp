@@ -7,7 +7,7 @@
 
 // takes 10 minutes currently
 int main() {
-    tree tree_("../../trees/normalbranches_nLeaves1000.treefile");
+    tree tree_("../../trees/normalbranches_nLeaves100000.treefile");
 
     std::time_t t1 = 42;//std::time(0);
 
@@ -41,7 +41,7 @@ int main() {
     protocol.setInsertionRates(insertionRates);
     protocol.setDeletionRates(deletionRates);
 
-    int rootLength = 10000;
+    int rootLength = 5000;
     protocol.setSequenceSize(rootLength);
     auto end = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
@@ -109,7 +109,8 @@ int main() {
     duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
     std::cout << "Substitution simulation took " << duration << " microseconds.\n";
     msa.fillSubstitutions(fullContainer);
-
+    std::cout << "Waiting for exit\n";
+    std::cin.get();
     // start = std::chrono::high_resolution_clock::now();
     // msa.printFullMsa();
     // end = std::chrono::high_resolution_clock::now();

@@ -11,7 +11,6 @@
 #include <filesystem>
 
 #include "../libs/Phylolib/includes/tree.h"
-#include "../libs/Phylolib/includes/sequenceContainer.h"
 
 #include "SimulationContext.h"
 #include "Sequence.h"
@@ -126,7 +125,7 @@ public:
     };
 
 
-    void fillSubstitutions(std::shared_ptr<const sequenceContainer> _seqContainer) {
+    void fillSubstitutions(std::shared_ptr<const SparseSequenceContainer> _seqContainer) {
         _substitutions = _seqContainer;
     }
 
@@ -166,8 +165,6 @@ public:
         std::string msaString;
         msaString.reserve(_msaLength + 1);
 
-        int passedSeq = 0;
-        int id = _simContext.getNodesToSaveIndices()[row];
         msaString.append(">");
         msaString.append(_simContext.getNodeToSaveNames()[row]);
         msaString.append("\n");
@@ -177,25 +174,24 @@ public:
         if (_substitutions == nullptr) {
             currentSeq = "";
         } else {
-            currentSeq = (*_substitutions)[id].toString();
+            currentSeq = (*_substitutions)[row];
         }
 
-
+        int passedSeq = 0;
         const auto& alignedSeqRow = _alignedSequenceMap->at(row);
         for (size_t col = 0; col < alignedSeqRow.size(); col++) {
             int strSize = alignedSeqRow[col];
             if (strSize < 0) {
                 strSize = -strSize;
                 msaString.append(strSize, '-');
-
             } else {
                 if (_substitutions == nullptr) {
                     msaString.append(strSize, 'A');
                 } else {
                     msaString.append(currentSeq.substr(passedSeq, strSize));
                 }
+                passedSeq += strSize;
             }
-            passedSeq += strSize;
         }
         msaString.append("\n");
 
@@ -239,7 +235,7 @@ private:
     const SimulationContext<RngType>& _simContext;
 	size_t _numberOfSequences; // NUMBER OF SEQUENCES IN THE FINAL MSA
     size_t _msaLength; // Length of the MSA
-    std::shared_ptr<const sequenceContainer> _substitutions;
+    std::shared_ptr<const SparseSequenceContainer> _substitutions;
 
 	std::shared_ptr<SparseMSA> _alignedSequenceMap;
     // IDs of sequences to save are accessed via _simContext->getNodesToSaveIndices()

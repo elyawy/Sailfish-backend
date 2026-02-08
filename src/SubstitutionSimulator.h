@@ -2,15 +2,14 @@
 #define ___SUBSTITUTION_SIMULATOR_H
 
 #include "../libs/Phylolib/includes/definitions.h"
-#include "../libs/Phylolib/includes/tree.h"
 #include "../libs/Phylolib/includes/stochasticProcess.h"
-#include "../libs/Phylolib/includes/sequenceContainer.h"
 
 #include "SimulationContext.h"
 #include "MSA.h"
 #include "modelFactory.h"
 #include "CategorySampler.h"
 #include "BranchTransitionProbabilities.h"
+
 
 template<typename RngType = std::mt19937_64,size_t AlphabetSize = 4>
 class SubstitutionSimulator {
@@ -31,7 +30,7 @@ public:
 		}
 
 		_frequencySampler = std::make_unique<DiscreteDistribution>(frequencies);
-		_simulatedSequences = std::make_unique<sequenceContainer>();
+		_simulatedSequences = std::make_unique<SparseSequenceContainer>();
 	}
 
 	virtual ~SubstitutionSimulator() {
@@ -46,7 +45,7 @@ public:
 
 		_rateCategorySampler = CategorySampler(mFac.getEffectiveTransitionMatrix(), mFac.getStationaryProbs());
 		_frequencySampler = std::make_unique<DiscreteDistribution>(mFac.getStationaryProbs());
-		_simulatedSequences = std::make_unique<sequenceContainer>();
+		_simulatedSequences = std::make_unique<SparseSequenceContainer>();
 
     }
 
@@ -61,9 +60,9 @@ public:
 	}
 
 
-	std::unique_ptr<sequenceContainer> getSequenceContainer() {
+	std::unique_ptr<SparseSequenceContainer> getSequenceContainer() {
 		auto outputSequences = std::move(_simulatedSequences);
-		_simulatedSequences = std::make_unique<sequenceContainer>();
+		_simulatedSequences = std::make_unique<SparseSequenceContainer>();
 		return outputSequences;
 	}
 
@@ -96,7 +95,6 @@ public:
 
 	void mutateSeqRecuresively(const sequence& currentSequence, tree::nodeP currentNode) {
 		if (currentNode->isLeaf()) return;
-
 		for (auto &node: currentNode->getSons()) {
 			sequence childSeq(currentSequence);
 			childSeq.setID(node->id());
@@ -123,7 +121,7 @@ public:
         generateSubstitutionsAlongTree(sequenceLength);
     }
 
-    std::shared_ptr<sequenceContainer> simulateSubstitutions(size_t sequenceLength) {
+    std::shared_ptr<SparseSequenceContainer> simulateSubstitutions(size_t sequenceLength) {
         generateSubstitutionsAlongTree(sequenceLength);
 
         return getSequenceContainer();
@@ -165,6 +163,7 @@ private:
 			const std::vector<int>& gapStructure = _alignedSequenceMap->at(actualRowInMSA);
 			
 			size_t site = 0;
+			_lengthOfCurrentSequence = 0;
 			for (int blockSize : gapStructure) {
 				if (blockSize < 0) {
 					// Gap block - skip these sites
@@ -178,6 +177,7 @@ private:
 					ALPHACHAR nextChar = Pijt.drawSample(_rng) - 1;
 					currentSequence[site] = nextChar;
 				}
+				_lengthOfCurrentSequence += (blockSize);
 			}
 		} else {
 			// Normal mode - mutate all sites
@@ -196,8 +196,32 @@ private:
 			saveSequenceToDisk(currentSequence);
 			return;
 		}
-		sequence temp(currentSequence);
-		_simulatedSequences->add(temp);
+		SparseSequence sparseSeq;
+		sparseSeq.reserve(_lengthOfCurrentSequence);
+		// populate the sparse sequence with only non-gap characters
+		// using the aligned sequence map if available to determine where the gaps are
+		if (_alignedSequenceMap != nullptr) {
+			size_t actualRowInMSA = _idToRowInMSA[currentSequence.id()];
+			const std::vector<int>& gapStructure = _alignedSequenceMap->at(actualRowInMSA);
+			size_t site = 0;
+			for (int blockSize : gapStructure) {
+				if (blockSize < 0) {
+					// Gap block - skip these sites
+					site += (-blockSize);
+				} else {
+					// Non-gap block - add these characters to the sparse sequence
+					for (int i = 0; i < blockSize; ++i, ++site) {
+						// build the string from the char from lookup
+						sparseSeq += _charLookup[currentSequence[site]];
+					}
+				}
+			}
+		} else {
+			for (size_t site = 0; site < currentSequence.seqLen(); ++site) {
+				sparseSeq += (_charLookup[currentSequence[site]]);
+			}
+		}
+		_simulatedSequences->push_back(std::move(sparseSeq));
 	}
 
 	void saveSequenceToDisk(const sequence &currentSequence) {
@@ -241,7 +265,7 @@ private:
 
 	std::vector<size_t> _rateCategories;
 	std::vector<double> _siteRates;
-	std::unique_ptr<sequenceContainer> _simulatedSequences;
+	std::unique_ptr<SparseSequenceContainer> _simulatedSequences;
 	std::unique_ptr<DiscreteDistribution> _frequencySampler;
 
 	CategorySampler _rateCategorySampler;
@@ -253,6 +277,8 @@ private:
 
 	RngType &_rng;
 	std::ofstream _outputFile;
+
+	size_t _lengthOfCurrentSequence = 0;
 
 };
 
