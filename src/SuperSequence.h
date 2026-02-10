@@ -4,6 +4,9 @@
 #include <cstddef> 
 #include <limits>
 
+#include "BlockTreeWithRates.h"
+
+template<typename RngType = std::mt19937_64>
 class SuperSequence {
 public:
     struct columnContainer {
@@ -17,12 +20,18 @@ public:
 private:
     SequenceType _sequence;
     std::vector<SequenceType::iterator> _positionToIterator;
-    size_t _randomSequenceCounter;
+    size_t _nextSiteCounter;
     size_t _leafNum;
     size_t _numSequences;
     size_t _msaSeqLength;
+    BlockTreeWithRates _blocks;
+    RngType & _rng;
+    CategorySampler _rateCategorySampler;
+
 public:
-    SuperSequence(size_t sequenceSize, size_t numSequences) {
+    SuperSequence(size_t sequenceSize, size_t numSequences, RngType& rng):
+         _rng(rng), _rateCategorySampler({{{1.0}}}, {1.0})  // Single category, no heterogeneity
+         {
         _msaSeqLength = 0;
         _leafNum = 0;
         _numSequences = numSequences;
@@ -33,7 +42,7 @@ public:
             _sequence.push_back(column);
             _positionToIterator[i] = std::prev(_sequence.end());
         }
-        _randomSequenceCounter = sequenceSize + 1;
+        _nextSiteCounter = sequenceSize + 1;
     }
 
     void referencePosition(SequenceType::iterator position) {
@@ -84,12 +93,12 @@ public:
 
     size_t getRandomSequencePosition() {
         // std::cout << "get random pos: " << _randomSequenceCounter << "\n";
-        return _randomSequenceCounter;
+        return _nextSiteCounter;
     }
 
 
     size_t incrementRandomSequencePosition() {
-        size_t positionToReturn = ++_randomSequenceCounter;
+        size_t positionToReturn = ++_nextSiteCounter;
         // std::cout << "inceremted random pos: " << positionToReturn << "\n";
         return positionToReturn;
     }
@@ -123,7 +132,7 @@ public:
 
     bool checkSequenceValidity() {
         
-        for (size_t i = 1; i < _randomSequenceCounter; i++)
+        for (size_t i = 1; i < _nextSiteCounter; i++)
         {
             size_t numberOfAppearances = 0;
             for (auto j: _sequence) {
@@ -137,6 +146,18 @@ public:
         }
         return true;
     }
+
+
+    void initBlockTree(size_t seqLength){ _blocks.initTree(seqLength);}
+    void logEventInBlockTree(Event ev) { _blocks.handleEvent(ev, _rateCategorySampler, _rng)}
+
+    BlockTree& getBlockTree(){ return _blocks;}
+
+    void initRateSampler(const std::vector<std::vector<MDOUBLE>>& transitionMatrix,
+                     const std::vector<MDOUBLE>& stationaryProbs) {
+        _rateCategorySampler = CategorySampler(transitionMatrix, stationaryProbs);
+    }
+
 
 
     ~SuperSequence() {

@@ -32,7 +32,7 @@ public:
         const std::vector<bool>& nodesToSave = simContext.getNodesToSave();
         // Retrieve root sequence size from dummy insertion event in event map
         size_t sequenceSize = eventmap.at(rootNode->id())[0].length;
-        SuperSequence superSequence(sequenceSize, _numberOfSequences);
+        SuperSequence<RngType> superSequence(sequenceSize, _numberOfSequences);
         Sequence rootSequence(superSequence, nodesToSave[rootNode->id()]);
         rootSequence.initSequence();
 

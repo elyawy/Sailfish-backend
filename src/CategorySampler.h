@@ -91,6 +91,84 @@ public:
         _previousCategory = nextCategory;
         return nextCategory;
     }
+
+
+    /**
+     * Sample a left-sided bridge: condition on left flanking category only
+     * Used when insertion happens at the end of a block (no right neighbor)
+     * @param leftCategory The rate category of the left flanking position
+     * @param length Number of positions to sample
+     * @return Vector of sampled rate categories
+     */
+    template<typename RngType = std::mt19937_64>
+    std::vector<size_t> sampleLeftSidedBridge(size_t leftCategory, size_t length, RngType &rng) {
+        // TODO: Implement proper bridge sampling conditioned on left category
+        // For now, just sample forward from the left category
+        std::vector<size_t> samples;
+        samples.reserve(length);
+        
+        int previousCategory = static_cast<int>(leftCategory);
+        for (size_t i = 0; i < length; ++i) {
+            _previousCategory = previousCategory;
+            int nextCategory = drawSample(rng);
+            samples.push_back(nextCategory);
+            previousCategory = nextCategory;
+        }
+        
+        return samples;
+    }
+
+    /**
+     * Sample a right-sided bridge: condition on right flanking category only
+     * Used when insertion happens at the beginning of a block (no left neighbor)
+     * @param rightCategory The rate category of the right flanking position
+     * @param length Number of positions to sample
+     * @return Vector of sampled rate categories
+     */
+    template<typename RngType = std::mt19937_64>
+    std::vector<size_t> sampleRightSidedBridge(size_t rightCategory, size_t length, RngType &rng) {
+        // TODO: Implement proper bridge sampling conditioned on right category
+        // For now, just sample backward (reverse the process) from right category
+        std::vector<size_t> samples;
+        samples.reserve(length);
+        
+        // Sample forward and hope it ends near rightCategory (naive approach)
+        // Proper implementation would use backward sampling
+        _previousCategory = -1; // Start fresh
+        for (size_t i = 0; i < length; ++i) {
+            int nextCategory = drawSample(rng);
+            samples.push_back(nextCategory);
+        }
+        
+        return samples;
+    }
+
+    /**
+     * Sample a bridge: condition on both left and right flanking categories
+     * Used when insertion happens in the middle of a block
+     * @param leftCategory The rate category of the left flanking position
+     * @param rightCategory The rate category of the right flanking position
+     * @param length Number of positions to sample
+     * @return Vector of sampled rate categories
+     */
+    template<typename RngType = std::mt19937_64>
+    std::vector<size_t> sampleBridge(size_t leftCategory, size_t rightCategory, size_t length, RngType &rng) {
+        // TODO: Implement proper bridge sampling conditioned on both left and right
+        // This requires a more sophisticated algorithm (e.g., forward-backward algorithm)
+        // For now, just sample forward from left category
+        std::vector<size_t> samples;
+        samples.reserve(length);
+        
+        int previousCategory = static_cast<int>(leftCategory);
+        for (size_t i = 0; i < length; ++i) {
+            _previousCategory = previousCategory;
+            int nextCategory = drawSample(rng);
+            samples.push_back(nextCategory);
+            previousCategory = nextCategory;
+        }
+        
+        return samples;
+    }
     
     /**
      * Reset to sample from stationary distribution (for new sequences)

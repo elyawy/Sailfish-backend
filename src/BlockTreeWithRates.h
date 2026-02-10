@@ -28,17 +28,17 @@ private:
   using TreeType = avl_array_with_rates<std::uint32_t, std::uint32_t, 1000000U, true>;
   std::unique_ptr<TreeType> _avlTree;
 public:
-  BlockTree() {
+  BlockTreeWithRates() {
     _avlTree = std::make_unique<TreeType>();//new TreeType;
     // _avlTree->init_tree(first_block_size + 1);
   }
 
   // BlockTree(const BlockTree& otherTree): _avlTree(otherTree._avlTree) {}
   // BlockTree() {}
-  template<typename RngType>
-  void handleEvent (Event &ev, RngType &rng) {
+  template<typename RngType = std::mt19937_64>
+  void handleEvent (Event &ev, CategorySampler& sampler, RngType &rng) {
     if (ev.length == 0) return;
-    if(!_avlTree->handle_event(ev, rng)) {
+    if(!_avlTree->handle_event(ev, sampler, rng)) {
       throw std::out_of_range("event_position exceeds sequence");
     }
   }
@@ -81,7 +81,7 @@ public:
   }
 
 
-  ~BlockTree() {
+  ~BlockTreeWithRates() {
   }
 };
 

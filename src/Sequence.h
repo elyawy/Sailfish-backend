@@ -11,7 +11,6 @@
 
 #include "SuperSequence.h"
 #include "Event.h"
-#include "BlockTree.h"
 
 struct CompressedSequence {
     std::vector<std::pair<size_t, size_t>> runs; // (start_position, length)
@@ -29,7 +28,6 @@ private:
 
     SequenceType _sequence;
     const Sequence* _parent;
-    BlockTree blocks;
 
 public:
 
@@ -72,11 +70,12 @@ public:
         _parent = (parentSeq);
 
         // apply events on BlockTree
-        blocks.initTree(parentSeq->_sequence.size());
-        for (const auto& eventlist: eventlist) {
-            blocks.handleEvent(eventlist.type, eventlist.position, eventlist.length);
+        _superSequence->initBlockTree(parentSeq->_sequence.size());
+        for (const auto& ev: eventlist) {
+            _superSequence->logEventInBlockTree(ev);
         }
 
+        auto& blocks  = _superSequence.getBlockTree();
 
         for (auto it = blocks.begin(); it != blocks.end(); ++it) {
             position = it.key();
@@ -166,6 +165,7 @@ public:
         }
         return true;
     }
+
 
 
     CompressedSequence compress() const {
