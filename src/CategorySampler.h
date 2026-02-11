@@ -74,6 +74,7 @@ public:
         size_t maxPathLength = 300;
         // Build transition samplers from provided matrix
         buildTransitionSamplers(transitionMatrix);
+        // Pre-compute bridge noramlization.
         for (size_t i = 0; i < _stationaryProbs.size(); i++) {
             buildReachProbabilities(transitionMatrix, i, maxPathLength);
         }
@@ -181,8 +182,9 @@ private:
     void buildReachProbabilities(const vector<vector<double>>& transitionProbs, 
                                  int endState, size_t maxSteps) {
         int numberOfStates = _stationaryProbs.size();
+
         _reachProbabilities[endState] = vector<vector<double>>(maxSteps + 1, vector<double>(numberOfStates));
-        reach_prob = &_reachProbabilities[endState];
+        vector<vector<double>>& reach_prob = _reachProbabilities[endState];
         
         // Last step - must be at state_end
         for (int state = 0; state < numberOfStates; state++) {
@@ -198,8 +200,6 @@ private:
                 }
             }
         }
-        
-        return reach_prob;
     }
 
     
@@ -207,6 +207,7 @@ private:
     int _previousCategory;
     std::vector<DiscreteDistribution> _transitionSamplers;
     std::vector<std::vector<std::vector<double>>> _reachProbabilities;
+
 
 };
 
