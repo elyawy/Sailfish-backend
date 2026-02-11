@@ -83,11 +83,12 @@ struct Block {
       std::vector<size_t> newRates;
       // handle insertion at the beginning case.
       if (position == 0) {
-        newRates = sampler.sampleRightSidedBridge(rightFlankCategory, insertLength, rng);
+        newRates = sampler.drawSamples(rng, rightFlankCategory, insertLength);
+        std::reverse(newRates.begin(), newRates.end());
       }
       // handle insertion at the end case.
       if (position == (rateCategories.size() - 1)) {
-        newRates = sampler.sampleLeftSidedBridge(leftFlankCategory, insertLength, rng);
+        newRates = sampler.drawSamples(rng, leftFlankCategory, insertLength);
       }
 
       // handle insertion in the middle case.

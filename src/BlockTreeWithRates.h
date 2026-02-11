@@ -29,12 +29,9 @@ private:
   std::unique_ptr<TreeType> _avlTree;
 public:
   BlockTreeWithRates() {
-    _avlTree = std::make_unique<TreeType>();//new TreeType;
-    // _avlTree->init_tree(first_block_size + 1);
+    _avlTree = std::make_unique<TreeType>();
   }
 
-  // BlockTree(const BlockTree& otherTree): _avlTree(otherTree._avlTree) {}
-  // BlockTree() {}
   template<typename RngType = std::mt19937_64>
   void handleEvent (Event &ev, CategorySampler& sampler, RngType &rng) {
     if (ev.length == 0) return;
@@ -85,12 +82,5 @@ public:
   }
 };
 
-// class BlockContainer {
-// private:
-//   std::map<std::string, BlockTree*> nodeToBlock;
-// public:
-//   BlockContainer() {}
-
-// }
 
 #endif

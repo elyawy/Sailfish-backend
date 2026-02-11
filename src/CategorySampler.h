@@ -71,8 +71,13 @@ public:
             errorMsg::reportError("CategorySampler: stationary probabilities must sum to 1");
         }
         
+        size_t maxPathLength = 300;
         // Build transition samplers from provided matrix
         buildTransitionSamplers(transitionMatrix);
+        for (size_t i = 0; i < _stationaryProbs.size(); i++) {
+            buildReachProbabilities(transitionMatrix, i, maxPathLength);
+        }
+        
     }
     
     /**
@@ -92,56 +97,37 @@ public:
         return nextCategory;
     }
 
-
     /**
-     * Sample a left-sided bridge: condition on left flanking category only
-     * Used when insertion happens at the end of a block (no right neighbor)
-     * @param leftCategory The rate category of the left flanking position
-     * @param length Number of positions to sample
-     * @return Vector of sampled rate categories
+     * Sample the next category based on current state.
+     * @param currentState Number of positions to sample
+     * @return Category index
      */
     template<typename RngType = std::mt19937_64>
-    std::vector<size_t> sampleLeftSidedBridge(size_t leftCategory, size_t length, RngType &rng) {
-        // TODO: Implement proper bridge sampling conditioned on left category
-        // For now, just sample forward from the left category
-        std::vector<size_t> samples;
-        samples.reserve(length);
-        
-        int previousCategory = static_cast<int>(leftCategory);
-        for (size_t i = 0; i < length; ++i) {
-            _previousCategory = previousCategory;
-            int nextCategory = drawSample(rng);
-            samples.push_back(nextCategory);
-            previousCategory = nextCategory;
-        }
-        
-        return samples;
+    int drawSample(RngType &rng, int currentState) {
+        int nextCategory = _transitionSamplers[currentState].drawSample(rng) - 1;
+        _previousCategory = nextCategory;
+        return nextCategory;
     }
 
+
     /**
-     * Sample a right-sided bridge: condition on right flanking category only
-     * Used when insertion happens at the beginning of a block (no left neighbor)
-     * @param rightCategory The rate category of the right flanking position
-     * @param length Number of positions to sample
-     * @return Vector of sampled rate categories
+     * Sample the next category based on current state.
+     * @param currentState Number of positions to sample
+     * @return Category index
      */
     template<typename RngType = std::mt19937_64>
-    std::vector<size_t> sampleRightSidedBridge(size_t rightCategory, size_t length, RngType &rng) {
-        // TODO: Implement proper bridge sampling conditioned on right category
-        // For now, just sample backward (reverse the process) from right category
-        std::vector<size_t> samples;
-        samples.reserve(length);
-        
-        // Sample forward and hope it ends near rightCategory (naive approach)
-        // Proper implementation would use backward sampling
-        _previousCategory = -1; // Start fresh
-        for (size_t i = 0; i < length; ++i) {
-            int nextCategory = drawSample(rng);
-            samples.push_back(nextCategory);
+    std::vector<size_t> drawSamples(RngType &rng, int firstState, size_t pathLength) {
+        std::vector<size_t> sampledCategories(pathLength, SIZE_MAX);
+        _previousCategory = firstState;
+        for (size_t i = 0; i < pathLength; i++)
+        {
+            int nextCategory = _transitionSamplers[_previousCategory].drawSample(rng) - 1;
+            _previousCategory = nextCategory;
+            sampledCategories[i] = nextCategory;
         }
-        
-        return samples;
+        return sampledCategories;
     }
+
 
     /**
      * Sample a bridge: condition on both left and right flanking categories
@@ -189,10 +175,39 @@ private:
             _transitionSamplers.emplace_back(transitionMatrix[i]);
         }
     }
+
+    //NOT DONE!
+    // Backward pass: compute the altered transition probabilty matrix backwards from desired outcome
+    void buildReachProbabilities(const vector<vector<double>>& transitionProbs, 
+                                 int endState, size_t maxSteps) {
+        int numberOfStates = _stationaryProbs.size();
+        _reachProbabilities[endState] = vector<vector<double>>(maxSteps + 1, vector<double>(numberOfStates));
+        reach_prob = &_reachProbabilities[endState];
+        
+        // Last step - must be at state_end
+        for (int state = 0; state < numberOfStates; state++) {
+            reach_prob[maxSteps][state] = (state == endState) ? 1.0 : 0.0;
+        }
+        
+        // Backward pass
+        for (int t = maxSteps - 1; t >= 0; t--) {
+            for (int state_i = 0; state_i < numberOfStates; state_i++) {
+                reach_prob[t][state_i] = 0.0;
+                for (int state_j = 0; state_j < numberOfStates; state_j++) {
+                    reach_prob[t][state_i] += transitionProbs[state_i][state_j] * reach_prob[t + 1][state_j];
+                }
+            }
+        }
+        
+        return reach_prob;
+    }
+
     
     std::vector<MDOUBLE> _stationaryProbs;
     int _previousCategory;
     std::vector<DiscreteDistribution> _transitionSamplers;
+    std::vector<std::vector<std::vector<double>>> _reachProbabilities;
+
 };
 
 #endif
