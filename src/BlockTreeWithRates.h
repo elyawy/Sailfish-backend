@@ -33,9 +33,9 @@ public:
   }
 
   template<typename RngType = std::mt19937_64>
-  void handleEvent (Event &ev, CategorySampler& sampler, RngType &rng) {
+  void handleEvent (Event &ev, CategorySampler& sampler, RngType &rng, const std::vector<size_t> &rootRates) {
     if (ev.length == 0) return;
-    if(!_avlTree->handle_event(ev, sampler, rng)) {
+    if(!_avlTree->handle_event(ev, sampler, rng, rootRates)) {
       throw std::out_of_range("event_position exceeds sequence");
     }
   }

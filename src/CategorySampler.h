@@ -22,8 +22,10 @@ public:
      * @param stationaryProbs - Stationary distribution π for initial sampling (must sum to 1)
      */
     CategorySampler(const std::vector<std::vector<MDOUBLE>>& transitionMatrix,
-                   const std::vector<MDOUBLE>& stationaryProbs)
-        : _stationaryProbs(stationaryProbs), _previousCategory(-1) {
+                    const std::vector<MDOUBLE>& stationaryProbs,
+                    size_t maxPathLength = 0)
+        : _stationaryProbs(stationaryProbs), _previousCategory(-1), _maxPathLength(maxPathLength),
+        _uniformDist(0.0, 1.0) {
         
         // Validate inputs
         if (stationaryProbs.empty()) {
@@ -71,12 +73,15 @@ public:
             errorMsg::reportError("CategorySampler: stationary probabilities must sum to 1");
         }
         
-        size_t maxPathLength = 300;
+        _transitionMatrix = transitionMatrix;
+        _reachProbabilities.resize(_stationaryProbs.size());
         // Build transition samplers from provided matrix
         buildTransitionSamplers(transitionMatrix);
         // Pre-compute bridge noramlization.
-        for (size_t i = 0; i < _stationaryProbs.size(); i++) {
-            buildReachProbabilities(transitionMatrix, i, maxPathLength);
+        if (_maxPathLength > 0) {
+            for (size_t i = 0; i < _stationaryProbs.size(); i++) {
+                buildReachProbabilities(transitionMatrix, i, maxPathLength);
+            }
         }
         
     }
@@ -140,23 +145,40 @@ public:
      */
     template<typename RngType = std::mt19937_64>
     std::vector<size_t> sampleBridge(size_t leftCategory, size_t rightCategory, size_t length, RngType &rng) {
-        // TODO: Implement proper bridge sampling conditioned on both left and right
-        // This requires a more sophisticated algorithm (e.g., forward-backward algorithm)
-        // For now, just sample forward from left category
-        std::vector<size_t> samples;
-        samples.reserve(length);
+        assert(length <= _maxPathLength);
+        assert(rightCategory < _reachProbabilities.size());
         
-        int previousCategory = static_cast<int>(leftCategory);
-        for (size_t i = 0; i < length; ++i) {
-            _previousCategory = previousCategory;
-            int nextCategory = drawSample(rng);
-            samples.push_back(nextCategory);
-            previousCategory = nextCategory;
+        const std::vector<std::vector<double>>& reachProb = _reachProbabilities[rightCategory];
+        int nStates = _stationaryProbs.size();
+        std::vector<size_t> path(length);
+        
+        int current = static_cast<int>(leftCategory);
+        
+        for (size_t step = 0; step < length; ++step) {
+            std::vector<double> weights(nStates);
+            double total = 0.0;
+            
+            for (int nextState = 0; nextState < nStates; ++nextState) {
+                weights[nextState] = _transitionMatrix[current][nextState] * 
+                                    reachProb[step + 1][nextState];
+                total += weights[nextState];
+            }
+            
+            double coinFlip = _uniformDist(rng);
+            double cumulative = 0.0;
+            for (int nextState = 0; nextState < nStates; ++nextState) {
+                cumulative += weights[nextState] / total;
+                if (coinFlip <= cumulative) {
+                    current = nextState;
+                    break;
+                }
+            }
+            
+            path[step] = current;
         }
         
-        return samples;
-    }
-    
+        return path;
+    }    
     /**
      * Reset to sample from stationary distribution (for new sequences)
      */
@@ -202,13 +224,13 @@ private:
         }
     }
 
-    
+    std::vector<std::vector<MDOUBLE>> _transitionMatrix;
     std::vector<MDOUBLE> _stationaryProbs;
     int _previousCategory;
     std::vector<DiscreteDistribution> _transitionSamplers;
     std::vector<std::vector<std::vector<double>>> _reachProbabilities;
-
-
+    size_t _maxPathLength;
+    std::uniform_real_distribution<double> _uniformDist;
 };
 
 #endif

@@ -70,7 +70,14 @@ public:
         _parent = (parentSeq);
 
         // apply events on BlockTree
-        _superSequence->initBlockTree(parentSeq->_sequence.size());
+        // Initialize BlockTree with parent's rate categories
+        if constexpr (/* check if SuperSequence uses BlockTreeWithRates */) {
+            std::vector<size_t> parentRates = extractRateCategoriesFromParent(parentSeq);
+            _superSequence->initBlockTree(parentSeq->_sequence.size(), parentRates);
+        } else {
+            _superSequence->initBlockTree(parentSeq->_sequence.size());
+        }
+
         for (const auto& ev: eventlist) {
             _superSequence->logEventInBlockTree(ev);
         }

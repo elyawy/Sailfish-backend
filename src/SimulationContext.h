@@ -5,6 +5,7 @@
 #include <random>
 #include "../libs/Phylolib/includes/tree.h"
 #include "../libs/Phylolib/includes/sequence.h"
+#include "SimulationProtocol.h"
 
 typedef std::string SparseSequence;
 typedef std::vector<SparseSequence> SparseSequenceContainer;
@@ -16,10 +17,11 @@ constexpr uint64_t PHI = 0x9e3779b97f4a7c15;
 template<typename RngType = std::mt19937_64>
 class SimulationContext {
 public:
-    SimulationContext(tree* t, size_t seed) 
+    SimulationContext(tree* t, size_t seed, SimulationProtocol* protocol = nullptr) 
         : _tree(t), _seed(seed), _rng(seed*PHI), 
           _nodesToSave(t->getNodesNum(), false), 
-          _idToSaveIndices(t->getNodesNum(), SIZE_MAX) {
+          _idToSaveIndices(t->getNodesNum(), SIZE_MAX),
+          _protocol(protocol) {
             // By default, save leaves only
             setSaveLeaves();
           }
@@ -75,6 +77,11 @@ public:
 
     const tree::nodeP getRootNode() const { return _tree->getRoot(); }
 
+        // Getter - returns nullptr if not set
+    SimulationProtocol* getProtocol() const { 
+        return _protocol; 
+    }
+
 private:
     void setSaveLeavesRecursive(tree::nodeP node) {
         if (node->isLeaf()) {
@@ -114,6 +121,7 @@ private:
     std::vector<size_t> _idToSaveIndices; // maps from node id to index in saved nodes. if a node id is not saved, its index is SIZE_MAX
     std::vector<std::string> _nodeToSaveNames;
     size_t _numberOfNodesToSave = 0;
+    SimulationProtocol* _protocol;  // Can be nullptr
 };
 
 #endif

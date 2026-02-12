@@ -5,8 +5,9 @@
 #include <limits>
 
 #include "BlockTreeWithRates.h"
+#include "SimulationContext.h"
 
-template<typename RngType = std::mt19937_64>
+template<typename RngType = std::mt19937_64, typename BlockTreeType>
 class SuperSequence {
 public:
     struct columnContainer {
@@ -24,17 +25,18 @@ private:
     size_t _leafNum;
     size_t _numSequences;
     size_t _msaSeqLength;
-    BlockTreeWithRates _blocks;
+    BlockTreeType _blocks;
     RngType & _rng;
     CategorySampler _rateCategorySampler;
 
 public:
-    SuperSequence(size_t sequenceSize, size_t numSequences, RngType& rng):
-         _rng(rng), _rateCategorySampler({{{1.0}}}, {1.0})  // Single category, no heterogeneity
+    SuperSequence(size_t sequenceSize, SimulationContext<RngType> &simContext):
+         _rng(simContext.getRng()),
+         _rateCategorySampler({{{1.0}}}, {1.0}, simContext.getProtocol()->getMaxInsertionLength())
          {
         _msaSeqLength = 0;
         _leafNum = 0;
-        _numSequences = numSequences;
+        _numSequences = simContext.getNumberOfNodesToSave();
         _positionToIterator.resize(sequenceSize + 1);
 
         for (size_t i = 1; i <= sequenceSize; ++i) {
@@ -147,9 +149,25 @@ public:
         return true;
     }
 
+    void initBlockTree(size_t seqLength){ 
+            _blocks.initTree(seqLength);
+    }
 
-    void initBlockTree(size_t seqLength){ _blocks.initTree(seqLength);}
-    void logEventInBlockTree(Event ev) { _blocks.handleEvent(ev, _rateCategorySampler, _rng)}
+
+    void initBlockTree(size_t seqLength, const std::vector<size_t> &rootRates){ 
+        _blocks.initTree(seqLength, rootRates);
+    }
+
+
+    void logEventInBlockTree(Event ev) {
+        // Conditional handling based on BlockTreeType
+        if constexpr (std::is_same_v<BlockTreeType, BlockTreeWithRates>) {
+            _blocks.handleEvent(ev, _rateCategorySampler, _rng);
+        } else {
+            // Simple BlockTree doesn't need sampler/rng
+            _blocks.handleEvent(ev.type, ev.position, ev.length);
+        }
+    }
 
     BlockTree& getBlockTree(){ return _blocks;}
 

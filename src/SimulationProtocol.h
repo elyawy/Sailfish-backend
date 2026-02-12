@@ -4,6 +4,10 @@
 #include "../libs/Phylolib/includes/DiscreteDistribution.h"
 
 
+enum class SiteRateModel {
+    SIMPLE,         // Fast, no rate categories per site tracked
+    INDEL_AWARE      // Slower, tracks rate categories per site affected by indel events
+};
 
 class SimulationProtocol
 {
@@ -15,11 +19,15 @@ private:
     std::vector<DiscreteDistribution*> _deletionLengthDistributions;
     std::vector<double> _insertionRates;
     std::vector<double> _deletionRates;
+    SiteRateModel _siteRateModel;
+    size_t _maxInsertionLength;
 
 public:
     SimulationProtocol(size_t numberOfBranches) : 
     _numberOfBranches(numberOfBranches),
-    _sequenceSize(0), _minSequenceSize(0) {}
+    _sequenceSize(0), _minSequenceSize(0),
+    _siteRateModel(SiteRateModel::SIMPLE),
+    _maxInsertionLength(0) {}
 
     void setInsertionLengthDistributions(std::vector<DiscreteDistribution*> lengthDistributions) {
         if (lengthDistributions.size() != _numberOfBranches) {
@@ -125,6 +133,24 @@ public:
     size_t getMinSequenceSize(){
         return _minSequenceSize;
     }
+
+
+    void setIndelRateModel(SiteRateModel model) {
+        _siteRateModel = model;
+    }
+
+    SiteRateModel getSiteRateModel() const {
+        return _siteRateModel
+    }
+
+    void setMaxInsertionLength(size_t len) {
+         _maxInsertionLength = len;
+    }
+
+    size_t getMaxInsertionLength() const {
+        return _maxInsertionLength;
+    }
+
 
     ~SimulationProtocol() {}
 };

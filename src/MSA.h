@@ -32,22 +32,42 @@ public:
         const std::vector<bool>& nodesToSave = simContext.getNodesToSave();
         // Retrieve root sequence size from dummy insertion event in event map
         size_t sequenceSize = eventmap.at(rootNode->id())[0].length;
-        SuperSequence<RngType> superSequence(sequenceSize, _numberOfSequences);
+
+        // DISPATCH based on protocol setting
+        auto* protocol = simContext.getProtocol();
+        if (protocol->getIndelRateModel() == IndelRateModel::SIMPLE) {
+            buildMsa<BlockTree>(eventmap, rootNode, nodesToSave, sequenceSize);
+        } else {
+            buildMsa<BlockTreeWithRates>(eventmap, rootNode, nodesToSave, sequenceSize);
+        }
+
+    }
+
+
+    template<typename BlockTreeType>
+    void buildMsa(EventMap &eventmap, tree::nodeP rootNode,
+                  const std::vector<bool>& nodesToSave, size_t sequenceSize) {
+        // Create SuperSequence with the appropriate BlockTree type
+        SuperSequence<RngType, BlockTreeType> superSequence(sequenceSize, _numberOfSequences, _simContext);
+        
         Sequence rootSequence(superSequence, nodesToSave[rootNode->id()]);
         rootSequence.initSequence();
 
         std::vector<CompressedSequence> finalSequences;
         finalSequences.reserve(_numberOfSequences);
 
-        buildMsaRecursively(finalSequences, eventmap, *rootNode, superSequence, rootSequence, nodesToSave);
-        eventmap.clear(); // is that necessary? should think this through.
+        buildMsaRecursively(finalSequences, eventmap, *rootNode, 
+                           superSequence, rootSequence, nodesToSave);
+        eventmap.clear();
         
         fillMSA(finalSequences, superSequence);
     }
 
+
+    template<typename BlockTreeType>
     void buildMsaRecursively(std::vector<CompressedSequence> &finalSequences,
                              EventMap &eventmap, const tree::TreeNode &parrentNode,
-                             SuperSequence &superSequence, const Sequence& parentSequence, 
+                             SuperSequence<RngType, BlockTreeType> &superSequence, const Sequence& parentSequence, 
                              const std::vector<bool>& nodesToSave) {
         if ((nodesToSave)[parrentNode.id()]) finalSequences.emplace_back(parentSequence.compress());
         if (parrentNode.isLeaf()) return;
@@ -63,7 +83,8 @@ public:
         
     }
 
-    void fillMSA(std::vector<CompressedSequence> &sequences, SuperSequence &superSeq) {
+    template<typename BlockTreeType>
+    void fillMSA(std::vector<CompressedSequence> &sequences, SuperSequence<BlockTreeType> &superSeq) {
 		_numberOfSequences = superSeq.getNumSequences();
 		_msaLength = superSeq.getMsaSequenceLength();
 		superSeq.setAbsolutePositions();

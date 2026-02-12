@@ -67,7 +67,8 @@ struct Block {
     size_t length;
     size_t insertion;
     std::vector<size_t> rateCategories;
-    
+    std::vector<size_t>& rootRateCategories;
+
     // Handle rate category insertions within this block.
     template<typename RngType = std::mt19937_64>
     void handleInsertion(size_t position, size_t insertLength, CategorySampler& sampler, RngType &rng) {
@@ -1294,13 +1295,15 @@ std::string print_avl() {
 
 // this function assumes that the length of the subtree is valid at each node.
 template<typename RngType = std::mt19937_64>
-bool handle_event(Event &ev, CategorySampler& sampler, RngType &rng) {
+bool handle_event(Event &ev, CategorySampler& sampler, RngType &rng, const std::vector<size_t> &rootRates) {
 
     size_type block_index = this->get_block_index(ev.position);
     if (block_index == INVALID_IDX) {
         std::cout << "could not get event key!\n";
         return false;
     }
+
+    val_[block_index]
 
     if (ev.type == INSERTION) {
       return split_block(block_index, ev.position, ev.length, sampler, rng);

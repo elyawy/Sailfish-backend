@@ -1,0 +1,6 @@
+generate a root rate category vector for the root sequence, with maybe also a reference within the supersequence.
+This vector should be past to the Blocks in BlockTreeWithRates for them to know the flanking regions and calculate the markov bridge correctly.
+We need to pay attenation at insertions that happen at the edges of the original sequence.
+We also need to pay attention to the flanking region when an insertion happens at the right edge of another insertion, and the original sequence in front of it was deleted in part.
+This affects the right flank state.
+Every event that affects the flanking states need to be taken into consideration.

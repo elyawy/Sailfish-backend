@@ -48,6 +48,12 @@ PYBIND11_MODULE(_Sailfish, m) {
         .def_property_readonly("name", &tree::TreeNode::name)
         .def("distance_to_father", &tree::TreeNode::dis2father);
 
+
+    py::enum_<SiteRateModel>(m, "SiteRateModel")
+        .value("SIMPLE", SiteRateModel::SIMPLE)
+        .value("INDEL_AWARE", SiteRateModel::INDEL_AWARE)
+        .export_values();
+
     py::class_<SimulationProtocol>(m, "SimProtocol")
         .def(py::init<size_t>())
         .def("set_sequence_size", &SimulationProtocol::setSequenceSize)
@@ -61,7 +67,11 @@ PYBIND11_MODULE(_Sailfish, m) {
         .def("set_deletion_length_distributions", &SimulationProtocol::setDeletionLengthDistributions)
         .def("get_deletion_length_distribution", &SimulationProtocol::getDeletionDistribution)
         .def("set_minimum_sequence_size", &SimulationProtocol::setMinSequenceSize)
-        .def("get_minimum_sequence_size", &SimulationProtocol::getMinSequenceSize);
+        .def("get_minimum_sequence_size", &SimulationProtocol::getMinSequenceSize)
+        .def("set_indel_rate_model", &SimulationProtocol::setIndelRateModel)
+        .def("get_indel_rate_model", &SimulationProtocol::getIndelRateModel)
+        .def("set_max__insertion_length", &SimulationProtocol::setMaxInsertionLength)
+        .def("get_max__insertion_length", &SimulationProtocol::getMaxInsertionLength);
 
 
 
