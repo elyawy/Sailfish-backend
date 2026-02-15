@@ -66,8 +66,8 @@
 struct Block {
     size_t length;
     size_t insertion;
-    std::vector<size_t> rateCategories;
     std::vector<size_t>& rootRateCategories;
+    std::vector<size_t> rateCategories;
 
     // Handle rate category insertions within this block.
     template<typename RngType = std::mt19937_64>
@@ -1332,10 +1332,10 @@ BlockList get_blocklist() {
     return blocklist;
 }
 
-bool init_tree(size_t sequence_length) {
+bool init_tree(size_t sequence_length, const std::vector<size_t>& rootRateCategories) {
   this->clear();
 
-  Block root_block = {sequence_length, 0};
+  Block root_block = {sequence_length, 0, rootRateCategories};
   return this->insert(0, root_block, sequence_length);
 }
 

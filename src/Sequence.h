@@ -12,6 +12,10 @@
 #include "SuperSequence.h"
 #include "Event.h"
 
+// TODO: retrieve the rateCategories from the Blocks following the application of the events.
+// assign the rateCategories to the column within the SuperSequence.
+
+
 struct CompressedSequence {
     std::vector<std::pair<size_t, size_t>> runs; // (start_position, length)
     size_t uncompressedSize;
@@ -28,6 +32,7 @@ private:
 
     SequenceType _sequence;
     const Sequence* _parent;
+    std::vector<size_t> rateCategories;
 
 public:
 

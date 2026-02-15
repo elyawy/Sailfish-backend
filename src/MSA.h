@@ -16,6 +16,8 @@
 #include "Sequence.h"
 #include "Event.h"
 
+
+
 typedef std::vector<std::vector<int>> SparseMSA;
 
 template<typename RngType = std::mt19937_64>

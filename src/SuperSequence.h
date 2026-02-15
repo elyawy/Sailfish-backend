@@ -7,6 +7,8 @@
 #include "BlockTreeWithRates.h"
 #include "SimulationContext.h"
 
+// TODO: add the rateCategory assignment that should be passed from the Sequence object.
+
 template<typename RngType = std::mt19937_64, typename BlockTreeType>
 class SuperSequence {
 public:
@@ -14,6 +16,7 @@ public:
         const size_t position;
         size_t absolutePosition;
         bool isColumn;
+        double rateCategory;
     };
     
     using SequenceType = std::list<columnContainer>;
@@ -56,11 +59,14 @@ public:
     }
 
     void setAbsolutePositions() {
+        auto rateCategories = std::make_unique<std::vector<size_t>>(_msaSeqLength);
         size_t i = 0;
         for (auto &column: _sequence) {
             if (!column.isColumn) continue;
             column.absolutePosition = i;
+            (*rateCategories)[i] = column.rateCategory;
             ++i;
+
         }
     }
 

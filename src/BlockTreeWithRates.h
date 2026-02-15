@@ -72,9 +72,9 @@ public:
     _avlTree->clear();
   }
 
-  void initTree(int first_block_size){
+  void initTree(int first_block_size, const std::vector<size_t>& rateCategories){
     _avlTree->clear();
-    _avlTree->init_tree(first_block_size + 1);
+    _avlTree->init_tree(first_block_size + 1, rateCategories);
   }
 
 
