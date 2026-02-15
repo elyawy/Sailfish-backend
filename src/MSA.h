@@ -90,6 +90,7 @@ public:
 		_numberOfSequences = superSeq.getNumSequences();
 		_msaLength = superSeq.getMsaSequenceLength();
 		superSeq.setAbsolutePositions();
+        _perSiterateCategories = superSeq.getMsaRateCategories();
 		// create AlignedSequenceMap shared pointer, can be shared with SubstitutionSimulator
         _alignedSequenceMap = std::make_shared<SparseMSA>();
         auto & _alignedSequence = *_alignedSequenceMap;
@@ -250,6 +251,10 @@ public:
 
     std::shared_ptr<const SparseMSA> getSparseMSA() {return _alignedSequenceMap;}
 
+    std::shared_ptr<std::vector<size_t>> getPerSiteRateCategories() const {
+        return _perSiterateCategories;
+    }
+
 	
 	~MSA() {
 	}
@@ -261,6 +266,7 @@ private:
     std::shared_ptr<const SparseSequenceContainer> _substitutions;
 
 	std::shared_ptr<SparseMSA> _alignedSequenceMap;
+    std::shared_ptr<std::vector<size_t>> _perSiterateCategories;
     // IDs of sequences to save are accessed via _simContext->getNodesToSaveIndices()
     // Names of sequences to save are accessed via _simContext->getNodeToSaveNames()
 

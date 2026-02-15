@@ -21,26 +21,28 @@ struct CompressedSequence {
     size_t uncompressedSize;
 };
 
+template<typename RngType = std::mt19937_64, typename BlockTreeType>
 class Sequence
 {
+    using SuperSeqType = SuperSequence<RngType, BlockTreeType>;
     using iteratorType = std::list<SuperSequence::columnContainer>::iterator;
     using SequenceType = std::vector<iteratorType>;
 
 private:
-    SuperSequence* _superSequence;
+    SuperSeqType* _superSequence;
     bool _isSaveSequence;
 
     SequenceType _sequence;
     const Sequence* _parent;
-    std::vector<size_t> rateCategories;
+    std::vector<size_t> _rateCategories;
 
 public:
 
-    Sequence(SuperSequence& superSeq, bool isSaveSeq) : 
+    Sequence(SuperSeqType& superSeq, bool isSaveSeq) : 
         _superSequence(&superSeq), _isSaveSequence(isSaveSeq) {}
 
 
-    Sequence(const CompressedSequence& compressed, SuperSequence& superSeq) 
+    Sequence(const CompressedSequence& compressed, SuperSeqType& superSeq) 
         : _superSequence(&superSeq), _isSaveSequence(true) {
         
         _sequence.reserve(compressed.uncompressedSize);
@@ -57,7 +59,18 @@ public:
     void initSequence() {
         auto superSeqIterator = _superSequence->begin();
 
+        if constexpr (std::is_same_v<BlockTreeType, BlockTreeWithRates>) {
+            _rateCategories.reserve(_superSequence->size());
+        }
+
         while (superSeqIterator != _superSequence->end()) {
+            if constexpr (std::is_same_v<BlockTreeType, BlockTreeWithRates>) {
+                // Sample and assign rate category to the column
+                size_t category = _superSequence->sampleRootCategory();
+                (*superSeqIterator).rateCategory = category;
+                _rateCategories.push_back(category);
+            }
+
             if (_isSaveSequence) _superSequence->referencePosition(superSeqIterator);
             _sequence.push_back(superSeqIterator);
             superSeqIterator++;
@@ -68,20 +81,27 @@ public:
     void generateSequence (const EventSequence &eventlist,const Sequence *parentSeq) {
         _sequence.reserve(parentSeq->_sequence.size());
 
+        if constexpr (std::is_same_v<BlockTreeType, BlockTreeWithRates>) {
+            rateCategories.reserve(parentSeq->_sequence.size());
+        }
+
         size_t position;
         size_t length;
         size_t insertion;
         size_t randomPos = _superSequence->getRandomSequencePosition();
         _parent = (parentSeq);
 
+
+
         // apply events on BlockTree
         // Initialize BlockTree with parent's rate categories
-        if constexpr (/* check if SuperSequence uses BlockTreeWithRates */) {
-            std::vector<size_t> parentRates = extractRateCategoriesFromParent(parentSeq);
+        if constexpr (std::is_same_v<BlockTreeType, BlockTreeWithRates>) {
+            const std::vector<size_t>& parentRates = parentSeq->_rateCategories;
             _superSequence->initBlockTree(parentSeq->_sequence.size(), parentRates);
         } else {
             _superSequence->initBlockTree(parentSeq->_sequence.size());
         }
+
 
         for (const auto& ev: eventlist) {
             _superSequence->logEventInBlockTree(ev);
@@ -111,6 +131,9 @@ public:
                     _superSequence->referencePosition(_parent->_sequence[position+i]);
                 } 
                 _sequence.push_back(_parent->_sequence[position+i]);
+                if constexpr (std::is_same_v<BlockTreeType, BlockTreeWithRates>) {
+                    _rateCategories.push_back(_parent->_rateCategories[position+i]);
+                }
             }
             while (_parent->_sequence.size() == 0) _parent = _parent->_parent;
 
@@ -124,6 +147,14 @@ public:
             for (size_t i = 0; i < insertion; i++) {
                 superSeqIterator = _superSequence->insertItemAtPosition(superSeqIterator, randomPos, _isSaveSequence);
                 _sequence.push_back(superSeqIterator);
+
+                if constexpr (std::is_same_v<BlockTreeType, BlockTreeWithRates>) {
+                    size_t rateIndex = i + 1; // Skip anchor at index 0
+                    size_t category = (*it).rateCategories[rateIndex];
+                    (*superSeqIterator).rateCategory = category;
+                    _rateCategories.push_back(category);
+                }
+
                 superSeqIterator++;
                 randomPos = _superSequence->incrementRandomSequencePosition();
             }

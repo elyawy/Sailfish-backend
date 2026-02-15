@@ -454,15 +454,21 @@ public:
     Block event_block = val_[block_index];
 
     int original_size = event_block.length + event_block.insertion;
+    site_t original_insertion = event_block.insertion;
     // bool is_anchor_block = (key_[block_index] == 0);
     pos = pos + 1;
-    // insertion in added part
+    // insertion in added part - no split, just update
     if (pos >= event_block.length ) {
         event_block.insertion = event_block.insertion + event_size;
 
         // Handle rate categories for insertion in the added part
         // Position within the block's rate categories
         size_t position_in_ap = pos - event_block.length;
+        
+        if (pos == original_insertion) {
+          next_block_index = get_next_block(block_index);
+          size_t next_block_start = key_[next_block_index];
+        }
 
         event_block.handleInsertion(position_in_ap, event_size, sampler, rng);
 
@@ -470,7 +476,7 @@ public:
         int difference_in_length = new_size - original_size;
 
         return this->insert(key_[block_index], event_block, difference_in_length);
-    } else if (pos < event_block.length) { // insertion in origianl part
+    } else if (pos < event_block.length) { // insertion in origianl part - split
         // if (pos == 0) pos = 1;
 
         Block potential_block = { event_block.length - pos, event_block.insertion};

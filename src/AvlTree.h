@@ -401,6 +401,9 @@ public:
     int original_size = event_block.length + event_block.insertion;
     // bool is_anchor_block = (key_[block_index] == 0);
     pos = pos + 1;
+    std::cout << "pos = " << pos << "\n";
+    std::cout << "original_size = "<< original_size << "\n";
+
     // insertion in added part
     if (pos >= event_block.length ) {
         event_block.insertion = event_block.insertion + event_size;
