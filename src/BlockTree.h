@@ -6,20 +6,7 @@
 #include <tuple>
 #include "AvlTree.h"
 #include "Event.h"
-
-typedef std::unordered_map<size_t, std::tuple<BlockList, size_t>> BlockMap;
-
-
-enum class BLOCK {
-  POSITION = 0,
-  LENGTH = 1,
-  INSERTION = 2
-};
-
-enum class BLOCKLIST {
-    BLOCKS = 0,
-    LENGTH = 1
-};
+#include "BlockCommon.h"
 
 class BlockTree
 {
@@ -47,9 +34,9 @@ public:
     return _avlTree->print_avl();
   }
 
-  BlockList getBlockList () {
-    return _avlTree->get_blocklist();
-  }
+  // BlockList getBlockList () {
+  //   return _avlTree->get_blocklist();
+  // }
 
   TreeType::iterator begin () {
     return _avlTree->begin();

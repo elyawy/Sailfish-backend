@@ -54,6 +54,10 @@ public:
 		_saveRates = saveRates;
 	}
 
+	void setPerSiteRateCategories(std::shared_ptr<const std::vector<size_t>> rateCategories) {
+		_rateCategories = rateCategories;
+	}
+
 
 	void clearRatesVec() { 
 		_siteRates.clear();
@@ -72,19 +76,29 @@ public:
 	}
 
 	void generateSubstitutionsAlongTree(int seqLength) {
-		std::vector<MDOUBLE> ratesVec(seqLength);
-		MDOUBLE sumOfRatesAcrossSites = 0.0;
-		_rateCategories.resize(seqLength);
-		for (int h = 0; h < seqLength; h++)  {
-			int selectedRandomCategory = _rateCategorySampler.drawSample(_rng);
-			_rateCategories[h] = selectedRandomCategory;
-			ratesVec[h] = _stochasticProcess->rates(selectedRandomCategory);
-			sumOfRatesAcrossSites += ratesVec[h];
-		}
-		_siteRates.clear();
-		if (_saveRates) _siteRates.insert(_siteRates.end(), ratesVec.begin(), ratesVec.end());
 
-		sequence rootSequence = generateRootSeq(seqLength, ratesVec);
+		if (_rateCategories == nullptr) {
+			auto newCategories = std::make_shared<std::vector<size_t>>(seqLength);
+			for (int h = 0; h < seqLength; h++) {
+            	(*newCategories)[h] = _rateCategorySampler.drawSample(_rng);
+			}
+			_rateCategories = newCategories;
+        } else {
+			// Use existing categories - just validate size
+			if (_rateCategories->size() != seqLength) {
+				errorMsg::reportError("Rate categories size mismatch");
+			}
+		}
+
+		_siteRates.clear();
+		if (_saveRates){
+			_siteRates.resize(seqLength);
+			for (int i = 0; i < seqLength; i++) {
+				_siteRates[i] = _stochasticProcess->rates((*_rateCategories)[i]);
+			}
+		}
+		
+		sequence rootSequence = generateRootSeq(seqLength);
 
 		if (_nodesToSave[_tree->getRoot()->id()]){ 
 			saveSequence(rootSequence);
@@ -127,6 +141,7 @@ public:
         return getSequenceContainer();
     }
 
+
     void setAlignedSequenceMap(MSA<RngType>& msa) {
         _alignedSequenceMap = msa.getSparseMSA();
     }
@@ -134,7 +149,7 @@ public:
 
 private:
 
-	sequence generateRootSeq(int seqLength, std::vector<MDOUBLE>& ratesVec) {
+	sequence generateRootSeq(int seqLength) {
 		sequence rootSeq(_alphabet);
 
 		rootSeq.resize(seqLength);
@@ -156,6 +171,7 @@ private:
 
 	void mutateEntireSeq(sequence& currentSequence, const MDOUBLE& branchLength) {
 		const int nodeId = currentSequence.id();
+		auto& rateCategories = (*_rateCategories);
 		BranchTransitionProbabilities<AlphabetSize> cachedPijt(branchLength, *_stochasticProcess);
 		size_t actualRowInMSA = _idToRowInMSA[nodeId];
 		// Check if this is a leaf we're saving (low memory mode)
@@ -173,7 +189,7 @@ private:
 				// Non-gap block - mutate these sites
 				for (int i = 0; i < blockSize; ++i, ++site) {
 					ALPHACHAR parentChar = currentSequence[site];
-					auto &Pijt = cachedPijt.getDistribution(_rateCategories[site], parentChar);
+					auto &Pijt = cachedPijt.getDistribution(rateCategories[site], parentChar);
 					ALPHACHAR nextChar = Pijt.drawSample(_rng) - 1;
 					currentSequence[site] = nextChar;
 				}
@@ -183,7 +199,7 @@ private:
 			// Normal mode - mutate all sites
 			for (size_t site = 0; site < currentSequence.seqLen(); ++site) {
 				ALPHACHAR parentChar = currentSequence[site];
-				auto &Pijt = cachedPijt.getDistribution(_rateCategories[site], parentChar);
+				auto &Pijt = cachedPijt.getDistribution(rateCategories[site], parentChar);
 				ALPHACHAR nextChar = Pijt.drawSample(_rng) - 1;
 				currentSequence[site] = nextChar;
 			}
@@ -263,7 +279,7 @@ private:
 	const std::vector<size_t>& _idToRowInMSA;
 	bool _saveRates;
 
-	std::vector<size_t> _rateCategories;
+	std::shared_ptr<const std::vector<size_t>> _rateCategories = nullptr;
 	std::vector<double> _siteRates;
 	std::unique_ptr<SparseSequenceContainer> _simulatedSequences;
 	std::unique_ptr<DiscreteDistribution> _frequencySampler;

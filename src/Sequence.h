@@ -21,11 +21,11 @@ struct CompressedSequence {
     size_t uncompressedSize;
 };
 
-template<typename RngType = std::mt19937_64, typename BlockTreeType>
+template<typename RngType = std::mt19937_64, typename BlockTreeType = BlockTree>
 class Sequence
 {
     using SuperSeqType = SuperSequence<RngType, BlockTreeType>;
-    using iteratorType = std::list<SuperSequence::columnContainer>::iterator;
+    using iteratorType = typename std::list<typename SuperSeqType::columnContainer>::iterator;
     using SequenceType = std::vector<iteratorType>;
 
 private:
@@ -82,7 +82,7 @@ public:
         _sequence.reserve(parentSeq->_sequence.size());
 
         if constexpr (std::is_same_v<BlockTreeType, BlockTreeWithRates>) {
-            rateCategories.reserve(parentSeq->_sequence.size());
+            _rateCategories.reserve(parentSeq->_sequence.size());
         }
 
         size_t position;
@@ -107,7 +107,7 @@ public:
             _superSequence->logEventInBlockTree(ev);
         }
 
-        auto& blocks  = _superSequence.getBlockTree();
+        auto& blocks  = _superSequence->getBlockTree();
 
         for (auto it = blocks.begin(); it != blocks.end(); ++it) {
             position = it.key();
@@ -163,16 +163,16 @@ public:
         if (_isSaveSequence) _superSequence->incrementLeafNum();
     }
 
-    SuperSequence* getSuperSequence() {
+    SuperSeqType* getSuperSequence() {
         return _superSequence;
     }
 
 
-    SequenceType::iterator begin() {
+    typename SequenceType::iterator begin() {
         return _sequence.begin();
     }
 
-    SequenceType::iterator end() {
+    typename SequenceType::iterator end() {
         return _sequence.end();
     }
 

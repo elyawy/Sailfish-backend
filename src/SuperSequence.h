@@ -4,12 +4,14 @@
 #include <cstddef> 
 #include <limits>
 
+#include "BlockTree.h"
+
 #include "BlockTreeWithRates.h"
 #include "SimulationContext.h"
 
 // TODO: add the rateCategory assignment that should be passed from the Sequence object.
 
-template<typename RngType = std::mt19937_64, typename BlockTreeType>
+template<typename RngType = std::mt19937_64, typename BlockTreeType = BlockTree>
 class SuperSequence {
 public:
     struct columnContainer {
@@ -23,7 +25,7 @@ public:
 
 private:
     SequenceType _sequence;
-    std::vector<SequenceType::iterator> _positionToIterator;
+    std::vector<typename SequenceType::iterator> _positionToIterator;
     size_t _nextSiteCounter;
     size_t _leafNum;
     size_t _numSequences;
@@ -34,7 +36,7 @@ private:
     std::shared_ptr<std::vector<size_t>> _msaRateCategories;
 
 public:
-    SuperSequence(size_t sequenceSize, SimulationContext<RngType> &simContext):
+    SuperSequence<RngType, BlockTreeType>(size_t sequenceSize, SimulationContext<RngType> &simContext):
          _rng(simContext.getRng()),
          _rateCategorySampler({{{1.0}}}, {1.0}, simContext.getProtocol()->getMaxInsertionLength())
          {
@@ -51,7 +53,7 @@ public:
         _nextSiteCounter = sequenceSize + 1;
     }
 
-    void referencePosition(SequenceType::iterator position) {
+    void referencePosition(typename SequenceType::iterator position) {
         // if (position->position == 0) return;
         if (!(*position).isColumn) {
             (*position).isColumn = true;
@@ -76,7 +78,7 @@ public:
         }
     }
 
-    SequenceType::iterator insertItemAtPosition(SequenceType::iterator position, size_t item, bool isToSave) {
+    typename SequenceType::iterator insertItemAtPosition(typename SequenceType::iterator position, size_t item, bool isToSave) {
         // std::cout << "INSERT POS: " << *position << " " << item << "\n";
         // printSequence();
         columnContainer newColumn = {item, std::numeric_limits<size_t>::max(), false};
@@ -92,11 +94,11 @@ public:
     }
 
 
-    SequenceType::iterator begin() {
+    typename SequenceType::iterator begin() {
         return _sequence.begin();
     }
 
-    SequenceType::iterator end() {
+    typename SequenceType::iterator end() {
         return _sequence.end();
     }
 
@@ -132,7 +134,7 @@ public:
     }
 
 
-    SequenceType::iterator getIteratorByPosition(size_t position) {
+    typename SequenceType::iterator getIteratorByPosition(size_t position) {
         return _positionToIterator[position];
     }
 
@@ -181,7 +183,7 @@ public:
         }
     }
 
-    BlockTree& getBlockTree(){ return _blocks;}
+    BlockTreeType& getBlockTree(){ return _blocks;}
 
     void initRateSampler(const std::vector<std::vector<MDOUBLE>>& transitionMatrix,
                      const std::vector<MDOUBLE>& stationaryProbs) {

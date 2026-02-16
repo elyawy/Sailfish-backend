@@ -1,3 +1,6 @@
+#ifndef SIMULATIONPROTOCOL_H
+#define SIMULATIONPROTOCOL_H
+
 #include <sstream>
 
 #include "../libs/Phylolib/includes/tree.h"
@@ -140,7 +143,7 @@ public:
     }
 
     SiteRateModel getSiteRateModel() const {
-        return _siteRateModel
+        return _siteRateModel;
     }
 
     void setMaxInsertionLength(size_t len) {
@@ -154,3 +157,5 @@ public:
 
     ~SimulationProtocol() {}
 };
+
+#endif

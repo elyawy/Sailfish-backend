@@ -66,8 +66,6 @@ struct Block {
     size_t insertion;
 };
 
-typedef std::vector<std::array<size_t, 3>> BlockList;
-
 
 /**
  * \param Key The key type. The type (class) must provide a 'less than' and
@@ -1208,15 +1206,15 @@ bool handle_event(event ev, size_t event_position, size_t event_size) {
 
 
 
-BlockList get_blocklist() {
-    BlockList blocklist;
-    for (auto it = this->begin(); it != this->end(); ++it) {
-        std::array<size_t,3> current_block =  {(&it)->key(), (*it).length, (*it).insertion};
-        // std::tuple<int, int, int> current_block ((&it)->key(), (*it).length, (*it).insertion);
-        blocklist.push_back(current_block);
-    }
-    return blocklist;
-}
+// BlockList get_blocklist() {
+//     BlockList blocklist;
+//     for (auto it = this->begin(); it != this->end(); ++it) {
+//         std::array<size_t,3> current_block =  {(&it)->key(), (*it).length, (*it).insertion};
+//         // std::tuple<int, int, int> current_block ((&it)->key(), (*it).length, (*it).insertion);
+//         blocklist.push_back(current_block);
+//     }
+//     return blocklist;
+// }
 
 bool init_tree(size_t sequence_length) {
   this->clear();

@@ -6,20 +6,7 @@
 #include <tuple>
 #include "AvlTreeWithRates.h"
 #include "Event.h"
-
-typedef std::unordered_map<size_t, std::tuple<BlockList, size_t>> BlockMap;
-
-
-enum class BLOCK {
-  POSITION = 0,
-  LENGTH = 1,
-  INSERTION = 2
-};
-
-enum class BLOCKLIST {
-    BLOCKS = 0,
-    LENGTH = 1
-};
+#include "BlockCommon.h"
 
 class BlockTreeWithRates
 {
@@ -33,9 +20,9 @@ public:
   }
 
   template<typename RngType = std::mt19937_64>
-  void handleEvent (Event &ev, CategorySampler& sampler, RngType &rng, const std::vector<size_t> &rootRates) {
+  void handleEvent (Event &ev, CategorySampler& sampler, RngType &rng) {
     if (ev.length == 0) return;
-    if(!_avlTree->handle_event(ev, sampler, rng, rootRates)) {
+    if(!_avlTree->handle_event(ev, sampler, rng)) {
       throw std::out_of_range("event_position exceeds sequence");
     }
   }
