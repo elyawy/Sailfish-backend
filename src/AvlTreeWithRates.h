@@ -66,35 +66,40 @@
 struct Block {
     size_t length;
     size_t insertion;
-    std::vector<size_t>& rootRateCategories;
+    const std::vector<size_t>* parentRateCategories;
     std::vector<size_t> rateCategories;
+
+    Block(const std::vector<size_t>& parentRates, size_t blockLength, size_t insertionPos) 
+        : length(blockLength), insertion(insertionPos), parentRateCategories(&parentRates),
+        rateCategories(1, SIZE_MAX) {}
+
+    Block() 
+        : length(1)
+        , insertion(0)
+        , parentRateCategories(nullptr) {}
 
     // Handle rate category insertions within this block.
     template<typename RngType = std::mt19937_64>
-    void handleInsertion(size_t position, size_t insertLength, CategorySampler& sampler, RngType &rng) {
-      if (rateCategories.size() == 0) {
+    void handleInsertion(size_t position, size_t leftFlankCategory, size_t rightFlankCategory, size_t insertLength, CategorySampler& sampler, RngType &rng) {
+      if (leftFlankCategory == SIZE_MAX && rightFlankCategory == SIZE_MAX) {
         rateCategories.push_back(SIZE_MAX); // anchor position at rateCategories[0], all insertions happen after it.
         for (size_t i = 0; i < insertLength; i++) {
           rateCategories.push_back(sampler.drawSample(rng));
         }
         return;
       }
-      size_t leftFlankCategory = rateCategories[position];
-      size_t rightFlankCategory = rateCategories[position + 1];
       std::vector<size_t> newRates;
       // handle insertion at the beginning case.
-      if (position == 0) {
+      if (leftFlankCategory == SIZE_MAX && rightFlankCategory != SIZE_MAX) {
         newRates = sampler.drawSamples(rng, rightFlankCategory, insertLength);
         std::reverse(newRates.begin(), newRates.end());
       }
-      // handle insertion at the end case.
-      if (position == (rateCategories.size() - 1)) {
-        newRates = sampler.drawSamples(rng, leftFlankCategory, insertLength);
+      if (leftFlankCategory != SIZE_MAX && rightFlankCategory != SIZE_MAX) {
+        newRates = sampler.sampleBridge(leftFlankCategory, rightFlankCategory, insertLength, rng);
       }
-
-      // handle insertion in the middle case.
-      if (position > 0 && position < (rateCategories.size() - 1)) {
-          newRates = sampler.sampleBridge(leftFlankCategory, rightFlankCategory, insertLength, rng);
+      // handle insertion at the end case.
+      if (leftFlankCategory != SIZE_MAX && rightFlankCategory == SIZE_MAX) {
+        newRates = sampler.drawSamples(rng, leftFlankCategory, insertLength);
       }
       // insert new positions in rateCategories vector.
       rateCategories.insert(rateCategories.begin()+(position+1), newRates.begin(), newRates.end());
@@ -348,9 +353,6 @@ public:
    * \return True if the key was successfully inserted or updated, false if
    * container is full
    */
-  // this function assumes that the length of the subtree is valid at each node, this is not the case yet.
-  // currently this function handles the length of the subtree, this is wrong and should be handled in
-  // the rotation functions as well.
   size_type get_block_index(size_t &pos) {
     if (root_ == INVALID_IDX) {
       return INVALID_IDX;
@@ -362,7 +364,6 @@ public:
 
     size_type i = root_;
 
-    // BUG : the left branch case is not working!
     while (i != INVALID_IDX){
 
       left_node = child_[i].left;
@@ -454,8 +455,16 @@ public:
     Block event_block = val_[block_index];
 
     int original_size = event_block.length + event_block.insertion;
-    site_t original_insertion = event_block.insertion;
-    // bool is_anchor_block = (key_[block_index] == 0);
+    size_t original_insertion = event_block.insertion;
+
+    // retrieve the left flank category for the position of the event, this will be used for sampling new categories for the inserted part.
+    // must handle the "entire sequence is deleted"
+    // if the event is within the insertion the flanking positions are simply in the rateCategories vector of the block,
+    // if the event is in the original part, the left flank category is the one at position pos-1 of event_block.parentRateCategories and the right flank category is the one at position pos.
+    // if the event is at the edge of the block, we need to use the next block's category as the right flank for sampling new categories for the inserted part.
+    size_t left_flank_category = SIZE_MAX;
+    size_t right_flank_category = SIZE_MAX;
+
     pos = pos + 1;
     // insertion in added part - no split, just update
     if (pos >= event_block.length ) {
@@ -464,31 +473,50 @@ public:
         // Handle rate categories for insertion in the added part
         // Position within the block's rate categories
         size_t position_in_ap = pos - event_block.length;
+        // if on left edge of AP, use category from OP as left flank
+        if (position_in_ap == 0) {
+          left_flank_category = (*event_block.parentRateCategories)[event_block.length - 1];
+        } else {
+          left_flank_category = event_block.rateCategories[position_in_ap - 1];
+        }
+        right_flank_category = event_block.rateCategories[position_in_ap];
         
+        // If the insertion is happening at the edge, right before the next block, we need to use the next block's category as the right flank for sampling new categories.
         if (pos == original_insertion) {
-          next_block_index = get_next_block(block_index);
-          size_t next_block_start = key_[next_block_index];
+          size_type next_block_index = get_next_block(block_index);
+          // if on right edge of AP, and no next block, set right flank category to SIZE_MAX.
+          if (next_block_index == INVALID_IDX) {
+            right_flank_category = SIZE_MAX;
+          } else {
+            size_t next_block_start = key_[next_block_index]; // actual position within the parent sequence
+            right_flank_category = (*event_block.parentRateCategories)[next_block_start];
+          }
         }
 
-        event_block.handleInsertion(position_in_ap, event_size, sampler, rng);
+        event_block.handleInsertion(position_in_ap, left_flank_category, right_flank_category, event_size, sampler, rng);
 
         int new_size = event_block.insertion + event_block.length;
         int difference_in_length = new_size - original_size;
 
         return this->insert(key_[block_index], event_block, difference_in_length);
     } else if (pos < event_block.length) { // insertion in origianl part - split
-        // if (pos == 0) pos = 1;
 
-        Block potential_block = { event_block.length - pos, event_block.insertion};
-        Block updated_block = {pos, event_size};
+        // Block potential_block = { event_block.length - pos, event_block.insertion};
+        Block potential_block = event_block;
+        potential_block.length = event_block.length - pos;
+
+        Block updated_block(*event_block.parentRateCategories, pos, event_size);
 
         // Handle rate categories for the NEW insertion in updated_block
-        size_t insertion_position = pos - 1;
-        updated_block.handleInsertion(insertion_position, event_size, sampler, rng);
-
-        // The potential_block keeps the OLD insertion's rate categories unchanged
-        // because the old insertion is still "after" the new original segment
-        potential_block.rateCategories = event_block.rateCategories;
+        left_flank_category = (*event_block.parentRateCategories)[key_[block_index] + pos - 1];
+        // if on left edge of OP, set left flank category to SIZE_MAX.
+        if (key_[block_index] + pos - 1 == 0) {
+          left_flank_category = SIZE_MAX;
+        }
+        right_flank_category = (*event_block.parentRateCategories)[key_[block_index] + pos];
+        // Insertion is in the middle of OP, so right edge must be within OP.
+        // Since AP is new, event position within it is 0.
+        updated_block.handleInsertion(0, left_flank_category, right_flank_category, event_size, sampler, rng);
 
         int new_size = updated_block.insertion + updated_block.length;
         int difference_in_length = new_size - original_size;
@@ -513,11 +541,12 @@ public:
 
     key_type event_key = key_[block_index];
     bool is_valid = true;
-    Block new_block = {length - event_size, insertion};
-    new_block.rateCategories = val_[block_index].rateCategories;  // Copy rate categories
+    Block new_block = val_[block_index];
+    new_block.length = length - event_size;
+    new_block.insertion = insertion;
 
     if (key_[block_index] == 0) { // checking if this is the first block in the blocklist
-      Block first_block = {1, 0};
+      Block first_block(*new_block.parentRateCategories, 1, 0);
       is_valid = this->insert(0 , first_block, 1 - (length + insertion));
     } else {
       is_valid = this->erase(key_[block_index], length + insertion);
@@ -528,9 +557,9 @@ public:
   //   xxxxxxxxxxxxxx xxxxxxxx
   //  [------OP------|---AP---]
   bool remove_case_b(const size_type block_index, size_t position, size_t event_size, size_t length, size_t insertion) {
-
     if (key_[block_index] == 0) { // checking if this is the first block in the blocklist
-      Block first_block = {1, 0};
+      // Block first_block = {1, 0};
+      Block first_block(*val_[block_index].parentRateCategories, 1, 0);
       return this->insert(0, first_block, 1 - (length + insertion));
     } else {
       return this->erase(key_[block_index], length + insertion);
@@ -548,16 +577,19 @@ public:
     std::vector<size_t> surviving_rates = event_block.getSurvivingRates(deleted_from_insertion);
 
     if (key_[block_index] == 0) { // checking if this is the first block in the blocklist
-      Block first_block = {1, insertion_leftover};
+
+      Block first_block(*event_block.parentRateCategories, 1, insertion_leftover);
       first_block.rateCategories = surviving_rates;
+
       int new_size = first_block.insertion + first_block.length;
       int difference_in_length = new_size - (length + insertion);
       return this->insert(0, first_block, difference_in_length);
     } else {
       size_type previous_block_index = this->get_previous_block(block_index);
       Block previous_block = val_[previous_block_index];
-      Block updated_block = {previous_block.length, previous_block.insertion + insertion_leftover};
-      updated_block.rateCategories = previous_block.rateCategories;
+      // Block updated_block = {previous_block.length, previous_block.insertion + insertion_leftover};
+      Block updated_block = previous_block;
+      updated_block.insertion = previous_block.insertion + insertion_leftover;
       updated_block.rateCategories.insert(
           updated_block.rateCategories.end(),
           surviving_rates.begin(),
@@ -574,11 +606,14 @@ public:
     bool is_valid = true;
     Block event_block = val_[block_index];
 
-    Block first_block = {position, 0};
+    // Block first_block = {position, 0};
+    Block first_block(*event_block.parentRateCategories, position, 0);
+    
     int new_size = first_block.insertion + first_block.length;
     int difference_in_length = new_size - (length + insertion);
     is_valid = this->insert(key_[block_index], first_block, difference_in_length);
-    Block new_block = {length - (position + event_size), insertion};
+    Block new_block = event_block;
+    new_block.length = length - (position + event_size);
     new_block.rateCategories = event_block.rateCategories;  // Preserve all rate categories
     new_size = new_block.insertion + new_block.length;
     return this->insert(key_[block_index] + position + event_size, new_block, new_size) && is_valid;
@@ -590,8 +625,7 @@ public:
   bool remove_case_e(const size_type block_index, size_t position, size_t event_size, size_t length, size_t insertion) {
     Block event_block = val_[block_index];
 
-    Block first_block = {position, insertion};
-    first_block.rateCategories = event_block.rateCategories;  // Preserve all rate categories
+    Block first_block(*event_block.parentRateCategories, position, insertion);
     int new_size = first_block.insertion + first_block.length;
     int difference_in_length = new_size - (length + insertion);
     return this->insert(key_[block_index], first_block, difference_in_length);
@@ -614,8 +648,9 @@ public:
     // Use handleDeletion to remove the deleted rate categories
     event_block.handleDeletion(deletion_start_in_ap, total_deleted_from_ap);
 
-    Block first_block = {position, (length + insertion) - (position + event_size)};
-    first_block.rateCategories = event_block.rateCategories;
+    Block first_block = event_block;
+    first_block.length = position;
+    first_block.insertion = (length + insertion) - (position + event_size);
     int new_size = first_block.insertion + first_block.length;
     int difference_in_length = new_size - (length + insertion);
     return this->insert(key_[block_index], first_block, difference_in_length);
@@ -1301,15 +1336,13 @@ std::string print_avl() {
 
 // this function assumes that the length of the subtree is valid at each node.
 template<typename RngType = std::mt19937_64>
-bool handle_event(Event &ev, CategorySampler& sampler, RngType &rng, const std::vector<size_t> &rootRates) {
+bool handle_event(Event &ev, CategorySampler& sampler, RngType &rng) {
 
     size_type block_index = this->get_block_index(ev.position);
     if (block_index == INVALID_IDX) {
         std::cout << "could not get event key!\n";
         return false;
     }
-
-    val_[block_index]
 
     if (ev.type == INSERTION) {
       return split_block(block_index, ev.position, ev.length, sampler, rng);
@@ -1338,10 +1371,11 @@ BlockList get_blocklist() {
     return blocklist;
 }
 
-bool init_tree(size_t sequence_length, const std::vector<size_t>& rootRateCategories) {
+bool init_tree(size_t sequence_length, const std::vector<size_t>& parentRateCategories) {
   this->clear();
 
-  Block root_block = {sequence_length, 0, rootRateCategories};
+  // Block root_block = {sequence_length, 0, parentRateCategories};
+  Block root_block(parentRateCategories, sequence_length, 0);
   return this->insert(0, root_block, sequence_length);
 }
 

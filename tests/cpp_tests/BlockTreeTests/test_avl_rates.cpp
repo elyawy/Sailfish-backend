@@ -5,6 +5,8 @@
 #include "../../../src/Event.h"
 #include "../../../src/CategorySampler.h"
 
+const size_t MAX_INSERTION_LENGTH = 100;
+
 // Helper function to print test header
 void print_test_header(const std::string& test_name) {
     std::cout << "\n========================================\n";
@@ -23,15 +25,17 @@ bool test_single_insertion_in_original() {
     print_test_header("Single Insertion in Original Part");
     
     avl_array_with_rates<size_t, size_t, 1000> tree;
+    std::vector<size_t> parentRates(100, 0);
     
-    tree.init_tree(100);
+    tree.init_tree(100, parentRates);
     
     std::cout << "Initial tree:\n" << tree.print_avl() << "\n";
     
     // Create simple category sampler with 4 equal categories
     std::vector<MDOUBLE> probs = {0.25, 0.25, 0.25, 0.25};
     std::vector<std::vector<MDOUBLE>> transMatrix(4, probs);
-    CategorySampler sampler(transMatrix, probs);
+    CategorySampler sampler(transMatrix, probs, MAX_INSERTION_LENGTH);
+    
     std::mt19937_64 rng(42);
     
     // Insert 5 positions at position 50
@@ -53,11 +57,12 @@ bool test_single_insertion_in_added() {
     print_test_header("Single Insertion in Added Part");
     
     avl_array_with_rates<size_t, size_t, 1000> tree;
-    tree.init_tree(100);
+    std::vector<size_t> parentRates(100, 0);
+    tree.init_tree(100, parentRates);
     
     std::vector<MDOUBLE> probs = {0.25, 0.25, 0.25, 0.25};
     std::vector<std::vector<MDOUBLE>> transMatrix(4, probs);
-    CategorySampler sampler(transMatrix, probs);
+    CategorySampler sampler(transMatrix, probs, MAX_INSERTION_LENGTH);
     std::mt19937_64 rng(42);
     
     // First insertion at position 50 to create a split
@@ -85,11 +90,12 @@ bool test_multiple_insertions() {
     print_test_header("Multiple Insertions");
     
     avl_array_with_rates<size_t, size_t, 1000> tree;
-    tree.init_tree(100);
+    std::vector<size_t> parentRates(100, 0);
+    tree.init_tree(100, parentRates);
     
     std::vector<MDOUBLE> probs = {0.25, 0.25, 0.25, 0.25};
     std::vector<std::vector<MDOUBLE>> transMatrix(4, probs);
-    CategorySampler sampler(transMatrix, probs);
+    CategorySampler sampler(transMatrix, probs, MAX_INSERTION_LENGTH);
     std::mt19937_64 rng(42);
     
     std::vector<Event> events = {
@@ -120,11 +126,12 @@ bool test_deletion_case_a() {
     print_test_header("Deletion Case A - Delete from beginning of OP");
     
     avl_array_with_rates<size_t, size_t, 1000> tree;
-    tree.init_tree(100);
+    std::vector<size_t> parentRates(100, 0);
+    tree.init_tree(100, parentRates);
     
     std::vector<MDOUBLE> probs = {0.25, 0.25, 0.25, 0.25};
     std::vector<std::vector<MDOUBLE>> transMatrix(4, probs);
-    CategorySampler sampler(transMatrix, probs);
+    CategorySampler sampler(transMatrix, probs, MAX_INSERTION_LENGTH);
     std::mt19937_64 rng(42);
     
     // Create a block with insertion
@@ -150,11 +157,12 @@ bool test_deletion_case_c() {
     print_test_header("Deletion Case C - Delete spanning OP and AP");
     
     avl_array_with_rates<size_t, size_t, 1000> tree;
-    tree.init_tree(100);
+    std::vector<size_t> parentRates(100, 0);
+    tree.init_tree(100, parentRates);
     
     std::vector<MDOUBLE> probs = {0.25, 0.25, 0.25, 0.25};
     std::vector<std::vector<MDOUBLE>> transMatrix(4, probs);
-    CategorySampler sampler(transMatrix, probs);
+    CategorySampler sampler(transMatrix, probs, MAX_INSERTION_LENGTH);
     std::mt19937_64 rng(42);
     
     // Create a block with insertion
@@ -179,11 +187,12 @@ bool test_deletion_case_f_in_ap() {
     print_test_header("Deletion Case F - Delete in middle of AP");
     
     avl_array_with_rates<size_t, size_t, 1000> tree;
-    tree.init_tree(100);
+    std::vector<size_t> parentRates(100, 0);
+    tree.init_tree(100, parentRates);
     
     std::vector<MDOUBLE> probs = {0.25, 0.25, 0.25, 0.25};
     std::vector<std::vector<MDOUBLE>> transMatrix(4, probs);
-    CategorySampler sampler(transMatrix, probs);
+    CategorySampler sampler(transMatrix, probs, MAX_INSERTION_LENGTH);
     std::mt19937_64 rng(42);
     
     // Create a block with large insertion
@@ -210,11 +219,12 @@ bool test_complex_sequence() {
     print_test_header("Complex Sequence - Mixed Insertions and Deletions");
     
     avl_array_with_rates<size_t, size_t, 1000> tree;
-    tree.init_tree(100);
+    std::vector<size_t> parentRates(100, 0);
+    tree.init_tree(100, parentRates);
     
     std::vector<MDOUBLE> probs = {0.25, 0.25, 0.25, 0.25};
     std::vector<std::vector<MDOUBLE>> transMatrix(4, probs);
-    CategorySampler sampler(transMatrix, probs);
+    CategorySampler sampler(transMatrix, probs, MAX_INSERTION_LENGTH);
     std::mt19937_64 rng(42);
     
     std::vector<Event> events = {

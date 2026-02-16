@@ -2,6 +2,8 @@
 #define ___CATEGORY_SAMPLER
 
 #include <vector>
+#include <cassert>
+
 #include "../libs/Phylolib/includes/definitions.h"
 #include "../libs/Phylolib/includes/errorMsg.h"
 #include "../libs/Phylolib/includes/DiscreteDistribution.h"
