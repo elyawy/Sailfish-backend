@@ -7,7 +7,7 @@
 
 // takes 10 minutes currently
 int main() {
-    tree tree_("../../trees/normalbranches_nLeaves1000.treefile");
+    tree tree_("../../trees/normalbranches_nLeaves10.treefile");
 
     std::time_t t1 = 42;//std::time(0);
 
@@ -30,18 +30,22 @@ int main() {
     vector<double> insertionRates(tree_.getNodesNum() - 1);
     vector<double> deletionRates(tree_.getNodesNum() - 1);
 
-    fill(insertionRates.begin(), insertionRates.end(), 0.03);
-    fill(deletionRates.begin(), deletionRates.end(), 0.09);
+    fill(insertionRates.begin(), insertionRates.end(), 1.0);
+    fill(deletionRates.begin(), deletionRates.end(), 1.0);
 
     SimulationProtocol protocol(simContext.getTree()->getNodesNum() - 1);
-
+    simContext.setProtocol(&protocol);
 
     protocol.setInsertionLengthDistributions(insertionDists);
     protocol.setDeletionLengthDistributions(deletionDists);
     protocol.setInsertionRates(insertionRates);
     protocol.setDeletionRates(deletionRates);
+    protocol.setMaxInsertionLength(150);
+    protocol.setMinSequenceSize(10);
+    protocol.setIndelRateModel(SiteRateModel::INDEL_AWARE);
 
-    int rootLength = 5000;
+
+    int rootLength = 10;
     protocol.setSequenceSize(rootLength);
     auto end = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
@@ -101,7 +105,11 @@ int main() {
               << ", MSA length: " << msa.getMSAlength() << "\n";
 
     substitutionSim.setAlignedSequenceMap(msa);
-    substitutionSim.setPerSiteRateCategories(msa.getPerSiteRateCategories());
+
+    if (protocol.getSiteRateModel() == SiteRateModel::INDEL_AWARE) {
+      auto rateCategories = msa.getPerSiteRateCategories();
+      substitutionSim.setPerSiteRateCategories(rateCategories);
+    }
     // substitutionSim.simulateAndWriteSubstitutions(msa.getMSAlength(), "output_newflowtest.fasta");
     // time substitution simulation in microseconds
     start = std::chrono::high_resolution_clock::now();
@@ -110,6 +118,17 @@ int main() {
     duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
     std::cout << "Substitution simulation took " << duration << " microseconds.\n";
     msa.fillSubstitutions(fullContainer);
+
+    auto rateCategories = substitutionSim.getPerSiteRateCategories();
+
+    // Print rate categories for each sites above the characters in the MSA
+    std::cout << "Rate for all sites: ";
+    for (auto& category: *rateCategories) {
+        std::cout << category << " ";
+    }
+    std::cout << "\n";
+    
+
 
 
     // start = std::chrono::high_resolution_clock::now();

@@ -77,6 +77,10 @@ public:
 
     const tree::nodeP getRootNode() const { return _tree->getRoot(); }
 
+    void setProtocol(SimulationProtocol* protocol) {
+        _protocol = protocol;
+    }
+
         // Getter - returns nullptr if not set
     SimulationProtocol* getProtocol() const { 
         return _protocol; 

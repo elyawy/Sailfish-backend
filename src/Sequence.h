@@ -149,8 +149,7 @@ public:
                 _sequence.push_back(superSeqIterator);
 
                 if constexpr (std::is_same_v<BlockTreeType, BlockTreeWithRates>) {
-                    size_t rateIndex = i + 1; // Skip anchor at index 0
-                    size_t category = (*it).rateCategories[rateIndex];
+                    size_t category = (*it).rateCategories[i];
                     (*superSeqIterator).rateCategory = category;
                     _rateCategories.push_back(category);
                 }

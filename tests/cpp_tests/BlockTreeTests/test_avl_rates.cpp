@@ -1,6 +1,7 @@
 #include <iostream>
 #include <vector>
 #include <random>
+#include "../../../src/BlockCommon.h"
 #include "../../../src/AvlTreeWithRates.h"
 #include "../../../src/Event.h"
 #include "../../../src/CategorySampler.h"

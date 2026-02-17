@@ -399,8 +399,6 @@ public:
     int original_size = event_block.length + event_block.insertion;
     // bool is_anchor_block = (key_[block_index] == 0);
     pos = pos + 1;
-    std::cout << "pos = " << pos << "\n";
-    std::cout << "original_size = "<< original_size << "\n";
 
     // insertion in added part
     if (pos >= event_block.length ) {
@@ -541,8 +539,7 @@ public:
         // it recursively
 
         size_type next_block_index = this->get_next_block(block_index);
-        // std::cout << "Affected blocks:\n";
-        // std::cout << key_[block_index] << " " << key_[next_block_index] << "\n";
+
         size_t updated_size = original_size - position;
         is_valid = this->remove_block(block_index, position, updated_size);
 

@@ -58,6 +58,10 @@ public:
 		_rateCategories = rateCategories;
 	}
 
+	std::shared_ptr<const std::vector<size_t>> getPerSiteRateCategories() const {
+		return _rateCategories;
+	}
+
 
 	void clearRatesVec() { 
 		_siteRates.clear();

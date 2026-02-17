@@ -71,18 +71,42 @@ struct BlockWithRates {
 
     BlockWithRates(const std::vector<size_t>& parentRates, size_t blockLength, size_t insertionPos) 
         : length(blockLength), insertion(insertionPos), parentRateCategories(&parentRates),
-        rateCategories(1, SIZE_MAX) {}
+        rateCategories() {}
 
     BlockWithRates() 
         : length(1)
         , insertion(0)
         , parentRateCategories(nullptr) {}
 
+  //   BlockWithRates(const BlockWithRates& other) 
+  //   : length(other.length)
+  //   , insertion(other.insertion)
+  //   , parentRateCategories(other.parentRateCategories)
+  //   , rateCategories(other.rateCategories) {}
+        
+  //   BlockWithRates& operator=(const BlockWithRates& other) {
+  //     if (this != &other) {
+  //         std::cerr << "Assignment: this=" << this << " other=" << &other << std::endl;
+  //         std::cerr << "  this->parentRateCategories=" << this->parentRateCategories << std::endl;
+  //         std::cerr << "  other.parentRateCategories=" << other.parentRateCategories << std::endl;
+          
+  //         length = other.length;
+  //         insertion = other.insertion;
+  //         parentRateCategories = other.parentRateCategories;
+          
+  //         std::cerr << "  About to copy vector..." << std::endl;
+  //         std::vector<size_t> temp(other.rateCategories);
+  //         std::cerr << "  About to swap..." << std::endl;
+  //         rateCategories.swap(temp);
+  //         std::cerr << "  Done!" << std::endl;
+  //     }
+  //     return *this;
+  // }
     // Handle rate category insertions within this block.
     template<typename RngType = std::mt19937_64>
     void handleInsertion(size_t position, size_t leftFlankCategory, size_t rightFlankCategory, size_t insertLength, CategorySampler& sampler, RngType &rng) {
+      
       if (leftFlankCategory == SIZE_MAX && rightFlankCategory == SIZE_MAX) {
-        rateCategories.push_back(SIZE_MAX); // anchor position at rateCategories[0], all insertions happen after it.
         for (size_t i = 0; i < insertLength; i++) {
           rateCategories.push_back(sampler.drawSample(rng));
         }
@@ -102,14 +126,17 @@ struct BlockWithRates {
         newRates = sampler.drawSamples(rng, leftFlankCategory, insertLength);
       }
       // insert new positions in rateCategories vector.
-      rateCategories.insert(rateCategories.begin()+(position+1), newRates.begin(), newRates.end());
+      if (position > rateCategories.size()) {
+          throw std::out_of_range("Insert index is out of bounds!");
+      }
+      rateCategories.insert(rateCategories.begin()+ position, newRates.begin(), newRates.end());
 
     }
     
     // Handle rate category deletions within this block
     void handleDeletion(size_t position, size_t deleteLength) {
       auto itStart = rateCategories.begin()+ position;
-      auto itEnd = (rateCategories.begin() + position) + deleteLength;
+      auto itEnd = (rateCategories.begin() + position) + (deleteLength);
       rateCategories.erase(itStart, itEnd);
     } 
 
@@ -409,6 +436,7 @@ public:
       current_node = child_[current_node].left;
     }
     current_node = get_parent(block_index);
+    if (current_node == INVALID_IDX) return INVALID_IDX; 
     if (child_[current_node].left == block_index) return current_node;
     
     size_type previous_node = current_node;
@@ -466,21 +494,29 @@ public:
     pos = pos + 1;
     // insertion in added part - no split, just update
     if (pos >= event_block.length ) {
-        event_block.insertion = event_block.insertion + event_size;
+
+        size_t position_in_ap = pos - event_block.length;
+        std::cerr << "DEBUG split_block: pos=" << pos 
+                  << " event_block.length=" << event_block.length 
+                  << " event_block.insertion=" << event_block.insertion
+                  << " position_in_ap=" << position_in_ap
+                  << " rateCategories.size()=" << event_block.rateCategories.size() << std::endl;
+
+        if (position_in_ap > original_insertion) {
+            position_in_ap = original_insertion;  // Append at the end
+        }
 
         // Handle rate categories for insertion in the added part
         // Position within the block's rate categories
-        size_t position_in_ap = pos - event_block.length;
         // if on left edge of AP, use category from OP as left flank
         if (position_in_ap == 0) {
-          left_flank_category = (*event_block.parentRateCategories)[event_block.length - 1];
+          left_flank_category = (*event_block.parentRateCategories)[key_[block_index] + event_block.length - 1];
         } else {
-          left_flank_category = event_block.rateCategories[position_in_ap - 1];
+          left_flank_category = *(event_block.rateCategories.begin() + position_in_ap - 1);
         }
-        right_flank_category = event_block.rateCategories[position_in_ap];
         
-        // If the insertion is happening at the edge, right before the next block, we need to use the next block's category as the right flank for sampling new categories.
-        if (pos == original_insertion) {
+        // If inserting after all existing insertions (at the right edge of this block), we need to use the next block's first category as the right flank for sampling new categories.
+        if (position_in_ap >= original_insertion) {
           size_type next_block_index = get_next_block(block_index);
           // if on right edge of AP, and no next block, set right flank category to SIZE_MAX.
           if (next_block_index == INVALID_IDX) {
@@ -489,9 +525,12 @@ public:
             size_t next_block_start = key_[next_block_index]; // actual position within the parent sequence
             right_flank_category = (*event_block.parentRateCategories)[next_block_start];
           }
+        } else {
+          right_flank_category = event_block.rateCategories[position_in_ap];
         }
-
         event_block.handleInsertion(position_in_ap, left_flank_category, right_flank_category, event_size, sampler, rng);
+
+        event_block.insertion = event_block.insertion + event_size;
 
         int new_size = event_block.insertion + event_block.length;
         int difference_in_length = new_size - original_size;
@@ -1410,24 +1449,14 @@ bool checkLength(size_type node) {
 
 bool validate_rate_integrity() {
     for (auto it = this->begin(); it != this->end(); ++it) {
-        BlockWithRates& block = *it;
+      BlockWithRates& block = *it;
         
-        if (block.insertion == 0) {
-            // No insertions: should be empty OR just the anchor
-            if (block.rateCategories.size() > 1) {
-                std::cout << "Rate integrity violation: block has 0 insertions but " 
-                          << block.rateCategories.size() << " rate categories\n";
-                return false;
-            }
-        } else {
-            // Has insertions: size should be insertion + 1 (for anchor)
-            if (block.rateCategories.size() != block.insertion + 1) {
-                std::cout << "Rate integrity violation: block has " << block.insertion 
-                          << " insertions but " << block.rateCategories.size() 
-                          << " rate categories (expected " << (block.insertion + 1) << ")\n";
-                return false;
-            }
-        }
+      if (block.rateCategories.size() != block.insertion) {
+          std::cout << "Rate integrity violation: block has " << block.insertion 
+                    << " insertions but " << block.rateCategories.size() 
+                    << " rate categories\n";
+          return false;
+      }
     }
     return true;
 }
