@@ -496,15 +496,10 @@ public:
     if (pos >= event_block.length ) {
 
         size_t position_in_ap = pos - event_block.length;
-        std::cerr << "DEBUG split_block: pos=" << pos 
-                  << " event_block.length=" << event_block.length 
-                  << " event_block.insertion=" << event_block.insertion
-                  << " position_in_ap=" << position_in_ap
-                  << " rateCategories.size()=" << event_block.rateCategories.size() << std::endl;
 
-        if (position_in_ap > original_insertion) {
-            position_in_ap = original_insertion;  // Append at the end
-        }
+        // if (position_in_ap > original_insertion) {
+        //     position_in_ap = original_insertion;  // Append at the end
+        // }
 
         // Handle rate categories for insertion in the added part
         // Position within the block's rate categories

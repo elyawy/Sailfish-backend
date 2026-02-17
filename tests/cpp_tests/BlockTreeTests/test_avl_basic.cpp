@@ -82,7 +82,7 @@ bool test_insert_in_middle_of_5() {
     std::cout << "========================================\n";
     
     avl_array_with_rates<size_t, size_t, 100> tree;
-    std::vector<size_t> parentRates = {0, 1, 2, 3, 4}; // 5 parent rates
+    std::vector<size_t> parentRates = {0, 1, 2, 3, 1}; // 5 parent rates
     tree.init_tree(5, parentRates);
     
     std::cout << "Initial tree:\n" << tree.print_avl() << "\n";
@@ -137,7 +137,7 @@ bool test_insert_at_end_of_5() {
     std::cout << "========================================\n";
     
     avl_array_with_rates<size_t, size_t, 100> tree;
-    std::vector<size_t> parentRates = {0, 1, 2, 3, 4}; // 5 parent rates
+    std::vector<size_t> parentRates = {0, 1, 2, 3, 1}; // 5 parent rates
     tree.init_tree(5, parentRates);
     
     std::cout << "Initial tree:\n" << tree.print_avl() << "\n";
