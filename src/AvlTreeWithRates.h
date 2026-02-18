@@ -127,6 +127,15 @@ struct BlockWithRates {
       }
       // insert new positions in rateCategories vector.
       if (position > rateCategories.size()) {
+          std::cout << "Error: Insertion position " << position << " is out of bounds for rateCategories of size " << rateCategories.size() << std::endl;
+          // print the current state of the block for debugging
+          std::cout << "Current rateCategories: ";
+          for (size_t i = 0; i < rateCategories.size(); i++) {
+            std::cout << rateCategories[i] << " ";
+          }
+          std::cout << std::endl;
+          // other debug info
+          std::cout << length << " " << insertion << " " << parentRateCategories->size() << std::endl;
           throw std::out_of_range("Insert index is out of bounds!");
       }
       rateCategories.insert(rateCategories.begin()+ position, newRates.begin(), newRates.end());
@@ -496,10 +505,7 @@ public:
     if (pos >= event_block.length ) {
 
         size_t position_in_ap = pos - event_block.length;
-
-        // if (position_in_ap > original_insertion) {
-        //     position_in_ap = original_insertion;  // Append at the end
-        // }
+        if (pos == original_size + 1) position_in_ap--;
 
         // Handle rate categories for insertion in the added part
         // Position within the block's rate categories
@@ -1452,6 +1458,9 @@ bool validate_rate_integrity() {
                     << " rate categories\n";
           return false;
       }
+      std::cout << "Block at key " << (&it)->key() << " has " << block.insertion 
+                << " insertions and " << block.rateCategories.size() 
+                << " rate categories\n";
     }
     return true;
 }

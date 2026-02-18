@@ -306,7 +306,6 @@ public:
 
     size_type i = root_;
 
-    // BUG : the left branch case is not working!
     while (i != INVALID_IDX){
 
       left_node = child_[i].left;
@@ -314,9 +313,6 @@ public:
       right_node = child_[i].right;
 
       Block root_val = val_[root_node];
-    //   std::cout << "left " << "subtree = " << length_[left_node] << "\n";
-    //   std::cout << pos << "\n";
-      // val_[root_node].subtree_length += size;
       if (left_node != INVALID_IDX) {
         if (length_[left_node] < pos) {
           pos = pos - length_[left_node];
@@ -326,23 +322,15 @@ public:
         }
       }
 
-    //   std::cout << "center " << "subtree = " << root_val.length + root_val.insertion << "\n";;
-    //   std::cout << pos << "\n";
-
       if (root_val.length + root_val.insertion < pos ){
-        pos = pos - (root_val.length + root_val.insertion);
+        pos = pos - (root_val.length + root_val.insertion) - 1;
       } else {
         return i;
       }
 
-    //   std::cout << "right " << "subtree = " << length_[right_node] << "\n";
-    //   std::cout << pos << "\n";
-
       i = right_node;
 
     }
-    // val_[i].subtree_length += size;
-
     return i;
   }
 
@@ -397,6 +385,11 @@ public:
     Block event_block = val_[block_index];
 
     int original_size = event_block.length + event_block.insertion;
+
+    // calculate position within insertion part (AP)
+    // Need to take care of the case where pos is exactly at
+    // size_t position_in_ap = pos - event_block.length;
+    // std::cout << "position in ap: " << position_in_ap << "\n";
     // bool is_anchor_block = (key_[block_index] == 0);
     pos = pos + 1;
 
@@ -1181,6 +1174,8 @@ std::string print_avl() {
 // this function assumes that the length of the subtree is valid at each node, this is not the case yet.
 bool handle_event(event ev, size_t event_position, size_t event_size) {
     size_type block_index = this->get_block_index(event_position);
+    std::cout << "event position within affected block: " << event_position  << "\n";
+    std::cout << "block key: " << key_[block_index] << "\n";
     if (block_index == INVALID_IDX) {
         std::cout << "could not get event key!\n";
         return false;
@@ -1191,7 +1186,7 @@ bool handle_event(event ev, size_t event_position, size_t event_size) {
     }
 
     if (ev == DELETION) {
-      if (event_position == 0) throw std::out_of_range("event_position exceeds sequence");
+      // if (event_position == 0) throw std::out_of_range("event_position exceeds sequence");
       return remove_block(block_index, event_position, event_size);
     }
 
