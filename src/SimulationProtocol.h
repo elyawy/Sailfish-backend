@@ -1,28 +1,36 @@
+#ifndef SIMULATIONPROTOCOL_H
+#define SIMULATIONPROTOCOL_H
+
 #include <sstream>
 
 #include "../libs/Phylolib/includes/tree.h"
 #include "../libs/Phylolib/includes/DiscreteDistribution.h"
 
 
+enum class SiteRateModel {
+    SIMPLE,         // Fast, no rate categories per site tracked
+    INDEL_AWARE      // Slower, tracks rate categories per site affected by indel events
+};
 
 class SimulationProtocol
 {
 private:
-    tree* _tree;
     size_t _numberOfBranches;
     size_t _sequenceSize;
     size_t _minSequenceSize;
-    size_t _seed;
     std::vector<DiscreteDistribution*> _insertionLengthDistributions;
     std::vector<DiscreteDistribution*> _deletionLengthDistributions;
     std::vector<double> _insertionRates;
     std::vector<double> _deletionRates;
-    bool _isSaveAncestral;
+    SiteRateModel _siteRateModel;
+    size_t _maxInsertionLength;
 
 public:
-    SimulationProtocol(tree* phylotree) : _tree(phylotree),
-                                          _numberOfBranches(phylotree->getNodesNum()-1),
-                                          _minSequenceSize(0) {}
+    SimulationProtocol(size_t numberOfBranches) : 
+    _numberOfBranches(numberOfBranches),
+    _sequenceSize(0), _minSequenceSize(0),
+    _siteRateModel(SiteRateModel::SIMPLE),
+    _maxInsertionLength(0) {}
 
     void setInsertionLengthDistributions(std::vector<DiscreteDistribution*> lengthDistributions) {
         if (lengthDistributions.size() != _numberOfBranches) {
@@ -33,6 +41,10 @@ public:
             errorMsg::reportError(errorstr.str());
         }
         _insertionLengthDistributions = lengthDistributions;
+    }
+
+    void setGlobalInsertionLengthDistribution(DiscreteDistribution* lengthDistribution) {
+        _insertionLengthDistributions.resize(_numberOfBranches, lengthDistribution);
     }
 
     DiscreteDistribution* getInsertionDistribution(size_t position) {
@@ -51,6 +63,10 @@ public:
             errorMsg::reportError(errorstr.str());
         }
         _deletionLengthDistributions = lengthDistributions;
+    }
+
+    void setGlobalDeletionLengthDistribution(DiscreteDistribution* lengthDistribution) {
+        _deletionLengthDistributions.resize(_numberOfBranches, lengthDistribution);
     }
 
     DiscreteDistribution* getDeletionDistribution(size_t position) {
@@ -72,6 +88,10 @@ public:
         _insertionRates = rates;
     }
 
+    void setGlobalInsertionRate(double rate) {
+        _insertionRates.resize(_numberOfBranches, rate);
+    }
+
     double getInsertionRate(size_t position) {
         if (position >= _insertionRates.size()) {
             errorMsg::reportError("Null insertion rate accessed\n");
@@ -90,6 +110,10 @@ public:
         _deletionRates = rates;
     }
 
+    void setGlobalDeletionRate(double rate) {
+        _deletionRates.resize(_numberOfBranches, rate);
+    }
+
     double getDeletionRate(size_t position) {
         if (position >= _deletionRates.size()) {
             errorMsg::reportError("Null deletion rate accessed\n");
@@ -101,44 +125,37 @@ public:
         _sequenceSize = sequenceSize;
     }
 
-    void setMinSequenceSize(size_t minSequenceSize) {
-        _minSequenceSize = minSequenceSize;
-    }
-
-    void setSeed(size_t seed) {
-        // Golden Ratio constant used for better hash scattering
-        // Makes close by seeds produce very different _seed values
-        // which reduces correlation when used in multiple simulations with close by seeds
-        uint64_t phi = 0x9e3779b97f4a7c15;
-        _seed = seed*phi;
-    }
-
-    size_t getSeed() {
-        return _seed;
-    }
-
-    tree* getTree(){
-        return _tree;
-    }
-
     size_t getSequenceSize(){
         return _sequenceSize;
+    }
+    
+    void setMinSequenceSize(size_t minSequenceSize) {
+        _minSequenceSize = minSequenceSize;
     }
 
     size_t getMinSequenceSize(){
         return _minSequenceSize;
     }
 
-    void setSaveAncestral(bool saveAncestral) {
-        _isSaveAncestral = saveAncestral;
+
+    void setIndelRateModel(SiteRateModel model) {
+        _siteRateModel = model;
     }
 
-    bool getSaveAncestral() {
-        return _isSaveAncestral;
+    SiteRateModel getSiteRateModel() const {
+        return _siteRateModel;
     }
 
+    void setMaxInsertionLength(size_t len) {
+         _maxInsertionLength = len;
+    }
 
+    size_t getMaxInsertionLength() const {
+        return _maxInsertionLength;
+    }
 
 
     ~SimulationProtocol() {}
 };
+
+#endif

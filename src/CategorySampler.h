@@ -2,6 +2,8 @@
 #define ___CATEGORY_SAMPLER
 
 #include <vector>
+#include <cassert>
+
 #include "../libs/Phylolib/includes/definitions.h"
 #include "../libs/Phylolib/includes/errorMsg.h"
 #include "../libs/Phylolib/includes/DiscreteDistribution.h"
@@ -22,8 +24,10 @@ public:
      * @param stationaryProbs - Stationary distribution π for initial sampling (must sum to 1)
      */
     CategorySampler(const std::vector<std::vector<MDOUBLE>>& transitionMatrix,
-                   const std::vector<MDOUBLE>& stationaryProbs)
-        : _stationaryProbs(stationaryProbs), _previousCategory(-1) {
+                    const std::vector<MDOUBLE>& stationaryProbs,
+                    size_t maxPathLength = 0)
+        : _stationaryProbs(stationaryProbs), _previousCategory(-1), _maxPathLength(maxPathLength),
+        _uniformDist(0.0, 1.0) {
         
         // Validate inputs
         if (stationaryProbs.empty()) {
@@ -71,8 +75,17 @@ public:
             errorMsg::reportError("CategorySampler: stationary probabilities must sum to 1");
         }
         
+        _transitionMatrix = transitionMatrix;
+        _reachProbabilities.resize(_stationaryProbs.size());
         // Build transition samplers from provided matrix
         buildTransitionSamplers(transitionMatrix);
+        // Pre-compute bridge noramlization.
+        if (_maxPathLength > 0) {
+            for (size_t i = 0; i < _stationaryProbs.size(); i++) {
+                buildReachProbabilities(transitionMatrix, i, maxPathLength);
+            }
+        }
+        
     }
     
     /**
@@ -91,7 +104,83 @@ public:
         _previousCategory = nextCategory;
         return nextCategory;
     }
-    
+
+    /**
+     * Sample the next category based on current state.
+     * @param currentState Number of positions to sample
+     * @return Category index
+     */
+    template<typename RngType = std::mt19937_64>
+    int drawSample(RngType &rng, int currentState) {
+        int nextCategory = _transitionSamplers[currentState].drawSample(rng) - 1;
+        _previousCategory = nextCategory;
+        return nextCategory;
+    }
+
+
+    /**
+     * Sample the next category based on current state.
+     * @param currentState Number of positions to sample
+     * @return Category index
+     */
+    template<typename RngType = std::mt19937_64>
+    std::vector<size_t> drawSamples(RngType &rng, int firstState, size_t pathLength) {
+        std::vector<size_t> sampledCategories(pathLength, SIZE_MAX);
+        _previousCategory = firstState;
+        for (size_t i = 0; i < pathLength; i++)
+        {
+            int nextCategory = _transitionSamplers[_previousCategory].drawSample(rng) - 1;
+            _previousCategory = nextCategory;
+            sampledCategories[i] = nextCategory;
+        }
+        return sampledCategories;
+    }
+
+
+    /**
+     * Sample a bridge: condition on both left and right flanking categories
+     * Used when insertion happens in the middle of a block
+     * @param leftCategory The rate category of the left flanking position
+     * @param rightCategory The rate category of the right flanking position
+     * @param length Number of positions to sample
+     * @return Vector of sampled rate categories
+     */
+    template<typename RngType = std::mt19937_64>
+    std::vector<size_t> sampleBridge(size_t leftCategory, size_t rightCategory, size_t length, RngType &rng) {
+        assert(length <= _maxPathLength);
+        assert(rightCategory < _reachProbabilities.size());
+        
+        const std::vector<std::vector<double>>& reachProb = _reachProbabilities[rightCategory];
+        int nStates = _stationaryProbs.size();
+        std::vector<size_t> path(length);
+        
+        int current = static_cast<int>(leftCategory);
+        
+        for (size_t step = 0; step < length; ++step) {
+            std::vector<double> weights(nStates);
+            double total = 0.0;
+            
+            for (int nextState = 0; nextState < nStates; ++nextState) {
+                weights[nextState] = _transitionMatrix[current][nextState] * 
+                                    reachProb[step + 1][nextState];
+                total += weights[nextState];
+            }
+            
+            double coinFlip = _uniformDist(rng);
+            double cumulative = 0.0;
+            for (int nextState = 0; nextState < nStates; ++nextState) {
+                cumulative += weights[nextState] / total;
+                if (coinFlip <= cumulative) {
+                    current = nextState;
+                    break;
+                }
+            }
+            
+            path[step] = current;
+        }
+        
+        return path;
+    }    
     /**
      * Reset to sample from stationary distribution (for new sequences)
      */
@@ -111,10 +200,39 @@ private:
             _transitionSamplers.emplace_back(transitionMatrix[i]);
         }
     }
-    
+
+    //NOT DONE!
+    // Backward pass: compute the altered transition probabilty matrix backwards from desired outcome
+    void buildReachProbabilities(const vector<vector<double>>& transitionProbs, 
+                                 int endState, size_t maxSteps) {
+        int numberOfStates = _stationaryProbs.size();
+
+        _reachProbabilities[endState] = vector<vector<double>>(maxSteps + 1, vector<double>(numberOfStates));
+        vector<vector<double>>& reach_prob = _reachProbabilities[endState];
+        
+        // Last step - must be at state_end
+        for (int state = 0; state < numberOfStates; state++) {
+            reach_prob[maxSteps][state] = (state == endState) ? 1.0 : 0.0;
+        }
+        
+        // Backward pass
+        for (int t = maxSteps - 1; t >= 0; t--) {
+            for (int state_i = 0; state_i < numberOfStates; state_i++) {
+                reach_prob[t][state_i] = 0.0;
+                for (int state_j = 0; state_j < numberOfStates; state_j++) {
+                    reach_prob[t][state_i] += transitionProbs[state_i][state_j] * reach_prob[t + 1][state_j];
+                }
+            }
+        }
+    }
+
+    std::vector<std::vector<MDOUBLE>> _transitionMatrix;
     std::vector<MDOUBLE> _stationaryProbs;
     int _previousCategory;
     std::vector<DiscreteDistribution> _transitionSamplers;
+    std::vector<std::vector<std::vector<double>>> _reachProbabilities;
+    size_t _maxPathLength;
+    std::uniform_real_distribution<double> _uniformDist;
 };
 
 #endif

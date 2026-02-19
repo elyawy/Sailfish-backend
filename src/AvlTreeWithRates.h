@@ -51,19 +51,114 @@
 // Bioinformatics, Volume 42, Issue 1, January 2026, btaf686, 
 // https://doi.org/10.1093/bioinformatics/btaf686
 
-#ifndef _AVL_ARRAY_H_
-#define _AVL_ARRAY_H_
+#ifndef _AVL_ARRAY_WITH_RATES_H_
+#define _AVL_ARRAY_WITH_RATES_H_
 
 #include <cstdint>
 #include <sstream>
 #include <vector>
 #include <array>
 #include <tuple>
-#include "Event.h"
 
-struct Block {
+#include "Event.h"
+#include "CategorySampler.h"
+
+struct BlockWithRates {
     size_t length;
     size_t insertion;
+    const std::vector<size_t>* parentRateCategories;
+    std::vector<size_t> rateCategories;
+
+    BlockWithRates(const std::vector<size_t>& parentRates, size_t blockLength, size_t insertionPos) 
+        : length(blockLength), insertion(insertionPos), parentRateCategories(&parentRates),
+        rateCategories() {}
+
+    BlockWithRates() 
+        : length(1)
+        , insertion(0)
+        , parentRateCategories(nullptr) {}
+
+  //   BlockWithRates(const BlockWithRates& other) 
+  //   : length(other.length)
+  //   , insertion(other.insertion)
+  //   , parentRateCategories(other.parentRateCategories)
+  //   , rateCategories(other.rateCategories) {}
+        
+  //   BlockWithRates& operator=(const BlockWithRates& other) {
+  //     if (this != &other) {
+  //         std::cerr << "Assignment: this=" << this << " other=" << &other << std::endl;
+  //         std::cerr << "  this->parentRateCategories=" << this->parentRateCategories << std::endl;
+  //         std::cerr << "  other.parentRateCategories=" << other.parentRateCategories << std::endl;
+          
+  //         length = other.length;
+  //         insertion = other.insertion;
+  //         parentRateCategories = other.parentRateCategories;
+          
+  //         std::cerr << "  About to copy vector..." << std::endl;
+  //         std::vector<size_t> temp(other.rateCategories);
+  //         std::cerr << "  About to swap..." << std::endl;
+  //         rateCategories.swap(temp);
+  //         std::cerr << "  Done!" << std::endl;
+  //     }
+  //     return *this;
+  // }
+    // Handle rate category insertions within this block.
+    template<typename RngType = std::mt19937_64>
+    void handleInsertion(size_t position, size_t leftFlankCategory, size_t rightFlankCategory, size_t insertLength, CategorySampler& sampler, RngType &rng) {
+      
+      if (leftFlankCategory == SIZE_MAX && rightFlankCategory == SIZE_MAX) {
+        for (size_t i = 0; i < insertLength; i++) {
+          rateCategories.push_back(sampler.drawSample(rng));
+        }
+        return;
+      }
+      std::vector<size_t> newRates;
+      // handle insertion at the beginning case.
+      if (leftFlankCategory == SIZE_MAX && rightFlankCategory != SIZE_MAX) {
+        newRates = sampler.drawSamples(rng, rightFlankCategory, insertLength);
+        std::reverse(newRates.begin(), newRates.end());
+      }
+      if (leftFlankCategory != SIZE_MAX && rightFlankCategory != SIZE_MAX) {
+        newRates = sampler.sampleBridge(leftFlankCategory, rightFlankCategory, insertLength, rng);
+      }
+      // handle insertion at the end case.
+      if (leftFlankCategory != SIZE_MAX && rightFlankCategory == SIZE_MAX) {
+        newRates = sampler.drawSamples(rng, leftFlankCategory, insertLength);
+      }
+      // insert new positions in rateCategories vector.
+      if (position > rateCategories.size()) {
+          std::cout << "Error: Insertion position " << position << " is out of bounds for rateCategories of size " << rateCategories.size() << std::endl;
+          // print the current state of the block for debugging
+          std::cout << "Current rateCategories: ";
+          for (size_t i = 0; i < rateCategories.size(); i++) {
+            std::cout << rateCategories[i] << " ";
+          }
+          std::cout << std::endl;
+          // other debug info
+          std::cout << length << " " << insertion << " " << parentRateCategories->size() << std::endl;
+          throw std::out_of_range("Insert index is out of bounds!");
+      }
+      rateCategories.insert(rateCategories.begin()+ position, newRates.begin(), newRates.end());
+
+    }
+    
+    // Handle rate category deletions within this block
+    void handleDeletion(size_t position, size_t deleteLength) {
+      auto itStart = rateCategories.begin()+ position;
+      auto itEnd = (rateCategories.begin() + position) + (deleteLength);
+      rateCategories.erase(itStart, itEnd);
+    } 
+
+    // Get the surviving rate categories after deleting from the beginning
+    std::vector<size_t> getSurvivingRates(size_t numDeleted) const {
+        if (rateCategories.empty() || numDeleted >= rateCategories.size()) {
+            return {};  // Return empty vector
+        }
+        return std::vector<size_t>(
+            rateCategories.begin() + numDeleted,
+            rateCategories.end()
+        );
+    }
 };
 
 
@@ -76,7 +171,7 @@ struct Block {
  */
 template <typename Key, typename size_type, const size_type Size,
           const bool Fast = true>
-class avl_array {
+class avl_array_with_rates {
   // child index pointer class
   typedef struct tag_child_type {
     size_type left;
@@ -87,7 +182,7 @@ class avl_array {
   // node storage, due to possible structure packing effects, single arrays are
   // used instead of a 'node' structure
   Key key_[Size];             // node key
-  Block val_[Size];               // node value
+  BlockWithRates val_[Size];               // node value
   std::size_t length_[Size]; // subtree length
 
   std::int8_t balance_[Size]; // subtree balance
@@ -103,14 +198,14 @@ class avl_array {
 
   // iterator class
   typedef class tag_avl_array_iterator {
-    avl_array *instance_; // array instance
+    avl_array_with_rates *instance_; // array instance
     size_type idx_;       // actual node
 
-    friend avl_array; // avl_array may access index pointer
+    friend avl_array_with_rates; // avl_array may access index pointer
 
   public:
     // ctor
-    tag_avl_array_iterator(avl_array *instance = nullptr, size_type idx = 0U)
+    tag_avl_array_iterator(avl_array_with_rates *instance = nullptr, size_type idx = 0U)
         : instance_(instance), idx_(idx) {}
 
     inline tag_avl_array_iterator &
@@ -129,10 +224,10 @@ class avl_array {
     }
 
     // dereference - access value
-    inline Block &operator*() const { return val(); }
+    inline BlockWithRates &operator*() const { return val(); }
 
     // access value
-    inline Block &val() const { return instance_->val_[idx_]; }
+    inline BlockWithRates &val() const { return instance_->val_[idx_]; }
 
     // access key
     inline Key &key() const { return instance_->key_[idx_]; }
@@ -182,16 +277,16 @@ class avl_array {
   } avl_array_iterator;
 
 public:
-  typedef Block value_type;
-  typedef Block *pointer;
-  typedef const Block *const_pointer;
-  typedef Block &reference;
-  typedef const Block &const_reference;
+  typedef BlockWithRates value_type;
+  typedef BlockWithRates *pointer;
+  typedef const BlockWithRates *const_pointer;
+  typedef BlockWithRates &reference;
+  typedef const BlockWithRates &const_reference;
   typedef Key key_type;
   typedef avl_array_iterator iterator;
 
   // ctor
-  avl_array() : size_(0U), root_(Size) {}
+  avl_array_with_rates() : size_(0U), root_(Size) {}
 
   // iterators
   inline iterator begin() {
@@ -289,35 +384,57 @@ public:
   /**
    * get the block index
    * \param pos position of the event
+   * \return True if the key was successfully inserted or updated, false if
+   * container is full
    */
-  size_type get_block_index(size_type node, size_t &pos) {
-      if (node == INVALID_IDX) {
-          return INVALID_IDX;
-      }
+  size_type get_block_index(size_t &pos) {
+    if (root_ == INVALID_IDX) {
+      return INVALID_IDX;
+    }
 
-      size_type left_node  = child_[node].left;
-      size_type right_node = child_[node].right;
-      Block&    root_val   = val_[node];
+    size_type left_node;
+    size_type right_node;
+    size_type root_node;
 
-      // Is position in the left subtree?
-      if (left_node != INVALID_IDX && pos < length_[left_node]) {
-          return get_block_index(left_node, pos);
-      }
+    size_type i = root_;
 
-      // Strip left subtree
+    while (i != INVALID_IDX){
+
+      left_node = child_[i].left;
+      root_node = i;
+      right_node = child_[i].right;
+
+      BlockWithRates root_val = val_[root_node];
+    //   std::cout << "left " << "subtree = " << length_[left_node] << "\n";
+    //   std::cout << pos << "\n";
+      // val_[root_node].subtree_length += size;
       if (left_node != INVALID_IDX) {
-          pos -= length_[left_node];
+        if (length_[left_node] < pos) {
+          pos = pos - length_[left_node];
+        } else {
+          i = left_node;
+          continue;
+        }
       }
 
-      // Is position in the current node?
-      size_t node_len = root_val.length + root_val.insertion;
-      if (pos < node_len) {
-          return node;
+    //   std::cout << "center " << "subtree = " << root_val.length + root_val.insertion << "\n";;
+    //   std::cout << pos << "\n";
+
+      if (root_val.length + root_val.insertion < pos ){
+        pos = pos - (root_val.length + root_val.insertion);
+      } else {
+        return i;
       }
 
-      // Strip current node, descend right
-      pos -= node_len;
-      return get_block_index(right_node, pos);
+    //   std::cout << "right " << "subtree = " << length_[right_node] << "\n";
+    //   std::cout << pos << "\n";
+
+      i = right_node;
+
+    }
+    // val_[i].subtree_length += size;
+
+    return i;
   }
 
   size_type get_next_block(size_type block_index) {
@@ -328,6 +445,7 @@ public:
       current_node = child_[current_node].left;
     }
     current_node = get_parent(block_index);
+    if (current_node == INVALID_IDX) return INVALID_IDX; 
     if (child_[current_node].left == block_index) return current_node;
     
     size_type previous_node = current_node;
@@ -366,31 +484,77 @@ public:
   }
 
 
-
-  bool split_block(const size_type block_index, size_t pos, size_t event_size) {
-    Block event_block = val_[block_index];
+  template<typename RngType = std::mt19937_64>
+  bool split_block(const size_type block_index, size_t pos, size_t event_size,
+                   CategorySampler& sampler, RngType &rng) {
+    BlockWithRates event_block = val_[block_index];
 
     int original_size = event_block.length + event_block.insertion;
+    size_t original_insertion = event_block.insertion;
 
-    // calculate position within insertion part (AP)
-    // Need to take care of the case where pos is exactly at
-    // size_t position_in_ap = pos - event_block.length;
-    // std::cout << "position in ap: " << position_in_ap << "\n";
-    // bool is_anchor_block = (key_[block_index] == 0);
+    // retrieve the left flank category for the position of the event, this will be used for sampling new categories for the inserted part.
+    // must handle the "entire sequence is deleted"
+    // if the event is within the insertion the flanking positions are simply in the rateCategories vector of the block,
+    // if the event is in the original part, the left flank category is the one at position pos-1 of event_block.parentRateCategories and the right flank category is the one at position pos.
+    // if the event is at the edge of the block, we need to use the next block's category as the right flank for sampling new categories for the inserted part.
+    size_t left_flank_category = SIZE_MAX;
+    size_t right_flank_category = SIZE_MAX;
+
     pos = pos + 1;
-
-    // insertion in added part
+    // insertion in added part - no split, just update
     if (pos >= event_block.length ) {
+
+        size_t position_in_ap = pos - event_block.length;
+        if (pos == original_size + 1) position_in_ap--;
+
+        // Handle rate categories for insertion in the added part
+        // Position within the block's rate categories
+        // if on left edge of AP, use category from OP as left flank
+        if (position_in_ap == 0) {
+          left_flank_category = (*event_block.parentRateCategories)[key_[block_index] + event_block.length - 1];
+        } else {
+          left_flank_category = *(event_block.rateCategories.begin() + position_in_ap - 1);
+        }
+        
+        // If inserting after all existing insertions (at the right edge of this block), we need to use the next block's first category as the right flank for sampling new categories.
+        if (position_in_ap >= original_insertion) {
+          size_type next_block_index = get_next_block(block_index);
+          // if on right edge of AP, and no next block, set right flank category to SIZE_MAX.
+          if (next_block_index == INVALID_IDX) {
+            right_flank_category = SIZE_MAX;
+          } else {
+            size_t next_block_start = key_[next_block_index]; // actual position within the parent sequence
+            right_flank_category = (*event_block.parentRateCategories)[next_block_start];
+          }
+        } else {
+          right_flank_category = event_block.rateCategories[position_in_ap];
+        }
+        event_block.handleInsertion(position_in_ap, left_flank_category, right_flank_category, event_size, sampler, rng);
+
         event_block.insertion = event_block.insertion + event_size;
+
         int new_size = event_block.insertion + event_block.length;
         int difference_in_length = new_size - original_size;
 
         return this->insert(key_[block_index], event_block, difference_in_length);
-    } else if (pos < event_block.length) { // insertion in origianl part
-        // if (pos == 0) pos = 1;
+    } else if (pos < event_block.length) { // insertion in origianl part - split
 
-        Block potential_block = { event_block.length - pos, event_block.insertion};
-        Block updated_block = {pos, event_size};
+        // BlockWithRates potential_block = { event_block.length - pos, event_block.insertion};
+        BlockWithRates potential_block = event_block;
+        potential_block.length = event_block.length - pos;
+
+        BlockWithRates updated_block(*event_block.parentRateCategories, pos, event_size);
+
+        // Handle rate categories for the NEW insertion in updated_block
+        left_flank_category = (*event_block.parentRateCategories)[key_[block_index] + pos - 1];
+        // if on left edge of OP, set left flank category to SIZE_MAX.
+        if (key_[block_index] + pos - 1 == 0) {
+          left_flank_category = SIZE_MAX;
+        }
+        right_flank_category = (*event_block.parentRateCategories)[key_[block_index] + pos];
+        // Insertion is in the middle of OP, so right edge must be within OP.
+        // Since AP is new, event position within it is 0.
+        updated_block.handleInsertion(0, left_flank_category, right_flank_category, event_size, sampler, rng);
 
         int new_size = updated_block.insertion + updated_block.length;
         int difference_in_length = new_size - original_size;
@@ -404,7 +568,7 @@ public:
     return false;
   }
 
-  int block_difference(Block &a, Block &b) {
+  int block_difference(BlockWithRates &a, BlockWithRates &b) {
     return (a.length + a.insertion) - (b.length + b.insertion);
   }
 
@@ -415,9 +579,12 @@ public:
 
     key_type event_key = key_[block_index];
     bool is_valid = true;
-    Block new_block = {length - event_size, insertion};
+    BlockWithRates new_block = val_[block_index];
+    new_block.length = length - event_size;
+    new_block.insertion = insertion;
+
     if (key_[block_index] == 0) { // checking if this is the first block in the blocklist
-      Block first_block = {1, 0};
+      BlockWithRates first_block(*new_block.parentRateCategories, 1, 0);
       is_valid = this->insert(0 , first_block, 1 - (length + insertion));
     } else {
       is_valid = this->erase(key_[block_index], length + insertion);
@@ -428,9 +595,9 @@ public:
   //   xxxxxxxxxxxxxx xxxxxxxx
   //  [------OP------|---AP---]
   bool remove_case_b(const size_type block_index, size_t position, size_t event_size, size_t length, size_t insertion) {
-
     if (key_[block_index] == 0) { // checking if this is the first block in the blocklist
-      Block first_block = {1, 0};
+      // BlockWithRates first_block = {1, 0};
+      BlockWithRates first_block(*val_[block_index].parentRateCategories, 1, 0);
       return this->insert(0, first_block, 1 - (length + insertion));
     } else {
       return this->erase(key_[block_index], length + insertion);
@@ -442,15 +609,30 @@ public:
   bool remove_case_c(const size_type block_index, size_t position, size_t event_size, size_t length, size_t insertion) {
     bool is_valid = true;
     size_t insertion_leftover = (length + insertion) - event_size;
+    size_t deleted_from_insertion = event_size - length;
+
+    BlockWithRates event_block = val_[block_index];
+    std::vector<size_t> surviving_rates = event_block.getSurvivingRates(deleted_from_insertion);
+
     if (key_[block_index] == 0) { // checking if this is the first block in the blocklist
-      Block first_block = {1, insertion_leftover};
+
+      BlockWithRates first_block(*event_block.parentRateCategories, 1, insertion_leftover);
+      first_block.rateCategories = surviving_rates;
+
       int new_size = first_block.insertion + first_block.length;
       int difference_in_length = new_size - (length + insertion);
       return this->insert(0, first_block, difference_in_length);
     } else {
       size_type previous_block_index = this->get_previous_block(block_index);
-      Block previous_block = val_[previous_block_index];
-      Block updated_block = {previous_block.length, previous_block.insertion + insertion_leftover};
+      BlockWithRates previous_block = val_[previous_block_index];
+      // BlockWithRates updated_block = {previous_block.length, previous_block.insertion + insertion_leftover};
+      BlockWithRates updated_block = previous_block;
+      updated_block.insertion = previous_block.insertion + insertion_leftover;
+      updated_block.rateCategories.insert(
+          updated_block.rateCategories.end(),
+          surviving_rates.begin(),
+          surviving_rates.end()
+      );
       is_valid = this->erase(key_[block_index], length + insertion);
       return this->insert(key_[previous_block_index], updated_block, insertion_leftover) && is_valid;
     }
@@ -460,11 +642,17 @@ public:
   //  [------OP------|---AP---]
   bool remove_case_d(const size_type block_index, size_t position, size_t event_size, size_t length, size_t insertion) {
     bool is_valid = true;
-    Block first_block = {position, 0};
+    BlockWithRates event_block = val_[block_index];
+
+    // BlockWithRates first_block = {position, 0};
+    BlockWithRates first_block(*event_block.parentRateCategories, position, 0);
+    
     int new_size = first_block.insertion + first_block.length;
     int difference_in_length = new_size - (length + insertion);
     is_valid = this->insert(key_[block_index], first_block, difference_in_length);
-    Block new_block = {length - (position + event_size), insertion};
+    BlockWithRates new_block = event_block;
+    new_block.length = length - (position + event_size);
+    new_block.rateCategories = event_block.rateCategories;  // Preserve all rate categories
     new_size = new_block.insertion + new_block.length;
     return this->insert(key_[block_index] + position + event_size, new_block, new_size) && is_valid;
   }
@@ -473,8 +661,9 @@ public:
   //         xxxxxxxx
   //  [------OP------|---AP---]
   bool remove_case_e(const size_type block_index, size_t position, size_t event_size, size_t length, size_t insertion) {
+    BlockWithRates event_block = val_[block_index];
 
-    Block first_block = {position, insertion};
+    BlockWithRates first_block(*event_block.parentRateCategories, position, insertion);
     int new_size = first_block.insertion + first_block.length;
     int difference_in_length = new_size - (length + insertion);
     return this->insert(key_[block_index], first_block, difference_in_length);
@@ -484,18 +673,32 @@ public:
   //             xxxx xxxx
   //  [------OP------|---AP---]
   bool remove_case_f(const size_type block_index, size_t position, size_t event_size, size_t length, size_t insertion) {
+    BlockWithRates event_block = val_[block_index];
+    // Calculate where deletion starts in the AP
+    size_t deletion_start_in_ap = (position > length) ? (position - length) : 0;
+    
+    // Clamp position for block calculation
     position = position <= length ? position : length;
 
-    Block first_block = {position, (length + insertion) - (position + event_size)};
+    // Calculate how many insertions are deleted
+    size_t total_deleted_from_ap = (position + event_size) - length;
+
+    // Use handleDeletion to remove the deleted rate categories
+    event_block.handleDeletion(deletion_start_in_ap, total_deleted_from_ap);
+
+    BlockWithRates first_block = event_block;
+    first_block.length = position;
+    first_block.insertion = (length + insertion) - (position + event_size);
     int new_size = first_block.insertion + first_block.length;
     int difference_in_length = new_size - (length + insertion);
     return this->insert(key_[block_index], first_block, difference_in_length);
   }
 
 
-
-  bool remove_block(const size_type block_index, size_t position, size_t event_size) {
-    Block event_block = val_[block_index];
+  template<typename RngType = std::mt19937_64>
+  bool remove_block(const size_type block_index, size_t position, size_t event_size,
+                    CategorySampler& sampler, RngType &rng) {
+    BlockWithRates event_block = val_[block_index];
     size_t length  = event_block.length;
     size_t insertion = event_block.insertion;
     size_t original_size = length + insertion;
@@ -518,12 +721,13 @@ public:
         // it recursively
 
         size_type next_block_index = this->get_next_block(block_index);
-
+        // std::cout << "Affected blocks:\n";
+        // std::cout << key_[block_index] << " " << key_[next_block_index] << "\n";
         size_t updated_size = original_size - position;
-        is_valid = this->remove_block(block_index, position, updated_size);
+        is_valid = this->remove_block(block_index, position, updated_size, sampler, rng);
 
         if (next_block_index != INVALID_IDX) {
-          is_valid = this->remove_block(next_block_index, 0, event_size - updated_size) && is_valid; // it this correct?
+          is_valid = this->remove_block(next_block_index, 0, event_size - updated_size, sampler, rng) && is_valid; // it this correct?
         }
     }
       
@@ -1050,7 +1254,7 @@ private:
   size_type rotate_right_left(size_type node) {
     const size_type right = child_[node].right;
     const size_type right_left = child_[right].left;
-    // const size_type right_right = child_[right].right;
+
     const size_type right_left_left = child_[right_left].left;
     const size_type right_left_right = child_[right_left].right;
     const size_type parent = get_parent(node);
@@ -1138,16 +1342,27 @@ public:
 
 void print_block(std::stringstream &ss, const size_type node) {
     key_type key = key_[node];
-    Block block = val_[node];
+    BlockWithRates block = val_[node];
     size_t subtree_length = length_[node];
 
-    // std::string block_str = std::string("[") + std::to_string(key) + "|" + 
-    //     std::to_string(block.length) + "|" + std::to_string(block.insertion) +
-    //     "]->" + std::to_string(subtree_length) + "\n";
-    // return block_str;
     ss << "[" << key << "|" << 
-        block.length << "|" << block.insertion << "]->" << subtree_length << std::endl;
-  }
+        block.length << "|" << block.insertion << "]->" << subtree_length;
+    
+    // Print rate categories
+    if (!block.rateCategories.empty()) {
+        ss << " rates:[";
+        for (size_t i = 0; i < block.rateCategories.size(); ++i) {
+            if (block.rateCategories[i] == SIZE_MAX) {
+                ss << "ANCHOR";
+            } else {
+                ss << block.rateCategories[i];
+            }
+            if (i < block.rateCategories.size() - 1) ss << ",";
+        }
+        ss << "]";
+    }
+    ss << std::endl;
+}
 
 std::string print_avl() {
     std::stringstream tree_stream;
@@ -1157,20 +1372,23 @@ std::string print_avl() {
   };
 
 
-// this function assumes that the length of the subtree is valid at each node, this is not the case yet.
-bool handle_event(event ev, size_t event_position, size_t event_size) {
-    size_type block_index = this->get_block_index(root_, event_position);
+// this function assumes that the length of the subtree is valid at each node.
+template<typename RngType = std::mt19937_64>
+bool handle_event(Event &ev, CategorySampler& sampler, RngType &rng) {
+
+    size_type block_index = this->get_block_index(ev.position);
     if (block_index == INVALID_IDX) {
         std::cout << "could not get event key!\n";
         return false;
     }
 
-    if (ev == INSERTION) {
-      return split_block(block_index, event_position, event_size);
+    if (ev.type == INSERTION) {
+      return split_block(block_index, ev.position, ev.length, sampler, rng);
     }
 
-    if (ev == DELETION) {
-      return remove_block(block_index, event_position, event_size);
+    if (ev.type == DELETION) {
+      if (ev.position == 0) throw std::out_of_range("event_position exceeds sequence");
+      return remove_block(block_index, ev.position, ev.length, sampler, rng);
     }
 
 
@@ -1181,20 +1399,21 @@ bool handle_event(event ev, size_t event_position, size_t event_size) {
 
 
 
-// BlockList get_blocklist() {
-//     BlockList blocklist;
-//     for (auto it = this->begin(); it != this->end(); ++it) {
-//         std::array<size_t,3> current_block =  {(&it)->key(), (*it).length, (*it).insertion};
-//         // std::tuple<int, int, int> current_block ((&it)->key(), (*it).length, (*it).insertion);
-//         blocklist.push_back(current_block);
-//     }
-//     return blocklist;
-// }
+BlockList get_blocklist() {
+    BlockList blocklist;
+    for (auto it = this->begin(); it != this->end(); ++it) {
+        std::array<size_t,3> current_block =  {(&it)->key(), (*it).length, (*it).insertion};
+        // std::tuple<int, int, int> current_block ((&it)->key(), (*it).length, (*it).insertion);
+        blocklist.push_back(current_block);
+    }
+    return blocklist;
+}
 
-bool init_tree(size_t sequence_length) {
+bool init_tree(size_t sequence_length, const std::vector<size_t>& parentRateCategories) {
   this->clear();
 
-  Block root_block = {sequence_length, 0};
+  // BlockWithRates root_block = {sequence_length, 0, parentRateCategories};
+  BlockWithRates root_block(parentRateCategories, sequence_length, 0);
   return this->insert(0, root_block, sequence_length);
 }
 
@@ -1229,6 +1448,24 @@ bool checkLength(size_type node) {
     return false;
 }
 
+bool validate_rate_integrity() {
+    for (auto it = this->begin(); it != this->end(); ++it) {
+      BlockWithRates& block = *it;
+        
+      if (block.rateCategories.size() != block.insertion) {
+          std::cout << "Rate integrity violation: block has " << block.insertion 
+                    << " insertions but " << block.rateCategories.size() 
+                    << " rate categories\n";
+          return false;
+      }
+      std::cout << "Block at key " << (&it)->key() << " has " << block.insertion 
+                << " insertions and " << block.rateCategories.size() 
+                << " rate categories\n";
+    }
+    return true;
+}
+
+
 bool checkLength() {
     return checkLength(root_);
 }
@@ -1239,7 +1476,7 @@ size_t getTotalLength() {
 
 size_t memoryUsage() {
   return (3*sizeof(size_type) + sizeof(Key)
-           + sizeof(Block) + sizeof(size_t)
+           + sizeof(BlockWithRates) + sizeof(size_t)
            + sizeof(std::int8_t) )*size();
 }
 

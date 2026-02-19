@@ -28,7 +28,6 @@
 // gamma_categories = 1,2,3,4...
 
 enum factoryState {
-    ALPHABET,
     MODEL,
     PARAMETERS,
     MODEL_FILE,
@@ -43,67 +42,79 @@ enum alphabetCode {
 };
 
 
-enum modelCode {
-    // nc:
-    NUCJC,
-    AAJC,
-    GTR,
-    HKY,
-    TAMURA92,
-    WYANGMODEL,
-    // AA:
-    CPREV45,
-    DAYHOFF,
-    JONES,	// THIS IS JTT
-    MTREV24,
-    WAG,
-    HIVB,
-    HIVW,
-    LG,
-    EMPIRICODON,
-    EX_BURIED, 
-    EX_EXPOSED,
-    EHO_EXTENDED,
-    EHO_HELIX,
-    EHO_OTHER,
-    EX_EHO_BUR_EXT,
-    EX_EHO_BUR_HEL,
-    EX_EHO_BUR_OTH,
-    EX_EHO_EXP_EXT,
-    EX_EHO_EXP_HEL,
-    EX_EHO_EXP_OTH,
-    CUSTOM
-};
-
-
 
 class modelFactory
 {
 
 public:
-    modelFactory(tree* tr): 
-        _state(factoryState::ALPHABET),
-        _tree(tr) {}
-
-    void setAlphabet(alphabetCode alphabet) {
-        if (_state != factoryState::ALPHABET) {
-            std::cout << "Please reset model if you wish to change alphabet.\n";
-            return;
-        }
-        _alphabet = alphabet;
-        _state = factoryState::MODEL;
-    }
+    modelFactory(): 
+        _state(factoryState::MODEL),
+        _alphabet(alphabetCode::NUCLEOTIDE),
+        _model(modelCode::NUCJC),  // Default model
+        _alpha(1.0),
+        _gammaCategories(1) {}
 
     void setReplacementModel(modelCode model) {
         if (_state != factoryState::MODEL) {
-            std::cout << "Please specify an alphabet before selecting a model.\n";
+            std::cout << "Please reset factory before changing the model.\n";
             return;
         }
+        
         _model = model;
+        
+        // Infer alphabet from model
+        switch (_model) {
+            case modelCode::NUCJC:
+            case modelCode::GTR:
+            case modelCode::HKY:
+            case modelCode::TAMURA92:
+                _alphabet = alphabetCode::NUCLEOTIDE;
+                break;
+            
+            case modelCode::AAJC:
+            case modelCode::CPREV45:
+            case modelCode::DAYHOFF:
+            case modelCode::JONES:
+            case modelCode::MTREV24:
+            case modelCode::WAG:
+            case modelCode::HIVB:
+            case modelCode::HIVW:
+            case modelCode::LG:
+            case modelCode::EX_BURIED:
+            case modelCode::EX_EXPOSED:
+            case modelCode::EHO_EXTENDED:
+            case modelCode::EHO_HELIX:
+            case modelCode::EHO_OTHER:
+            case modelCode::EX_EHO_BUR_EXT:
+            case modelCode::EX_EHO_BUR_HEL:
+            case modelCode::EX_EHO_BUR_OTH:
+            case modelCode::EX_EHO_EXP_EXT:
+            case modelCode::EX_EHO_EXP_HEL:
+            case modelCode::EX_EHO_EXP_OTH:
+            case modelCode::CUSTOM:
+                _alphabet = alphabetCode::AMINOACID;
+                break;
+            
+            case modelCode::WYANGMODEL:
+                std::cout << "WYANGMODEL is not implemented.\n";
+                return;
+            case modelCode::EMPIRICODON:
+                std::cout << "EMPIRICODON is not implemented.\n";
+                return;
+            default:
+                std::cout << "Unknown model code.\n";
+                return;
+        }
+        
+        // Determine next state based on model requirements
         _state = factoryState::PARAMETERS;
         if (_alphabet == alphabetCode::AMINOACID) _state = factoryState::SITERATES;
         if (_model == modelCode::AAJC || _model == modelCode::NUCJC) _state = factoryState::SITERATES;
         if (_model == modelCode::CUSTOM) _state = factoryState::MODEL_FILE;
+        
+        // Invalidate cache when model changes
+        _cachedRepModel.reset();
+        _cachedPij.reset();
     }
 
     void setModelParameters(std::vector<MDOUBLE> params) {
@@ -140,6 +151,10 @@ public:
 
         _parameters = params;
         _state = factoryState::SITERATES;
+        
+        // Invalidate cache when parameters change
+        _cachedRepModel.reset();
+        _cachedPij.reset();
     }
 
     void setCustomAAModelFile(const std::string &fileName) {
@@ -149,6 +164,10 @@ public:
         }
         _modelFilePath = fileName;
         _state = factoryState::SITERATES;
+        
+        // Invalidate cache when model file changes
+        _cachedRepModel.reset();
+        _cachedPij.reset();
     }
 
     void setGammaParameters(MDOUBLE alpha, size_t numCategories) {
@@ -185,48 +204,56 @@ public:
         return _transitionMatrix;
     }
 
-    // const std::vector<std::vector<MDOUBLE>>& getTransitionMatrix() const {
-    //     return _transitionMatrix;
-    // }
-
     const std::vector<MDOUBLE>& getStationaryProbs() const {
         return _stationaryProbs;
     }
 
     void resetFactory() {
-        _state = factoryState::ALPHABET;
+        _state = factoryState::MODEL;
+        _alphabet = alphabetCode::NULLCODE;
+        _alphPtr.reset();
         _transitionMatrix.clear();
         _stationaryProbs.clear();
         _customRates.clear();
+        _cachedRepModel.reset();
+        _cachedPij.reset();
     }
-
-    tree* getTree() { return _tree; }
 
     bool isModelValid() {
         return (_state == factoryState::COMPLETE);
     }
 
     alphabet* getAlphabet() {
-        if (_alphabet == alphabetCode::NULLCODE) {
-            std::cout << "alphabet was not set! returning null pointer\n";
-            _alphPtr = nullptr;
+        // Return existing alphabet if already created
+        if (_alphPtr) {
+            return _alphPtr.get();
         }
         
-        if (!_alphPtr) {
-            if (_alphabet == alphabetCode::NUCLEOTIDE) {
-                _alphPtr = std::make_unique<nucleotide>();
-            } else if (_alphabet == alphabetCode::AMINOACID) {
-                _alphPtr = std::make_unique<amino>();
-            } else {
-                return nullptr;
-            }
+        // Check if alphabet was set
+        if (_alphabet == alphabetCode::NULLCODE) {
+            std::cout << "alphabet was not set! returning null pointer\n";
+            return nullptr;
         }
+        
+        // Create alphabet based on type
+        if (_alphabet == alphabetCode::NUCLEOTIDE) {
+            _alphPtr = std::make_unique<nucleotide>();
+        } else if (_alphabet == alphabetCode::AMINOACID) {
+            _alphPtr = std::make_unique<amino>();
+        } else {
+            return nullptr;
+        }
+        
         return _alphPtr.get();
     }
 
-    std::shared_ptr<stochasticProcess> getStochasticProcess() {
+    // Build and cache the replacement model and pij accelerator
+    // This is the expensive operation - call once after setting model parameters
+    // IMPORTANT: Must call setSiteRateModel() before calling this method
+    void buildReplacementModel() {
         if (_state != factoryState::COMPLETE) {
-            std::cout << "Please set all the required model parameters.\n";
+            std::cout << "Please call setSiteRateModel() before building replacement model.\n";
+            return;
         }
 
         std::unique_ptr<replacementModel> repModel;
@@ -350,17 +377,34 @@ public:
             pij = std::make_unique<trivialAccelerator>(repModel.get());
         }
 
-        // Always use custom distribution
+        // Cache the built models
+        _cachedRepModel = std::move(repModel);
+        _cachedPij = std::move(pij);
+    }
+
+    // Get stochastic process using cached replacement model and current rate model
+    // This is cheap - can be called many times with different rate models
+    std::shared_ptr<stochasticProcess> getStochasticProcess() {
+        if (_state != factoryState::COMPLETE) {
+            std::cout << "Please set all the required model parameters.\n";
+            return nullptr;
+        }
+
+        if (!_cachedPij) {
+            // build replacement model if not already built
+            buildReplacementModel();
+        }
+
+        // Create distribution with current rate model parameters
         customDistribution dist(_customRates, _stationaryProbs);
 
-        return std::make_shared<stochasticProcess>(&dist, pij.get());
+        return std::make_shared<stochasticProcess>(&dist, _cachedPij.get());
     }
 
     ~modelFactory() {}
 
 private:
     factoryState _state;
-    tree* _tree;
     std::unique_ptr<alphabet> _alphPtr;
     alphabetCode _alphabet;
     modelCode _model;
@@ -372,6 +416,9 @@ private:
     std::vector<std::vector<MDOUBLE>> _transitionMatrix;
     std::vector<MDOUBLE> _stationaryProbs;
 
+    // Cached replacement model components (expensive to build)
+    std::unique_ptr<replacementModel> _cachedRepModel;
+    std::unique_ptr<pijAccelerator> _cachedPij;
 };
 
 

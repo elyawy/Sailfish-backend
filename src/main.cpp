@@ -6,7 +6,8 @@
 
 #include "../libs/pcg/pcg_random.hpp"
 #include "../libs/Phylolib/includes/gammaDistribution.h"
-#include "./Simulator.h"
+#include "./IndelSimulator.h"
+#include "./SubstitutionSimulator.h"
 
 namespace py = pybind11;
 
@@ -33,19 +34,6 @@ PYBIND11_MODULE(_Sailfish, m) {
 
     using SelectedRNG = pcg64_fast;
 
-    py::class_<Block>(m, "Block")
-        .def(py::init<size_t, size_t>());
-
-    py::class_<BlockTree>(m, "BlockTree")
-        .def(py::init<>())
-        .def("print_tree", &BlockTree::printTree)
-        .def("block_list", &BlockTree::getBlockList);
-
-    py::enum_<event>(m, "event")
-        .value("Insertion", event::INSERTION)
-        .value("Deletion", event::DELETION)
-        .export_values();
-
     py::class_<DiscreteDistribution>(m, "DiscreteDistribution")
         .def(py::init<std::vector<double>>());
 
@@ -60,10 +48,14 @@ PYBIND11_MODULE(_Sailfish, m) {
         .def_property_readonly("name", &tree::TreeNode::name)
         .def("distance_to_father", &tree::TreeNode::dis2father);
 
+
+    py::enum_<SiteRateModel>(m, "SiteRateModel")
+        .value("SIMPLE", SiteRateModel::SIMPLE)
+        .value("INDEL_AWARE", SiteRateModel::INDEL_AWARE)
+        .export_values();
+
     py::class_<SimulationProtocol>(m, "SimProtocol")
-        .def(py::init<tree*>())
-        .def("set_seed", &SimulationProtocol::setSeed)
-        .def("get_seed", &SimulationProtocol::getSeed)
+        .def(py::init<size_t>())
         .def("set_sequence_size", &SimulationProtocol::setSequenceSize)
         .def("get_sequence_size", &SimulationProtocol::getSequenceSize)
         .def("set_insertion_rates", &SimulationProtocol::setInsertionRates)
@@ -75,18 +67,16 @@ PYBIND11_MODULE(_Sailfish, m) {
         .def("set_deletion_length_distributions", &SimulationProtocol::setDeletionLengthDistributions)
         .def("get_deletion_length_distribution", &SimulationProtocol::getDeletionDistribution)
         .def("set_minimum_sequence_size", &SimulationProtocol::setMinSequenceSize)
-        .def("get_minimum_sequence_size", &SimulationProtocol::getMinSequenceSize);
+        .def("get_minimum_sequence_size", &SimulationProtocol::getMinSequenceSize)
+        .def("set_indel_rate_model", &SimulationProtocol::setIndelRateModel)
+        .def("get_indel_rate_model", &SimulationProtocol::getIndelRateModel)
+        .def("set_max__insertion_length", &SimulationProtocol::setMaxInsertionLength)
+        .def("get_max__insertion_length", &SimulationProtocol::getMaxInsertionLength);
 
 
 
     py::class_<sequenceContainer, std::shared_ptr<sequenceContainer>>(m, "sequenceContainer")
         .def(py::init<>());
-
-    py::enum_<alphabetCode>(m, "alphabetCode")
-        .value("NULLCODE", alphabetCode::NULLCODE)
-        .value("NUCLEOTIDE", alphabetCode::NUCLEOTIDE)
-        .value("AMINOACID", alphabetCode::AMINOACID)
-        .export_values();
 
 
     py::enum_<modelCode>(m, "modelCode")
@@ -137,8 +127,7 @@ PYBIND11_MODULE(_Sailfish, m) {
         });
 
     py::class_<modelFactory>(m, "modelFactory")
-        .def(py::init<tree*>())
-        .def("set_alphabet", &modelFactory::setAlphabet)
+        .def(py::init<>())
         .def("set_replacement_model" , &modelFactory::setReplacementModel)
         .def("set_amino_replacement_model_file" , &modelFactory::setCustomAAModelFile)
         .def("set_model_parameters" , &modelFactory::setModelParameters)
@@ -149,48 +138,77 @@ PYBIND11_MODULE(_Sailfish, m) {
         .def("reset", &modelFactory::resetFactory);
 
 
-    py::class_<Simulator<SelectedRNG, 20>>(m, "AminoSimulator")
-        .def(py::init<SimulationProtocol*>())
-        .def("reset_sim", &Simulator<SelectedRNG, 20>::resetSimulator)
-        .def("gen_indels", &Simulator<SelectedRNG, 20>::generateSimulation)
-        .def("run_sim", &Simulator<SelectedRNG, 20>::runSimulator)
-        .def("init_substitution_sim", &Simulator<SelectedRNG, 20>::initSubstitionSim)
-        .def("gen_substitutions", &Simulator<SelectedRNG, 20>::simulateSubstitutions)
-        .def("gen_substitutions_to_file", &Simulator<SelectedRNG, 20>::simulateAndWriteSubstitutions)
-        .def("set_aligned_sequence_map", &Simulator<SelectedRNG, 20>::setAlignedSequenceMap)
-        .def("save_site_rates", &Simulator<SelectedRNG, 20>::setSaveRates)
-        .def("get_site_rates", &Simulator<SelectedRNG, 20>::getSiteRates)
-        .def("save_all_nodes_sequences", &Simulator<SelectedRNG, 20>::setSaveAllNodes)
-        .def("save_root_sequence", &Simulator<SelectedRNG, 20>::setSaveRoot)
-        .def("get_saved_nodes_mask", &Simulator<SelectedRNG, 20>::getNodesSaveList);
+    py::class_<SimulationContext<SelectedRNG>>(m, "SimulationContext")
+        .def(py::init<tree*, size_t>())
+        .def("get_tree", &SimulationContext<SelectedRNG>::getTree)
+        .def("get_nodes_to_save", &SimulationContext<SelectedRNG>::getNodesToSave)
+        .def("set_save_leaves", &SimulationContext<SelectedRNG>::setSaveLeaves)
+        .def("set_save_root", &SimulationContext<SelectedRNG>::setSaveRoot)
+        .def("set_save_all", &SimulationContext<SelectedRNG>::setSaveAll)
+        .def("reseed", &SimulationContext<SelectedRNG>::reseed);
 
-    py::class_<Simulator<SelectedRNG, 4>>(m, "NucleotideSimulator")
-        .def(py::init<SimulationProtocol*>())
-        .def("reset_sim", &Simulator<SelectedRNG, 4>::resetSimulator)
-        .def("gen_indels", &Simulator<SelectedRNG, 4>::generateSimulation)
-        .def("run_sim", &Simulator<SelectedRNG, 4>::runSimulator)
-        .def("init_substitution_sim", &Simulator<SelectedRNG, 4>::initSubstitionSim)
-        .def("gen_substitutions", &Simulator<SelectedRNG, 4>::simulateSubstitutions)
-        .def("gen_substitutions_to_file", &Simulator<SelectedRNG, 4>::simulateAndWriteSubstitutions)
-        .def("set_aligned_sequence_map", &Simulator<SelectedRNG, 4>::setAlignedSequenceMap)
-        .def("save_site_rates", &Simulator<SelectedRNG, 4>::setSaveRates)
-        .def("get_site_rates", &Simulator<SelectedRNG, 4>::getSiteRates)
-        .def("save_all_nodes_sequences", &Simulator<SelectedRNG, 4>::setSaveAllNodes)
-        .def("save_root_sequence", &Simulator<SelectedRNG, 4>::setSaveRoot)
-        .def("get_saved_nodes_mask", &Simulator<SelectedRNG, 4>::getNodesSaveList);
+    //event enum bindings
+    py::enum_<event>(m, "IndelEventType")
+        .value("INSERTION", event::INSERTION)
+        .value("DELETION", event::DELETION)
+        .export_values();
+
+    //Indel event struct bindings
+    py::class_<Event>(m, "IndelEvent")
+        .def_readonly("type", &Event::type)
+        .def_readonly("position", &Event::position)
+        .def_readonly("length", &Event::length)
+        .def("__repr__", [](const Event& e) {
+            std::string type_name;
+            switch(e.type) {
+                case event::INSERTION: type_name = "INSERTION"; break;
+                case event::DELETION: type_name = "DELETION"; break;
+                default: type_name = "UNKNOWN"; break;
+            }
+            return "<IndelEvent type=" + type_name + 
+                " position=" + std::to_string(e.position) + 
+                " length=" + std::to_string(e.length) + ">";
+        });
+
+    // bindings for IndelSimulator
+    py::class_<IndelSimulator<SelectedRNG>>(m, "IndelSimulator")
+        .def(py::init<SimulationContext<SelectedRNG>&, SimulationProtocol*>())
+        .def("update_protocol", &IndelSimulator<SelectedRNG>::updateSimulationProtocol)
+        .def("generate_events", &IndelSimulator<SelectedRNG>::generateSimulation);
+
+    // bindings for SubstitutionSimulator (amino)
+    py::class_<SubstitutionSimulator<SelectedRNG, 20>>(m, "AminoSubstitutionSimulator")
+        .def(py::init<modelFactory&, SimulationContext<SelectedRNG>&>())
+        .def("simulate_substitutions", &SubstitutionSimulator<SelectedRNG, 20>::simulateSubstitutions)
+        .def("simulate_and_write_substitutions", &SubstitutionSimulator<SelectedRNG, 20>::simulateAndWriteSubstitutions)
+        .def("init_substitution_sim", &SubstitutionSimulator<SelectedRNG, 20>::initSubstitionSim)
+        .def("set_save_rates", &SubstitutionSimulator<SelectedRNG, 20>::setSaveRates)
+        .def("clear_rates_vec", &SubstitutionSimulator<SelectedRNG, 20>::clearRatesVec)
+        .def("get_sequence_container", &SubstitutionSimulator<SelectedRNG, 20>::getSequenceContainer)
+        .def("set_aligned_sequence_map", &SubstitutionSimulator<SelectedRNG, 20>::setAlignedSequenceMap)
+        .def("get_site_rates", &SubstitutionSimulator<SelectedRNG, 20>::getSiteRates);
+
+    // bindings for SubstitutionSimulator (nucleotide)
+    py::class_<SubstitutionSimulator<SelectedRNG, 4>>(m, "NucleotideSubstitutionSimulator")
+        .def(py::init<modelFactory&, SimulationContext<SelectedRNG>&>())
+        .def("simulate_substitutions", &SubstitutionSimulator<SelectedRNG, 4>::simulateSubstitutions)
+        .def("simulate_and_write_substitutions", &SubstitutionSimulator<SelectedRNG, 4>::simulateAndWriteSubstitutions)
+        .def("init_substitution_sim", &SubstitutionSimulator<SelectedRNG, 4>::initSubstitionSim)
+        .def("set_save_rates", &SubstitutionSimulator<SelectedRNG, 4>::setSaveRates)
+        .def("clear_rates_vec", &SubstitutionSimulator<SelectedRNG, 4>::clearRatesVec)
+        .def("get_sequence_container", &SubstitutionSimulator<SelectedRNG, 4>::getSequenceContainer)
+        .def("set_aligned_sequence_map", &SubstitutionSimulator<SelectedRNG, 4>::setAlignedSequenceMap)
+        .def("get_site_rates", &SubstitutionSimulator<SelectedRNG, 4>::getSiteRates);
 
 
     py::class_<MSA>(m, "Msa")
         .def(py::init<size_t, size_t, const std::vector<bool>& >())
-        .def(py::init<BlockMap&, tree::TreeNode*, const std::vector<bool>& >())
-        .def("generate_msas", &MSA::generateMSAs)
+        .def(py::init<EventMap&, tree::TreeNode*, const std::vector<bool>& >())
         .def("length", &MSA::getMSAlength)
         .def("num_sequences", &MSA::getNumberOfSequences)
         .def("fill_substitutions", &MSA::fillSubstitutions)
         .def("print_msa", &MSA::printFullMsa)
-        .def("print_indels", &MSA::printIndels)
         .def("write_msa", &MSA::writeFullMsa)
-        .def("write_msa_from_dir", &MSA::writeMsaFromDir)
         .def("get_msa_string", &MSA::generateMsaString)
         .def("get_msa", &MSA::getMSAVec);
 

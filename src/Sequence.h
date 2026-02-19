@@ -10,42 +10,40 @@
 #include <iterator>
 
 #include "SuperSequence.h"
-#include "BlockTree.h"
+#include "Event.h"
+
+// TODO: retrieve the rateCategories from the Blocks following the application of the events.
+// assign the rateCategories to the column within the SuperSequence.
+
 
 struct CompressedSequence {
     std::vector<std::pair<size_t, size_t>> runs; // (start_position, length)
-    size_t nodeID;
     size_t uncompressedSize;
 };
 
+template<typename RngType = std::mt19937_64, typename BlockTreeType = BlockTree>
 class Sequence
 {
-    using iteratorType = std::list<SuperSequence::columnContainer>::iterator;
+    using SuperSeqType = SuperSequence<RngType, BlockTreeType>;
+    using iteratorType = typename std::list<typename SuperSeqType::columnContainer>::iterator;
     using SequenceType = std::vector<iteratorType>;
 
 private:
-    SuperSequence* _superSequence;
+    SuperSeqType* _superSequence;
     bool _isSaveSequence;
-    size_t _nodeID;
+
     SequenceType _sequence;
     const Sequence* _parent;
+    std::vector<size_t> _rateCategories;
 
-    // size_t _numLeaf;
 public:
 
-    Sequence(SuperSequence& superSeq, bool isSaveSeq, size_t nodeID) : 
-        _superSequence(&superSeq), _isSaveSequence(isSaveSeq), _nodeID(nodeID) {}
+    Sequence(SuperSeqType& superSeq, bool isSaveSeq) : 
+        _superSequence(&superSeq), _isSaveSequence(isSaveSeq) {}
 
-    // Sequence(const Sequence &seq) {
-    //     for (size_t i = 0; i < seq._sequence.size(); i++) {
-    //         _sequence.push_back(seq._sequence[i]);
-    //     }
-    //     _superSequence = seq._superSequence;
-    //     _isSaveSequence = seq._isSaveSequence;
-    //     _nodeID = seq._nodeID;
-    // }
-    Sequence(const CompressedSequence& compressed, SuperSequence& superSeq) 
-        : _superSequence(&superSeq), _isSaveSequence(true), _nodeID(compressed.nodeID) {
+
+    Sequence(const CompressedSequence& compressed, SuperSeqType& superSeq) 
+        : _superSequence(&superSeq), _isSaveSequence(true) {
         
         _sequence.reserve(compressed.uncompressedSize);
         
@@ -61,31 +59,63 @@ public:
     void initSequence() {
         auto superSeqIterator = _superSequence->begin();
 
+        if constexpr (std::is_same_v<BlockTreeType, BlockTreeWithRates>) {
+            _rateCategories.reserve(_superSequence->size());
+        }
+
         while (superSeqIterator != _superSequence->end()) {
+            if constexpr (std::is_same_v<BlockTreeType, BlockTreeWithRates>) {
+                // Sample and assign rate category to the column
+                size_t category = _superSequence->sampleRootCategory();
+                (*superSeqIterator).rateCategory = category;
+                _rateCategories.push_back(category);
+            }
+
             if (_isSaveSequence) _superSequence->referencePosition(superSeqIterator);
             _sequence.push_back(superSeqIterator);
             superSeqIterator++;
         }
     }
 
-    void generateSequence (const BlockList &blocklist,const Sequence *parentSeq) {
+
+    void generateSequence (const EventSequence &eventlist,const Sequence *parentSeq) {
         _sequence.reserve(parentSeq->_sequence.size());
+
+        if constexpr (std::is_same_v<BlockTreeType, BlockTreeWithRates>) {
+            _rateCategories.reserve(parentSeq->_sequence.size());
+        }
 
         size_t position;
         size_t length;
         size_t insertion;
         size_t randomPos = _superSequence->getRandomSequencePosition();
         _parent = (parentSeq);
-        // std::cout << parentSeq.getSequenceNodeID() << "\n";
-        for (auto it = blocklist.begin(); it != blocklist.end(); ++it) {
-            position = (*it)[static_cast<int>(BLOCK::POSITION)];//(&it)->key();
-            length = (*it)[static_cast<int>(BLOCK::LENGTH)];//(*it).length;
-            insertion = (*it)[static_cast<int>(BLOCK::INSERTION)];//(*it).insertion;
 
-            // std::cout << "current Block is: " << position <<"|" << length << "|" << insertion << "\n";
+
+
+        // apply events on BlockTree
+        // Initialize BlockTree with parent's rate categories
+        if constexpr (std::is_same_v<BlockTreeType, BlockTreeWithRates>) {
+            const std::vector<size_t>& parentRates = parentSeq->_rateCategories;
+            _superSequence->initBlockTree(parentSeq->_sequence.size(), parentRates);
+        } else {
+            _superSequence->initBlockTree(parentSeq->_sequence.size());
+        }
+
+
+        for (const auto& ev: eventlist) {
+            _superSequence->logEventInBlockTree(ev);
+        }
+
+        auto& blocks  = _superSequence->getBlockTree();
+
+        for (auto it = blocks.begin(); it != blocks.end(); ++it) {
+            position = it.key();
+            length = (*it).length;
+            insertion = (*it).insertion;
+
 
             if (position==0 && length==1 && insertion==0) {
-                // _sequence.push_back(parentSeq._sequence[0]);
                 continue;
             }
 
@@ -101,6 +131,9 @@ public:
                     _superSequence->referencePosition(_parent->_sequence[position+i]);
                 } 
                 _sequence.push_back(_parent->_sequence[position+i]);
+                if constexpr (std::is_same_v<BlockTreeType, BlockTreeWithRates>) {
+                    _rateCategories.push_back(_parent->_rateCategories[position+i]);
+                }
             }
             while (_parent->_sequence.size() == 0) _parent = _parent->_parent;
 
@@ -114,6 +147,13 @@ public:
             for (size_t i = 0; i < insertion; i++) {
                 superSeqIterator = _superSequence->insertItemAtPosition(superSeqIterator, randomPos, _isSaveSequence);
                 _sequence.push_back(superSeqIterator);
+
+                if constexpr (std::is_same_v<BlockTreeType, BlockTreeWithRates>) {
+                    size_t category = (*it).rateCategories[i];
+                    (*superSeqIterator).rateCategory = category;
+                    _rateCategories.push_back(category);
+                }
+
                 superSeqIterator++;
                 randomPos = _superSequence->incrementRandomSequencePosition();
             }
@@ -122,16 +162,16 @@ public:
         if (_isSaveSequence) _superSequence->incrementLeafNum();
     }
 
-    SuperSequence* getSuperSequence() {
+    SuperSeqType* getSuperSequence() {
         return _superSequence;
     }
 
 
-    SequenceType::iterator begin() {
+    typename SequenceType::iterator begin() {
         return _sequence.begin();
     }
 
-    SequenceType::iterator end() {
+    typename SequenceType::iterator end() {
         return _sequence.end();
     }
 
@@ -168,14 +208,10 @@ public:
         return true;
     }
 
-    size_t getSequenceNodeID() {
-        return _nodeID;
-    }
 
 
     CompressedSequence compress() const {
         CompressedSequence result;
-        result.nodeID = _nodeID;
         result.uncompressedSize = _sequence.size();
         result.runs.reserve(_sequence.size() / 10); // Reserve space assuming average run length of 10
         if (_sequence.empty()) return result;

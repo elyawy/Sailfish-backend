@@ -10,37 +10,6 @@ from .msa import Msa
 from .constants import MODEL_CODES, SIMULATION_TYPE
 
 
-# TODO delete one of this (I think the above if not used)
-class BlockTreePython:
-    '''
-    Used to contain the events on a multiple branches (entire tree).
-    '''
-    def __init__(self, branch_block_dict: Dict[str, _Sailfish.Block]):
-        self._branch_block_dict = branch_block_dict
-        # dictionary of {str: List of blocks}
-        self._branch_block_dict_python = {i: x for i, x in branch_block_dict.items()}
-    
-    def _get_Sailfish_blocks(self) -> Dict[str, _Sailfish.Block]:
-        return self._branch_block_dict
-    
-    def get_branches_str(self) -> str:
-        return {i: self._branch_block_dict[i].print_tree() for i in list(self._branch_block_dict.keys())}
-    
-    def get_specific_branch(self, branch: str) -> str:
-        if not branch in self._branch_block_dict_python:
-            raise ValueError(f"branch not in the _branch_block, aviable branches are: {list(self._branch_block_dict_python.keys())}")
-        return self._branch_block_dict[branch].print_tree()
-    
-    def print_branches(self) -> str:
-        for i in list(self._branch_block_dict.keys()):
-            print(f"branch = {i}")
-            print(self._branch_block_dict[i].print_tree())
-    
-    def block_list(self)  -> List:
-        if not branch in self._branch_block_dict_python:
-            raise ValueError(f"branch not in the _branch_block, aviable branches are: {list(self._branch_block_dict_python.keys())}")
-        return self._branch_block_dict_python[branch]
-
 class Simulator:
     """Simulate MSAs based on SimProtocol"""
     
@@ -64,10 +33,7 @@ class Simulator:
         # verify sim_protocol
         if self._verify_sim_protocol(simProtocol):
             self._simProtocol = simProtocol
-            if simulation_type == SIMULATION_TYPE.PROTEIN:
-                self._simulator = _Sailfish.AminoSimulator(self._simProtocol._sim)
-            else:
-                self._simulator = _Sailfish.NucleotideSimulator(self._simProtocol._sim)
+            self._indel_simulator = _Sailfish.IndelSimulator(self._simProtocol.get_sim_context() , self._simProtocol._sim)
         else:
             raise ValueError("failed to verify simProtocol")
         
@@ -102,9 +68,9 @@ class Simulator:
             raise ValueError(f"please provide a non zero value for deletion rate, provided value of: {simProtocol.get_deletion_rate(0)} -> simProtocol.set_deletion_rate(float)")
         return True
     
-    def reset_sim(self):
-        # TODO, complete
-        pass
+    # generates indel events
+    def generate_events(self) -> List[List[_Sailfish.Event]]:
+        return self._indel_simulator.generate_events()
 
     def _create_site_rate_model(
         self,
@@ -186,8 +152,7 @@ class Simulator:
         return rates, probs, transition_matrix
     
     def _init_sub_model(self) -> None:
-        self._model_factory = _Sailfish.modelFactory(self._simProtocol._get_Sailfish_tree())
-        self._model_factory.set_alphabet(self._alphabet)
+        self._model_factory = _Sailfish.modelFactory()
         if self._simulation_type == SIMULATION_TYPE.PROTEIN:
             warnings.warn("replacement matrix not provided -> running with default parameters: WAG model")
             self._model_factory.set_replacement_model(_Sailfish.modelCode.WAG)
@@ -199,9 +164,13 @@ class Simulator:
         rates, probs = self._create_site_rate_model()
         self._model_factory.setSiteRateModel(rates, probs)    
 
+        if self._simulation_type == SIMULATION_TYPE.PROTEIN:
+            self._substitution_simulator = _Sailfish.AminoSubstitutionSimulator(self._model_factory,
+                                                                                self._simProtocol.get_sim_context())
+        else:
+            self._substitution_simulator = _Sailfish.NucleotideSubstitutionSimulator(self._model_factory,
+                                                                                     self._simProtocol.get_sim_context())
 
-
-        self._simulator.init_substitution_sim(self._model_factory)
         self._is_sub_model_init = True
     
     def set_replacement_model(
@@ -218,9 +187,9 @@ class Simulator:
             raise ValueError(f"please provide a substitution model from the the following list: {_Sailfish.modelCode}")
         if int(gamma_parameters_categories) != gamma_parameters_categories:
             raise ValueError(f"gamma_parameters_catergories has to be a positive int value: received value of {gamma_parameters_categories}")
-        self._model_factory = _Sailfish.modelFactory(self._simProtocol._get_Sailfish_tree())
+        self._model_factory = _Sailfish.modelFactory()
 
-        self._model_factory.set_alphabet(self._alphabet)
+
         if self._simulation_type == SIMULATION_TYPE.PROTEIN:
             if model_parameters:
                 raise ValueError(f"no model parameters are used in protein, recevied value of: {model_parameters}")
@@ -247,26 +216,31 @@ class Simulator:
         )
         self._model_factory.setSiteRateModel(rates, probs, transition_matrix)
 
-        self._simulator.init_substitution_sim(self._model_factory)
+        self._substitution_simulator.init_substitution_sim()
 
         self._is_sub_model_init = True
-    
-    def gen_indels(self) -> BlockTreePython:
-        return BlockTreePython(self._simulator.gen_indels())
-    
+        
     def get_sequences_to_save(self) -> List[bool]:
-        return self._simulator.get_saved_nodes_mask()
+        sim_context = self._simProtocol.get_sim_context()
+        return sim_context.get_nodes_to_save()
+
     
     def save_root_sequence(self):
-        self._simulator.save_root_sequence()
+        sim_context = self._simProtocol.get_sim_context()
+        sim_context.set_save_root()
     
     def save_all_nodes_sequences(self):
-        self._simulator.save_all_nodes_sequences()
+        sim_context = self._simProtocol.get_sim_context()
+        sim_context.set_save_all_nodes()
+    
+    def save_leaves_sequences(self):
+        sim_context = self._simProtocol.get_sim_context()
+        sim_context.set_save_leaves()
 
     def gen_substitutions(self, length: int):
         if not self._is_sub_model_init:
             self._init_sub_model()
-        return self._simulator.gen_substitutions(length)
+        return self._substitution_simulator.simulate_substitutions(length)
     
     # @profile
     def simulate(self, times: int = 1) -> List[Msa]:
@@ -277,12 +251,9 @@ class Simulator:
                           self._simProtocol.get_sequence_size(),
                           self.get_sequences_to_save())
             else:
-                blocktree = self.gen_indels()
-                msa = Msa(blocktree._get_Sailfish_blocks(),
-                          self._simProtocol._get_root(),
-                          self.get_sequences_to_save())
+                eventmap = self.generate_events()
+                msa = Msa(eventmap, self._simProtocol._get_root(), self.get_sequences_to_save())
 
-            # sim.init_substitution_sim(mFac)
             if self._simulation_type != SIMULATION_TYPE.NOSUBS:
                 substitutions = self.gen_substitutions(msa.get_length())
                 msa.fill_substitutions(substitutions)
@@ -293,26 +264,26 @@ class Simulator:
     def simulate_low_memory(self, output_file_path: pathlib.Path) -> Msa:
         if self._simProtocol._is_insertion_rate_zero and self._simProtocol._is_deletion_rate_zero:
             msa_length = self._simProtocol.get_sequence_size()
+            msa = Msa(sum(self.get_sequences_to_save()), msa_length, self.get_sequences_to_save())
         else:
-            blocktree = self.gen_indels()
-            msa = Msa(blocktree._get_Sailfish_blocks(),
+            eventmap = self.generate_events()
+            msa = Msa(eventmap._get_Sailfish_blocks(),
                         self._simProtocol._get_root(),
                         self.get_sequences_to_save())
             msa_length = msa.get_length()
-            self._simulator.set_aligned_sequence_map(msa._msa)
+            self._substitution_simulator.set_aligned_sequence_map(msa._msa)
 
         # sim.init_substitution_sim(mFac)
-        if self._simulation_type != SIMULATION_TYPE.NOSUBS:
-            self._simulator.gen_substitutions_to_file(msa_length, 
-                                                      str(output_file_path))
-        else:
+        if self._simulation_type == SIMULATION_TYPE.NOSUBS:
             msa.write_msa(str(output_file_path))
+        else:
+            self._substitution_simulator.simulate_and_write_substitutions(msa_length, str(output_file_path))
     
     def __call__(self) -> Msa:
         return self.simulate(1)[0]
     
     def save_rates(self, is_save: bool) -> None:
-        self._simulator.save_site_rates(is_save)
+        self._substitution_simulator.set_save_rates(is_save)
     
     def get_rates(self) -> List[float]:
-        return self._simulator.get_site_rates()
+        return self._substitution_simulator.get_site_rates()
