@@ -34,14 +34,13 @@ jobs:
               id: "windows-x86-64"
             }
           - {
-              os: "macos-14",
+              os: "macos-latest",
               id: "macos-arm-64"
             }
           - {
-              os: "macos-13",
+              os: "macos-15-intel",
               id: "macos-x86-64"
             }
-        # macos-13 is an intel runner, macos-14 is apple silicon
 
     steps:
       - uses: actions/checkout@v4
@@ -58,6 +57,20 @@ jobs:
           key: phylolib-${{ matrix.config.id }}-${{ hashFiles('libs/Phylolib/**') }}
           restore-keys: |
             phylolib-${{ matrix.config.id }}-
+
+      - name: Build Phylolib on Host (on Cache Miss)
+        if: steps.cache-phylolib.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          cd libs/Phylolib
+          cmake -DCMAKE_BUILD_TYPE=Release .
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            cmake --build . --config Release
+            cp Release/Phylolib.lib ../
+          else
+            make
+            cp libPhylolib.* ../
+          fi
 
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.23.2
