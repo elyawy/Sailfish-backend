@@ -484,6 +484,12 @@ public:
 
         size_t position_in_ap = pos - event_block.length;
         if (pos == original_size + 1) position_in_ap--;
+        // rates not working for now, need to handle cases where the insetion is at
+        // the edge of the parent sequence.
+        // if at the left edge of the entire sequence, right flank should be the first category
+        // in parent (index 0), and left flank should be SIZE_MAX.
+        // if at the right edge of the entire sequence, left flank should be the last category in parent,
+        // and right flank should be SIZE_MAX.
 
         // Handle rate categories for insertion in the added part
         // Position within the block's rate categories
@@ -1376,15 +1382,15 @@ bool handle_event(Event &ev, CategorySampler& sampler, RngType &rng) {
 
 
 
-BlockList get_blocklist() {
-    BlockList blocklist;
-    for (auto it = this->begin(); it != this->end(); ++it) {
-        std::array<size_t,3> current_block =  {(&it)->key(), (*it).length, (*it).insertion};
-        // std::tuple<int, int, int> current_block ((&it)->key(), (*it).length, (*it).insertion);
-        blocklist.push_back(current_block);
-    }
-    return blocklist;
-}
+// BlockList get_blocklist() {
+//     BlockList blocklist;
+//     for (auto it = this->begin(); it != this->end(); ++it) {
+//         std::array<size_t,3> current_block =  {(&it)->key(), (*it).length, (*it).insertion};
+//         // std::tuple<int, int, int> current_block ((&it)->key(), (*it).length, (*it).insertion);
+//         blocklist.push_back(current_block);
+//     }
+//     return blocklist;
+// }
 
 bool init_tree(size_t sequence_length, const std::vector<size_t>& parentRateCategories) {
   this->clear();
@@ -1438,6 +1444,11 @@ bool validate_rate_integrity() {
       std::cout << "Block at key " << (&it)->key() << " has " << block.insertion 
                 << " insertions and " << block.rateCategories.size() 
                 << " rate categories\n";
+      std::cout << "Rate categories: ";
+      for (size_t i = 0; i < block.rateCategories.size(); ++i) {
+        std::cout << block.rateCategories[i] << " ";
+      }
+      std::cout << std::endl;
     }
     return true;
 }
