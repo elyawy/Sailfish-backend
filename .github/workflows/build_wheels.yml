@@ -58,6 +58,20 @@ jobs:
           restore-keys: |
             phylolib-${{ matrix.config.id }}-
 
+      - name: Build Phylolib on Host (on Cache Miss)
+        if: steps.cache-phylolib.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          cd libs/Phylolib
+          cmake -DCMAKE_BUILD_TYPE=Release .
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            cmake --build . --config Release
+            cp Release/Phylolib.lib ../
+          else
+            make
+            cp libPhylolib.* ../
+          fi
+
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.23.2
         with:
