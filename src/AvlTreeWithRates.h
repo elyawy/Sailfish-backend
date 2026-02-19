@@ -381,60 +381,38 @@ public:
     return false;
   }
 
-  /**
+   /**
    * get the block index
    * \param pos position of the event
-   * \return True if the key was successfully inserted or updated, false if
-   * container is full
    */
-  size_type get_block_index(size_t &pos) {
-    if (root_ == INVALID_IDX) {
-      return INVALID_IDX;
-    }
+  size_type get_block_index(size_type node, size_t &pos) {
+      if (node == INVALID_IDX) {
+          return INVALID_IDX;
+      }
 
-    size_type left_node;
-    size_type right_node;
-    size_type root_node;
+      size_type left_node  = child_[node].left;
+      size_type right_node = child_[node].right;
+      BlockWithRates&    root_val   = val_[node];
 
-    size_type i = root_;
+      // Is position in the left subtree?
+      if (left_node != INVALID_IDX && pos < length_[left_node]) {
+          return get_block_index(left_node, pos);
+      }
 
-    while (i != INVALID_IDX){
-
-      left_node = child_[i].left;
-      root_node = i;
-      right_node = child_[i].right;
-
-      BlockWithRates root_val = val_[root_node];
-    //   std::cout << "left " << "subtree = " << length_[left_node] << "\n";
-    //   std::cout << pos << "\n";
-      // val_[root_node].subtree_length += size;
+      // Strip left subtree
       if (left_node != INVALID_IDX) {
-        if (length_[left_node] < pos) {
-          pos = pos - length_[left_node];
-        } else {
-          i = left_node;
-          continue;
-        }
+          pos -= length_[left_node];
       }
 
-    //   std::cout << "center " << "subtree = " << root_val.length + root_val.insertion << "\n";;
-    //   std::cout << pos << "\n";
-
-      if (root_val.length + root_val.insertion < pos ){
-        pos = pos - (root_val.length + root_val.insertion);
-      } else {
-        return i;
+      // Is position in the current node?
+      size_t node_len = root_val.length + root_val.insertion;
+      if (pos < node_len) {
+          return node;
       }
 
-    //   std::cout << "right " << "subtree = " << length_[right_node] << "\n";
-    //   std::cout << pos << "\n";
-
-      i = right_node;
-
-    }
-    // val_[i].subtree_length += size;
-
-    return i;
+      // Strip current node, descend right
+      pos -= node_len;
+      return get_block_index(right_node, pos);
   }
 
   size_type get_next_block(size_type block_index) {
@@ -1376,7 +1354,7 @@ std::string print_avl() {
 template<typename RngType = std::mt19937_64>
 bool handle_event(Event &ev, CategorySampler& sampler, RngType &rng) {
 
-    size_type block_index = this->get_block_index(ev.position);
+    size_type block_index = this->get_block_index(root_, ev.position);
     if (block_index == INVALID_IDX) {
         std::cout << "could not get event key!\n";
         return false;
@@ -1387,7 +1365,6 @@ bool handle_event(Event &ev, CategorySampler& sampler, RngType &rng) {
     }
 
     if (ev.type == DELETION) {
-      if (ev.position == 0) throw std::out_of_range("event_position exceeds sequence");
       return remove_block(block_index, ev.position, ev.length, sampler, rng);
     }
 
