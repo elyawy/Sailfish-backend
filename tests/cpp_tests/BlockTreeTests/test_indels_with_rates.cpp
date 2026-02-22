@@ -10,9 +10,9 @@ int main() {
     // simple test to check the way events are mapped to the tree structure.
     avl_array_with_rates<size_t, size_t, 100> tree;
     std::vector<size_t> parentRates(9, 0);
-    parentRates[0] = 1;
+    parentRates[0] = 0;
     // parentRates[1] = 1;
-    parentRates[8] = 1;
+    parentRates[8] = 0;
     // print the parent rates
     std::cout << "Parent rates: ";
     for (size_t i = 0; i < parentRates.size(); ++i) {

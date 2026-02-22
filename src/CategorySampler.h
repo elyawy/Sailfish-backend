@@ -162,7 +162,7 @@ public:
             
             for (int nextState = 0; nextState < nStates; ++nextState) {
                 weights[nextState] = _transitionMatrix[current][nextState] * 
-                                    reachProb[length - step][nextState];
+                                    reachProb[_maxPathLength - length + step][nextState];
                 total += weights[nextState];
             }
             
