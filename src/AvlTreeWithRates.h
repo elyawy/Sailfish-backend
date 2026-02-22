@@ -495,7 +495,7 @@ public:
         // Position within the block's rate categories
         // if on left edge of AP, use category from OP as left flank
         if (position_in_ap == 0) {
-          left_flank_category = (*event_block.parentRateCategories)[key_[block_index] + event_block.length - 1];
+          left_flank_category = (*event_block.parentRateCategories)[key_[block_index] + event_block.length - 2];
         } else {
           left_flank_category = *(event_block.rateCategories.begin() + position_in_ap - 1);
         }
@@ -508,7 +508,7 @@ public:
             right_flank_category = SIZE_MAX;
           } else {
             size_t next_block_start = key_[next_block_index]; // actual position within the parent sequence
-            right_flank_category = (*event_block.parentRateCategories)[next_block_start];
+            right_flank_category = (*event_block.parentRateCategories)[next_block_start-1];
           }
         } else {
           right_flank_category = event_block.rateCategories[position_in_ap];
@@ -529,15 +529,17 @@ public:
 
         BlockWithRates updated_block(*event_block.parentRateCategories, pos, event_size);
 
-        // Handle rate categories for the NEW insertion in updated_block
-        left_flank_category = (*event_block.parentRateCategories)[key_[block_index] + pos - 1];
-        // if on left edge of OP, set left flank category to SIZE_MAX.
-        if (key_[block_index] + pos - 1 == 0) {
+        // handle special key_[block_index] == 0 case:
+        if (key_[block_index] == 0) {
+          // if the event is at the left edge of the entire sequence, right flank should be the first category
+          // in parent (index 0), and left flank should be SIZE_MAX.
           left_flank_category = SIZE_MAX;
+          right_flank_category = (*event_block.parentRateCategories)[0];
+        } else {
+          // if the event is in the original part, the left flank category is the one at position pos-1 of event_block.parentRateCategories and the right flank category is the one at position pos.
+          left_flank_category = (*event_block.parentRateCategories)[key_[block_index] + pos - 1];
+          right_flank_category = (*event_block.parentRateCategories)[key_[block_index] + pos];
         }
-        right_flank_category = (*event_block.parentRateCategories)[key_[block_index] + pos];
-        // Insertion is in the middle of OP, so right edge must be within OP.
-        // Since AP is new, event position within it is 0.
         updated_block.handleInsertion(0, left_flank_category, right_flank_category, event_size, sampler, rng);
 
         int new_size = updated_block.insertion + updated_block.length;

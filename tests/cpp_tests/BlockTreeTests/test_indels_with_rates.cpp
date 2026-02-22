@@ -23,18 +23,15 @@ int main() {
     // create a sampler with 4 actual categories:
     // such that if you are at 0 you transition to 1 with 100%.
     // if you are at 1 you transition to 2 with 100%, etc.
-    CategorySampler sampler({{0.01, 0.99},
-                             {0.99, 0.01}},
+    CategorySampler sampler({{0.001, 0.999},
+                             {0.999, 0.001}},
                             {0.5, 0.5}, MAX_INSERTION_LENGTH);
 
     std::mt19937_64 rng(42);
 
      std::vector<Event> events = {
-        {INSERTION, 0, 1},
-        {INSERTION, 5, 1},
-        {INSERTION, 5, 1},
-        {INSERTION, 8, 1},
-        {INSERTION, 13, 1}
+        {DELETION, 7, 2},
+        {INSERTION, 6, 1},
     };
 
     for (auto& ev : events) {
@@ -55,7 +52,6 @@ int main() {
         size_t length = it.val().length;
         size_t insertion = it.val().insertion;
         size_t siteInParent = it.key();
-        std::cout << siteInParent   << "\n";
         if (insertion > 0 && siteInParent == 0 && length == 1 ) {
             // push vector at end of new vector
             std::cout << "adding insertions:\n";
@@ -68,7 +64,11 @@ int main() {
             std::cout << "\n";
             continue;
         }
-
+        if (siteInParent == 0){
+            siteInParent = 1;
+            length -= 1;
+        } // special case for the first site, which is at position 0 but corresponds to the first site in the parent sequence.
+        
         std::cout << "copying from parent:\n";
         for (size_t pos_in_block = 0; pos_in_block < length; ++pos_in_block) {
             evolvedRateCategories[processedSites] = parentRates[(siteInParent-1) + pos_in_block];
