@@ -30,8 +30,23 @@ int main() {
     std::mt19937_64 rng(42);
 
      std::vector<Event> events = {
-        {DELETION, 7, 2},
-        {INSERTION, 6, 1},
+        {INSERTION, 0, 3},
+        {DELETION, 2, 1},
+        {DELETION, 9, 2},
+        {INSERTION, 8, 1},
+        {INSERTION, 10, 1},
+        {DELETION, 10, 1},
+        {DELETION, 4, 4},
+        {INSERTION, 3, 3},
+        {DELETION, 6, 1},
+        {INSERTION, 5, 1},
+        {INSERTION, 3, 1},
+        {INSERTION, 0, 1},
+        {INSERTION, 11, 1},
+        {INSERTION, 2, 1},
+        {INSERTION, 11, 1},
+        {DELETION, 10, 4},
+        {DELETION, 5, 1}
     };
 
     for (auto& ev : events) {
@@ -85,8 +100,8 @@ int main() {
         }
         std::cout << "\n";
     }
-    // there should be 14 rates categories in the evolved sequence,
-    // corresponding to the 9 actual original sites and the 5 insertions.
+    // there should be 9 rates categories in the evolved sequence,
+    // corresponding to the none of the original sites and only new insertions.
     std::cout << "Evolved rate categories: ";
     for (size_t cat : evolvedRateCategories) {
         std::cout << cat << " ";
