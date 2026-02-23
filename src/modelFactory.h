@@ -18,6 +18,7 @@
 #include "../libs/Phylolib/includes/gammaDistribution.h"
 #include "../libs/Phylolib/includes/customDistribution.h"
 
+#include "CategorySampler.h"
 #include "allModels.h"
 
 // wrapper for all the information about the substitution model:
@@ -399,6 +400,13 @@ public:
         customDistribution dist(_customRates, _stationaryProbs);
 
         return std::make_shared<stochasticProcess>(&dist, _cachedPij.get());
+    }
+
+    std::unique_ptr<CategorySampler> getRateCategorySampler(size_t maxPathLength = 0) {
+
+        // Create category sampler with current rate model parameters and return
+
+        return std::move(_cachedCategorySampler);
     }
 
     ~modelFactory() {}

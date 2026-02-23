@@ -78,30 +78,6 @@ struct BlockWithRates {
         , insertion(0)
         , parentRateCategories(nullptr) {}
 
-  //   BlockWithRates(const BlockWithRates& other) 
-  //   : length(other.length)
-  //   , insertion(other.insertion)
-  //   , parentRateCategories(other.parentRateCategories)
-  //   , rateCategories(other.rateCategories) {}
-        
-  //   BlockWithRates& operator=(const BlockWithRates& other) {
-  //     if (this != &other) {
-  //         std::cerr << "Assignment: this=" << this << " other=" << &other << std::endl;
-  //         std::cerr << "  this->parentRateCategories=" << this->parentRateCategories << std::endl;
-  //         std::cerr << "  other.parentRateCategories=" << other.parentRateCategories << std::endl;
-          
-  //         length = other.length;
-  //         insertion = other.insertion;
-  //         parentRateCategories = other.parentRateCategories;
-          
-  //         std::cerr << "  About to copy vector..." << std::endl;
-  //         std::vector<size_t> temp(other.rateCategories);
-  //         std::cerr << "  About to swap..." << std::endl;
-  //         rateCategories.swap(temp);
-  //         std::cerr << "  Done!" << std::endl;
-  //     }
-  //     return *this;
-  // }
     // Handle rate category insertions within this block.
     template<typename RngType = std::mt19937_64>
     void handleInsertion(size_t position, size_t leftFlankCategory, size_t rightFlankCategory, size_t insertLength, CategorySampler& sampler, RngType &rng) {
@@ -546,6 +522,12 @@ public:
         int difference_in_length = new_size - original_size;
         size_t potential_block_size = potential_block.insertion + potential_block.length;
 
+        // if (key_[block_index] + val_[block_index].length > event_block.parentRateCategories->size()+1) {
+        //   std::cout << "Length of parent:" << event_block.parentRateCategories->size() << std::endl;
+        //   std::cout << "Error: Attempting to access parent rate category at position " << key_[block_index] + pos << " which is out of bounds" << std::endl;
+        //   std::cout << "Block start: " << key_[block_index] << ", block length: " << val_[block_index].length << std::endl;
+        //   throw std::out_of_range("Parent rate category index is out of bounds!");
+        // }
         bool event_a = this->insert(key_[block_index], updated_block, difference_in_length);
         bool event_b = this->insert(key_[block_index] + pos, potential_block, potential_block_size);
 
@@ -647,9 +629,8 @@ public:
   //         xxxxxxxx
   //  [------OP------|---AP---]
   bool remove_case_e(const size_type block_index, size_t position, size_t event_size, size_t length, size_t insertion) {
-    BlockWithRates event_block = val_[block_index];
-
-    BlockWithRates first_block(*event_block.parentRateCategories, position, insertion);
+    BlockWithRates first_block = val_[block_index];
+    first_block.length = position;
     int new_size = first_block.insertion + first_block.length;
     int difference_in_length = new_size - (length + insertion);
     return this->insert(key_[block_index], first_block, difference_in_length);
@@ -1384,15 +1365,7 @@ bool handle_event(Event &ev, CategorySampler& sampler, RngType &rng) {
 
 
 
-// BlockList get_blocklist() {
-//     BlockList blocklist;
-//     for (auto it = this->begin(); it != this->end(); ++it) {
-//         std::array<size_t,3> current_block =  {(&it)->key(), (*it).length, (*it).insertion};
-//         // std::tuple<int, int, int> current_block ((&it)->key(), (*it).length, (*it).insertion);
-//         blocklist.push_back(current_block);
-//     }
-//     return blocklist;
-// }
+
 
 bool init_tree(size_t sequence_length, const std::vector<size_t>& parentRateCategories) {
   this->clear();
@@ -1434,23 +1407,20 @@ bool checkLength(size_type node) {
 }
 
 bool validate_rate_integrity() {
+  size_t index = 0;
     for (auto it = this->begin(); it != this->end(); ++it) {
       BlockWithRates& block = *it;
         
       if (block.rateCategories.size() != block.insertion) {
-          std::cout << "Rate integrity violation: block has " << block.insertion 
+
+        std::cout << "Rate integrity violation at key " << (&it)->key() << ": ";
+        std::cout << "index of block in blocklist: " << index << ". ";
+        std::cout << "block has " << block.insertion 
                     << " insertions but " << block.rateCategories.size() 
                     << " rate categories\n";
           return false;
       }
-      std::cout << "Block at key " << (&it)->key() << " has " << block.insertion 
-                << " insertions and " << block.rateCategories.size() 
-                << " rate categories\n";
-      std::cout << "Rate categories: ";
-      for (size_t i = 0; i < block.rateCategories.size(); ++i) {
-        std::cout << block.rateCategories[i] << " ";
-      }
-      std::cout << std::endl;
+      index++;
     }
     return true;
 }

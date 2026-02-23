@@ -32,13 +32,14 @@ private:
     size_t _msaSeqLength;
     BlockTreeType _blocks;
     RngType & _rng;
-    CategorySampler _rateCategorySampler;
+
+    std::unique_ptr<CategorySampler> _rateCategorySampler;
     std::shared_ptr<std::vector<size_t>> _msaRateCategories;
 
 public:
     SuperSequence<RngType, BlockTreeType>(size_t sequenceSize, SimulationContext<RngType> &simContext):
          _rng(simContext.getRng()),
-         _rateCategorySampler({{{1.0}}}, {1.0}, simContext.getProtocol()->getMaxInsertionLength())
+         _rateCategorySampler(simContext.getCategorySampler())
          {
         _msaSeqLength = 0;
         _leafNum = 0;
@@ -176,7 +177,7 @@ public:
     void logEventInBlockTree(Event ev) {
         // Conditional handling based on BlockTreeType
         if constexpr (std::is_same_v<BlockTreeType, BlockTreeWithRates>) {
-            _blocks.handleEvent(ev, _rateCategorySampler, _rng);
+            _blocks.handleEvent(ev, *_rateCategorySampler, _rng);
         } else {
             // Simple BlockTree doesn't need sampler/rng
             _blocks.handleEvent(ev.type, ev.position, ev.length);
@@ -187,11 +188,12 @@ public:
 
     void initRateSampler(const std::vector<std::vector<MDOUBLE>>& transitionMatrix,
                      const std::vector<MDOUBLE>& stationaryProbs) {
-        _rateCategorySampler = CategorySampler(transitionMatrix, stationaryProbs);
+                        
+        _rateCategorySampler = std::make_unique<CategorySampler>(transitionMatrix, stationaryProbs);
     }
 
     size_t sampleRootCategory() {
-        return _rateCategorySampler.drawSample(_rng);
+        return _rateCategorySampler->drawSample(_rng);
     }
 
     std::shared_ptr<std::vector<size_t>> getMsaRateCategories() const {

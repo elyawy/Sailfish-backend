@@ -7,7 +7,7 @@
 
 // takes 10 minutes currently
 int main() {
-    tree tree_("../../trees/normalbranches_nLeaves10.treefile");
+    tree tree_("../../trees/normalbranches_nLeaves100.treefile");
 
     std::time_t t1 = 42;//std::time(0);
 
@@ -30,8 +30,8 @@ int main() {
     vector<double> insertionRates(tree_.getNodesNum() - 1);
     vector<double> deletionRates(tree_.getNodesNum() - 1);
 
-    fill(insertionRates.begin(), insertionRates.end(), 1.0);
-    fill(deletionRates.begin(), deletionRates.end(), 1.0);
+    fill(insertionRates.begin(), insertionRates.end(), 0.05);
+    fill(deletionRates.begin(), deletionRates.end(), 0.05);
 
     SimulationProtocol protocol(simContext.getTree()->getNodesNum() - 1);
     simContext.setProtocol(&protocol);
@@ -42,10 +42,10 @@ int main() {
     protocol.setDeletionRates(deletionRates);
     protocol.setMaxInsertionLength(150);
     protocol.setMinSequenceSize(10);
-    protocol.setIndelRateModel(SiteRateModel::INDEL_AWARE);
+    protocol.setIndelRateModel(SiteRateModel::SIMPLE);
 
 
-    int rootLength = 10;
+    int rootLength = 50;
     protocol.setSequenceSize(rootLength);
     auto end = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
@@ -82,19 +82,16 @@ int main() {
                             {0.0213646 ,0.10750572,0.2688647, 0.60226497}
                           });
 
+
     if (!mFac.isModelValid()) return 1;
     mFac.buildReplacementModel(); // to force model building
     end =  std::chrono::high_resolution_clock::now();
     duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
     std::cout << "Model setup took " << duration << " microseconds.\n";
 
-    // time substitution simulator initialization in microseconds
-    start = std::chrono::high_resolution_clock::now();
-    SubstitutionSimulator<pcg64_fast, 20> substitutionSim(mFac, simContext);
-    end = std::chrono::high_resolution_clock::now();
-    duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
-    std::cout << "Substitution simulator initialization took " << duration << " microseconds.\n";
-    
+    simContext.setCategorySampler(mFac.getRateCategorySampler(protocol.getMaxInsertionLength()));
+
+
     //time MSA construction in microseconds
     start = std::chrono::high_resolution_clock::now();
     auto msa = MSA<pcg64_fast>(eventMap, simContext);
@@ -103,6 +100,15 @@ int main() {
     std::cout << "MSA construction took " << duration << " microseconds.\n";
     std::cout << "MSA built. Number of sequences: " << msa.getNumberOfSequences() 
               << ", MSA length: " << msa.getMSAlength() << "\n";
+
+
+    // time substitution simulator initialization in microseconds
+    start = std::chrono::high_resolution_clock::now();
+    SubstitutionSimulator<pcg64_fast, 20> substitutionSim(mFac, simContext);
+    end = std::chrono::high_resolution_clock::now();
+    duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+    std::cout << "Substitution simulator initialization took " << duration << " microseconds.\n";
+    
 
     substitutionSim.setAlignedSequenceMap(msa);
 
