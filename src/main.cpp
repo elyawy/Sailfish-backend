@@ -69,14 +69,14 @@ PYBIND11_MODULE(_Sailfish, m) {
         .def("set_minimum_sequence_size", &SimulationProtocol::setMinSequenceSize)
         .def("get_minimum_sequence_size", &SimulationProtocol::getMinSequenceSize)
         .def("set_indel_rate_model", &SimulationProtocol::setIndelRateModel)
-        .def("get_indel_rate_model", &SimulationProtocol::getIndelRateModel)
+        .def("get_indel_rate_model", &SimulationProtocol::getSiteRateModel)
         .def("set_max__insertion_length", &SimulationProtocol::setMaxInsertionLength)
         .def("get_max__insertion_length", &SimulationProtocol::getMaxInsertionLength);
 
 
 
-    py::class_<sequenceContainer, std::shared_ptr<sequenceContainer>>(m, "sequenceContainer")
-        .def(py::init<>());
+    // py::class_<sequenceContainer, std::shared_ptr<sequenceContainer>>(m, "sequenceContainer")
+    //     .def(py::init<>());
 
 
     py::enum_<modelCode>(m, "modelCode")
@@ -126,17 +126,21 @@ PYBIND11_MODULE(_Sailfish, m) {
             return result;
         });
 
+    py::class_<CategorySampler>(m, "CategorySampler");
+
     py::class_<modelFactory>(m, "modelFactory")
         .def(py::init<>())
         .def("set_replacement_model" , &modelFactory::setReplacementModel)
         .def("set_amino_replacement_model_file" , &modelFactory::setCustomAAModelFile)
         .def("set_model_parameters" , &modelFactory::setModelParameters)
-        .def("setSiteRateModel", &modelFactory::setSiteRateModel,
+        .def("set_site_rate_model", &modelFactory::setSiteRateModel,
             py::arg("rates"),
             py::arg("stationary_probs"),
             py::arg("transition_matrix") = std::vector<std::vector<MDOUBLE>>())
-        .def("reset", &modelFactory::resetFactory);
-
+        .def("reset", &modelFactory::resetFactory)
+        .def("is_model_valid", &modelFactory::isModelValid)
+        .def("build_replacement_model", &modelFactory::buildReplacementModel)
+        .def("get_rate_category_sampler", &modelFactory::getRateCategorySampler, py::arg("max_path_length") = 0);
 
     py::class_<SimulationContext<SelectedRNG>>(m, "SimulationContext")
         .def(py::init<tree*, size_t>())
@@ -145,7 +149,11 @@ PYBIND11_MODULE(_Sailfish, m) {
         .def("set_save_leaves", &SimulationContext<SelectedRNG>::setSaveLeaves)
         .def("set_save_root", &SimulationContext<SelectedRNG>::setSaveRoot)
         .def("set_save_all", &SimulationContext<SelectedRNG>::setSaveAll)
-        .def("reseed", &SimulationContext<SelectedRNG>::reseed);
+        .def("reseed", &SimulationContext<SelectedRNG>::reseed)
+        .def("set_protocol", &SimulationContext<SelectedRNG>::setProtocol)
+        .def("set_category_sampler", [](SimulationContext<SelectedRNG>& self, std::unique_ptr<CategorySampler> sampler) {
+            self.setCategorySampler(std::move(sampler));
+        });
 
     //event enum bindings
     py::enum_<event>(m, "IndelEventType")
@@ -179,37 +187,59 @@ PYBIND11_MODULE(_Sailfish, m) {
     // bindings for SubstitutionSimulator (amino)
     py::class_<SubstitutionSimulator<SelectedRNG, 20>>(m, "AminoSubstitutionSimulator")
         .def(py::init<modelFactory&, SimulationContext<SelectedRNG>&>())
-        .def("simulate_substitutions", &SubstitutionSimulator<SelectedRNG, 20>::simulateSubstitutions)
+        .def("simulate_substitutions", [](SubstitutionSimulator<SelectedRNG, 20>& self, size_t length) {
+            return *self.simulateSubstitutions(length);})
         .def("simulate_and_write_substitutions", &SubstitutionSimulator<SelectedRNG, 20>::simulateAndWriteSubstitutions)
         .def("init_substitution_sim", &SubstitutionSimulator<SelectedRNG, 20>::initSubstitionSim)
         .def("set_save_rates", &SubstitutionSimulator<SelectedRNG, 20>::setSaveRates)
         .def("clear_rates_vec", &SubstitutionSimulator<SelectedRNG, 20>::clearRatesVec)
         .def("get_sequence_container", &SubstitutionSimulator<SelectedRNG, 20>::getSequenceContainer)
         .def("set_aligned_sequence_map", &SubstitutionSimulator<SelectedRNG, 20>::setAlignedSequenceMap)
-        .def("get_site_rates", &SubstitutionSimulator<SelectedRNG, 20>::getSiteRates);
+        .def("get_site_rates", &SubstitutionSimulator<SelectedRNG, 20>::getSiteRates)
+        .def("set_per_site_rate_categories", [](SubstitutionSimulator<SelectedRNG, 20>& self, std::vector<size_t> cats) {
+            self.setPerSiteRateCategories(std::make_shared<const std::vector<size_t>>(std::move(cats)));
+        })
+        .def("get_per_site_rate_categories", [](SubstitutionSimulator<SelectedRNG, 20>& self) {
+            auto cats = self.getPerSiteRateCategories();
+            return cats ? std::vector<size_t>(*cats) : std::vector<size_t>{};
+        });
 
     // bindings for SubstitutionSimulator (nucleotide)
     py::class_<SubstitutionSimulator<SelectedRNG, 4>>(m, "NucleotideSubstitutionSimulator")
         .def(py::init<modelFactory&, SimulationContext<SelectedRNG>&>())
-        .def("simulate_substitutions", &SubstitutionSimulator<SelectedRNG, 4>::simulateSubstitutions)
+        .def("simulate_substitutions", [](SubstitutionSimulator<SelectedRNG, 4>& self, size_t length) {
+            return *self.simulateSubstitutions(length);})
         .def("simulate_and_write_substitutions", &SubstitutionSimulator<SelectedRNG, 4>::simulateAndWriteSubstitutions)
         .def("init_substitution_sim", &SubstitutionSimulator<SelectedRNG, 4>::initSubstitionSim)
         .def("set_save_rates", &SubstitutionSimulator<SelectedRNG, 4>::setSaveRates)
         .def("clear_rates_vec", &SubstitutionSimulator<SelectedRNG, 4>::clearRatesVec)
         .def("get_sequence_container", &SubstitutionSimulator<SelectedRNG, 4>::getSequenceContainer)
         .def("set_aligned_sequence_map", &SubstitutionSimulator<SelectedRNG, 4>::setAlignedSequenceMap)
-        .def("get_site_rates", &SubstitutionSimulator<SelectedRNG, 4>::getSiteRates);
+        .def("get_site_rates", &SubstitutionSimulator<SelectedRNG, 4>::getSiteRates)
+        .def("set_per_site_rate_categories", [](SubstitutionSimulator<SelectedRNG, 4>& self, std::vector<size_t> cats) {
+            self.setPerSiteRateCategories(std::make_shared<const std::vector<size_t>>(std::move(cats)));
+        })
+        .def("get_per_site_rate_categories", [](SubstitutionSimulator<SelectedRNG, 4>& self) {
+            auto cats = self.getPerSiteRateCategories();
+            return cats ? std::vector<size_t>(*cats) : std::vector<size_t>{};
+        });
 
 
-    py::class_<MSA>(m, "Msa")
+    py::class_<MSA<SelectedRNG>>(m, "Msa")
+        .def(py::init<EventMap&, SimulationContext<SelectedRNG>&>())
         .def(py::init<size_t, size_t, const std::vector<bool>& >())
-        .def(py::init<EventMap&, tree::TreeNode*, const std::vector<bool>& >())
-        .def("length", &MSA::getMSAlength)
-        .def("num_sequences", &MSA::getNumberOfSequences)
-        .def("fill_substitutions", &MSA::fillSubstitutions)
-        .def("print_msa", &MSA::printFullMsa)
-        .def("write_msa", &MSA::writeFullMsa)
-        .def("get_msa_string", &MSA::generateMsaString)
-        .def("get_msa", &MSA::getMSAVec);
+        .def("length", &MSA<SelectedRNG>::getMSAlength)
+        .def("num_sequences", &MSA<SelectedRNG>::getNumberOfSequences)
+        .def("fill_substitutions", &MSA<SelectedRNG>::fillSubstitutions)
+        .def("print_msa", &MSA<SelectedRNG>::printFullMsa)
+        .def("write_msa", &MSA<SelectedRNG>::writeFullMsa)
+        .def("get_msa_row_string", &MSA<SelectedRNG>::generateMsaRowString)
+        .def("get_sparse_msa", [](MSA<SelectedRNG>& self) {
+            return *self.getSparseMSA();
+        })
+        .def("get_per_site_rate_categories", [](MSA<SelectedRNG>& self) {
+            auto cats = self.getPerSiteRateCategories();
+            return cats ? *cats : std::vector<size_t>{};
+        });
 
 }

@@ -42,7 +42,7 @@ int main() {
     protocol.setDeletionRates(deletionRates);
     protocol.setMaxInsertionLength(150);
     protocol.setMinSequenceSize(10);
-    protocol.setIndelRateModel(SiteRateModel::SIMPLE);
+    protocol.setIndelRateModel(SiteRateModel::INDEL_AWARE);
 
 
     int rootLength = 50;

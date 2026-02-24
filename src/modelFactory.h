@@ -405,8 +405,9 @@ public:
     std::unique_ptr<CategorySampler> getRateCategorySampler(size_t maxPathLength = 0) {
 
         // Create category sampler with current rate model parameters and return
-
-        return std::move(_cachedCategorySampler);
+        auto transitionMatrix = getEffectiveTransitionMatrix();
+        auto categorySampler = std::make_unique<CategorySampler>(transitionMatrix, _stationaryProbs, maxPathLength);
+        return categorySampler;
     }
 
     ~modelFactory() {}
