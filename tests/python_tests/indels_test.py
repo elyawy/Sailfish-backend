@@ -20,6 +20,7 @@ simulation.set_replacement_model(model=MODEL_CODES.WAG,
                                  gamma_parameters_alpha=1.0, 
                                  gamma_parameters_categories=4)
 
+
 msa = simulation()
 msa.print_msa()
 # counter = 0

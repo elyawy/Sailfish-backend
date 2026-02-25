@@ -38,7 +38,8 @@ class SimProtocol:
         self._num_branches = self._tree.get_num_nodes() - 1
         self._sim_protocol = _Sailfish.SimProtocol(self._num_branches)
         self.set_seed(seed)
-        self._sim_context = _Sailfish.SimulationContext(self._tree, self._seed)
+        self._sim_context = _Sailfish.SimulationContext(tree=self._tree._get_Sailfish_tree(), 
+                                                        seed=self._seed, protocol=self._sim_protocol)
         self.set_sequence_size(root_seq_size)
         self._is_deletion_rate_zero = not deletion_rate
         self._is_insertion_rate_zero = not insertion_rate
@@ -47,6 +48,7 @@ class SimProtocol:
         self.set_deletion_length_distributions(deletion_dist=deletion_dist)
         self.set_insertion_length_distributions(insertion_dist=insertion_dist)
         self.set_min_sequence_size(min_sequence_size=minimum_seq_size)
+        self.set_max_insertion_length(insertion_dist.get_truncation())
 
     def get_tree(self) -> Tree:
         return self._tree
@@ -79,6 +81,13 @@ class SimProtocol:
     def set_min_sequence_size(self, min_sequence_size: int) -> None:
         self._sim_protocol.set_minimum_sequence_size(min_sequence_size)
         self._min_seq_size = min_sequence_size
+    
+    def set_max_insertion_length(self, max_insertion_length: int) -> None:
+        self._sim_protocol.set_max_insertion_length(max_insertion_length)
+        self._max_insertion_length = max_insertion_length
+    
+    def get_max_insertion_length(self) -> int:
+        return self._max_insertion_length
 
     
     def set_insertion_rates(self, insertion_rate: Optional[float] = None, insertion_rates: Optional[List[float]] = None) -> None:

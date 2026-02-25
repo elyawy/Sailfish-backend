@@ -33,7 +33,7 @@ private:
     BlockTreeType _blocks;
     RngType & _rng;
 
-    std::unique_ptr<CategorySampler> _rateCategorySampler;
+    CategorySampler* _rateCategorySampler;
     std::shared_ptr<std::vector<size_t>> _msaRateCategories;
 
 public:
@@ -186,11 +186,6 @@ public:
 
     BlockTreeType& getBlockTree(){ return _blocks;}
 
-    void initRateSampler(const std::vector<std::vector<MDOUBLE>>& transitionMatrix,
-                     const std::vector<MDOUBLE>& stationaryProbs) {
-                        
-        _rateCategorySampler = std::make_unique<CategorySampler>(transitionMatrix, stationaryProbs);
-    }
 
     size_t sampleRootCategory() {
         return _rateCategorySampler->drawSample(_rng);

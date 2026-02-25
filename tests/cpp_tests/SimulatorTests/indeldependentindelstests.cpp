@@ -42,7 +42,7 @@ int main() {
     protocol.setDeletionRates(deletionRates);
     protocol.setMaxInsertionLength(150);
     protocol.setMinSequenceSize(10);
-    protocol.setIndelRateModel(SiteRateModel::INDEL_AWARE);
+    protocol.setSiteRateModel(SiteRateModel::INDEL_AWARE);
 
 
     int rootLength = 50;
@@ -88,8 +88,9 @@ int main() {
     end =  std::chrono::high_resolution_clock::now();
     duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
     std::cout << "Model setup took " << duration << " microseconds.\n";
-
-    simContext.setCategorySampler(mFac.getRateCategorySampler(protocol.getMaxInsertionLength()));
+    
+    auto categorySampler = mFac.getRateCategorySampler(protocol.getMaxInsertionLength());
+    simContext.setCategorySampler(&categorySampler);
 
 
     //time MSA construction in microseconds

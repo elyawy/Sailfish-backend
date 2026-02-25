@@ -402,12 +402,11 @@ public:
         return std::make_shared<stochasticProcess>(&dist, _cachedPij.get());
     }
 
-    std::unique_ptr<CategorySampler> getRateCategorySampler(size_t maxPathLength = 0) {
+    CategorySampler getRateCategorySampler(size_t maxPathLength = 0) {
 
         // Create category sampler with current rate model parameters and return
         auto transitionMatrix = getEffectiveTransitionMatrix();
-        auto categorySampler = std::make_unique<CategorySampler>(transitionMatrix, _stationaryProbs, maxPathLength);
-        return categorySampler;
+        return CategorySampler(transitionMatrix, _stationaryProbs, maxPathLength);
     }
 
     ~modelFactory() {}

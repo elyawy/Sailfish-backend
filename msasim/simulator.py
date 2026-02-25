@@ -7,7 +7,7 @@ from typing import Dict, Optional, List
 from .protocol import SimProtocol
 from .distributions import PoissonDistribution
 from .msa import Msa
-from .constants import MODEL_CODES, SIMULATION_TYPE
+from .constants import MODEL_CODES, SIMULATION_TYPE, SIMULATION_TYPES
 
 
 class Simulator:
@@ -33,7 +33,7 @@ class Simulator:
         # verify sim_protocol
         if self._verify_sim_protocol(simProtocol):
             self._simProtocol = simProtocol
-            self._indel_simulator = _Sailfish.IndelSimulator(self._simProtocol.get_sim_context() , self._simProtocol._sim)
+            self._indel_simulator = _Sailfish.IndelSimulator(self._simProtocol.get_sim_context() , self._simProtocol._sim_protocol)
         else:
             raise ValueError("failed to verify simProtocol")
         
@@ -41,17 +41,13 @@ class Simulator:
             warnings.warn("simulation type not provided -> running indel only simulation")
             simulation_type = SIMULATION_TYPE.NOSUBS
         
-        if simulation_type == SIMULATION_TYPE.PROTEIN:
-            self._alphabet = _Sailfish.alphabetCode.AMINOACID
-        elif simulation_type == SIMULATION_TYPE.DNA:
-            self._alphabet = _Sailfish.alphabetCode.NUCLEOTIDE
-        elif simulation_type == SIMULATION_TYPE.NOSUBS:
-            self._alphabet = _Sailfish.alphabetCode.NULLCODE
-        else:
+        if simulation_type not in SIMULATION_TYPES:
             raise ValueError(f"unknown simulation type, please provde one of the following: {[e.name for e in SIMULATION_TYPE]}")
         
+        self._model_factory = _Sailfish.modelFactory()
         self._simulation_type = simulation_type
         self._is_sub_model_init = False
+        self._substitution_simulator = None
     
     def _verify_sim_protocol(self, simProtocol) -> bool:
         if not simProtocol.get_tree():
@@ -69,7 +65,7 @@ class Simulator:
         return True
     
     # generates indel events
-    def generate_events(self) -> List[List[_Sailfish.Event]]:
+    def generate_events(self) -> List[List[_Sailfish.IndelEvent]]:
         return self._indel_simulator.generate_events()
 
     def _create_site_rate_model(
@@ -152,18 +148,6 @@ class Simulator:
         return rates, probs, transition_matrix
     
     def _init_sub_model(self) -> None:
-        self._model_factory = _Sailfish.modelFactory()
-        if self._simulation_type == SIMULATION_TYPE.PROTEIN:
-            warnings.warn("replacement matrix not provided -> running with default parameters: WAG model")
-            self._model_factory.set_replacement_model(_Sailfish.modelCode.WAG)
-        else:
-            warnings.warn("replacement matrix not provided -> running with default parameters: JC model")
-            self._model_factory.set_replacement_model(_Sailfish.modelCode.NUCJC)
-
-    
-        rates, probs = self._create_site_rate_model()
-        self._model_factory.setSiteRateModel(rates, probs)    
-
         if self._simulation_type == SIMULATION_TYPE.PROTEIN:
             self._substitution_simulator = _Sailfish.AminoSubstitutionSimulator(self._model_factory,
                                                                                 self._simProtocol.get_sim_context())
@@ -186,8 +170,7 @@ class Simulator:
         if not model:
             raise ValueError(f"please provide a substitution model from the the following list: {_Sailfish.modelCode}")
         if int(gamma_parameters_categories) != gamma_parameters_categories:
-            raise ValueError(f"gamma_parameters_catergories has to be a positive int value: received value of {gamma_parameters_categories}")
-        self._model_factory = _Sailfish.modelFactory()
+            raise ValueError(f"gamma_parameters_categories has to be a positive int value: received value of {gamma_parameters_categories}")
 
 
         if self._simulation_type == SIMULATION_TYPE.PROTEIN:
@@ -214,11 +197,12 @@ class Simulator:
             invariant_proportion=invariant_sites_proportion,
             site_rate_correlation=site_rate_correlation
         )
-        self._model_factory.setSiteRateModel(rates, probs, transition_matrix)
 
-        self._substitution_simulator.init_substitution_sim()
+        self._model_factory.set_site_rate_model(rates, probs, transition_matrix)
 
-        self._is_sub_model_init = True
+        if self._substitution_simulator is not None:
+            self._substitution_simulator.init_substitution_sim(self._model_factory) 
+
         
     def get_sequences_to_save(self) -> List[bool]:
         sim_context = self._simProtocol.get_sim_context()
@@ -245,14 +229,15 @@ class Simulator:
     # @profile
     def simulate(self, times: int = 1) -> List[Msa]:
         Msas = []
+        sim_context = self._simProtocol.get_sim_context()
         for _ in range(times):
             if self._simProtocol._is_insertion_rate_zero and self._simProtocol._is_deletion_rate_zero:
-                msa = Msa(sum(self.get_sequences_to_save()),
-                          self._simProtocol.get_sequence_size(),
-                          self.get_sequences_to_save())
+                msa = Msa(self._simProtocol.get_sequence_size(), sim_context)
             else:
                 eventmap = self.generate_events()
-                msa = Msa(eventmap, self._simProtocol._get_root(), self.get_sequences_to_save())
+                category_sampler = self._model_factory.get_rate_category_sampler(self._simProtocol.get_max_insertion_length())
+                sim_context.set_category_sampler(category_sampler)
+                msa = Msa(eventmap, sim_context)
 
             if self._simulation_type != SIMULATION_TYPE.NOSUBS:
                 substitutions = self.gen_substitutions(msa.get_length())

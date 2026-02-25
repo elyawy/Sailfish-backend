@@ -18,12 +18,11 @@ constexpr uint64_t PHI = 0x9e3779b97f4a7c15;
 template<typename RngType = std::mt19937_64>
 class SimulationContext {
 public:
-    SimulationContext(tree* t, size_t seed, SimulationProtocol* protocol = nullptr, std::unique_ptr<CategorySampler> categorySampler = nullptr) 
+    SimulationContext(tree* t, size_t seed, SimulationProtocol* protocol = nullptr) 
         : _tree(t), _seed(seed), _rng(seed*PHI), 
           _nodesToSave(t->getNodesNum(), false), 
           _idToSaveIndices(t->getNodesNum(), SIZE_MAX),
-          _protocol(protocol),
-          _categorySampler(std::move(categorySampler)) {
+          _protocol(protocol) {
             // By default, save leaves only
             setSaveLeaves();
           }
@@ -88,15 +87,12 @@ public:
         return _protocol; 
     }
 
-    void setCategorySampler(std::unique_ptr<CategorySampler> categorySampler) {
-        _categorySampler = std::move(categorySampler);
+    void setCategorySampler(CategorySampler* categorySampler) {
+        _categorySampler = categorySampler;
     }
 
-    std::unique_ptr<CategorySampler> getCategorySampler() {
-        auto categorySamplerCopy = std::move(_categorySampler);
-        // set to nullptr to avoid dangling pointer issues - the sampler is owned by the context until it is moved out, and should not be used after being moved
-        _categorySampler = nullptr;
-        return categorySamplerCopy;
+    CategorySampler* getCategorySampler() {
+        return _categorySampler;
     }
 
 private:
@@ -139,7 +135,7 @@ private:
     std::vector<std::string> _nodeToSaveNames;
     size_t _numberOfNodesToSave = 0;
     SimulationProtocol* _protocol;  // Can be nullptr
-    unique_ptr<CategorySampler> _categorySampler; // Can be nullptr
+    CategorySampler* _categorySampler; // Can be nullptr
 };
 
 #endif

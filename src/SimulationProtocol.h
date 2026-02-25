@@ -138,7 +138,7 @@ public:
     }
 
 
-    void setIndelRateModel(SiteRateModel model) {
+    void setSiteRateModel(SiteRateModel model) {
         _siteRateModel = model;
     }
 
