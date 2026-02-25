@@ -54,6 +54,7 @@ def time_me(func):
 
 for num_sequences in trees_map.keys():
     simulator = init_protocol(num_sequences)
+    simulator._init_sub_model()
     output_dir = pathlib.Path("test_outputs")
     output_dir.mkdir(exist_ok=True)
 

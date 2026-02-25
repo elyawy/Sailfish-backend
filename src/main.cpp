@@ -1,6 +1,7 @@
 #include <iostream>
 
 #include <pybind11/pybind11.h>
+#include <pybind11/stl_bind.h>
 #include <pybind11/stl.h>
 #include <memory>
 
@@ -10,6 +11,8 @@
 #include "./SubstitutionSimulator.h"
 
 namespace py = pybind11;
+
+PYBIND11_MAKE_OPAQUE(SparseSequenceContainer);
 
 
 PYBIND11_MODULE(_Sailfish, m) {
@@ -36,6 +39,9 @@ PYBIND11_MODULE(_Sailfish, m) {
 
     py::class_<DiscreteDistribution>(m, "DiscreteDistribution")
         .def(py::init<std::vector<double>>());
+
+    py::bind_vector<SparseSequenceContainer, std::shared_ptr<SparseSequenceContainer>>(m, "SparseSequenceContainer");
+
 
     py::class_<tree>(m, "Tree")
         .def(py::init<const std::string&, bool>(), "Create Phylogenetic tree object from newick formatted file")
@@ -232,15 +238,11 @@ PYBIND11_MODULE(_Sailfish, m) {
         .def(py::init<size_t, SimulationContext<SelectedRNG>&>())
         .def("length", &MSA<SelectedRNG>::getMSAlength)
         .def("num_sequences", &MSA<SelectedRNG>::getNumberOfSequences)
-        .def("fill_substitutions", [](MSA<SelectedRNG>& self, SparseSequenceContainer seqs) {
-            self.fillSubstitutions(std::make_shared<const SparseSequenceContainer>(std::move(seqs)));
-        })
+        .def("fill_substitutions", &MSA<SelectedRNG>::fillSubstitutions)
         .def("print_msa", &MSA<SelectedRNG>::printFullMsa)
         .def("write_msa", &MSA<SelectedRNG>::writeFullMsa)
         .def("get_msa_row_string", &MSA<SelectedRNG>::generateMsaRowString)
-        .def("get_sparse_msa", [](MSA<SelectedRNG>& self) {
-            return *self.getSparseMSA();
-        })
+        .def("get_sparse_msa", &MSA<SelectedRNG>::getSparseMSA)
         .def("get_per_site_rate_categories", [](MSA<SelectedRNG>& self) {
             auto cats = self.getPerSiteRateCategories();
             return cats ? *cats : std::vector<size_t>{};

@@ -247,14 +247,13 @@ class Simulator:
         return Msas
     
     def simulate_low_memory(self, output_file_path: pathlib.Path) -> Msa:
+        sim_context = self._simProtocol.get_sim_context()
         if self._simProtocol._is_insertion_rate_zero and self._simProtocol._is_deletion_rate_zero:
             msa_length = self._simProtocol.get_sequence_size()
-            msa = Msa(sum(self.get_sequences_to_save()), msa_length, self.get_sequences_to_save())
+            msa = Msa(msa_length, sim_context)
         else:
             eventmap = self.generate_events()
-            msa = Msa(eventmap._get_Sailfish_blocks(),
-                        self._simProtocol._get_root(),
-                        self.get_sequences_to_save())
+            msa = Msa(eventmap, sim_context)
             msa_length = msa.get_length()
             self._substitution_simulator.set_aligned_sequence_map(msa._msa)
 
