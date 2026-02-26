@@ -148,7 +148,8 @@ public:
     template<typename RngType = std::mt19937_64>
     std::vector<size_t> sampleBridge(size_t leftCategory, size_t rightCategory, size_t length, RngType &rng) {
         assert(length <= _maxPathLength);
-        assert(rightCategory < _reachProbabilities.size());
+        assert(leftCategory < _stationaryProbs.size());
+        assert(rightCategory < _stationaryProbs.size());
         
         const std::vector<std::vector<double>>& reachProb = _reachProbabilities[rightCategory];
         int nStates = _stationaryProbs.size();

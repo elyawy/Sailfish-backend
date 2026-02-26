@@ -18,6 +18,7 @@ class SimProtocol:
         deletion_dist: Distribution = None,
         insertion_dist: Distribution = None,
         minimum_seq_size: int = 100,
+        site_rate_model: _Sailfish.SiteRateModel = _Sailfish.SiteRateModel.SIMPLE,
         seed: int = time_ns(),
     ):
         # Handle defaults
@@ -49,6 +50,7 @@ class SimProtocol:
         self.set_insertion_length_distributions(insertion_dist=insertion_dist)
         self.set_min_sequence_size(min_sequence_size=minimum_seq_size)
         self.set_max_insertion_length(insertion_dist.get_truncation())
+        self.set_site_rate_model(site_rate_model)
 
     def get_tree(self) -> Tree:
         return self._tree
@@ -179,3 +181,9 @@ class SimProtocol:
     
     def get_all_deletion_length_distribution(self) -> Dict:
         return {i: self.get_deletion_length_distribution(i) for i in range(self._num_branches)}
+
+    def set_site_rate_model(self, model: _Sailfish.SiteRateModel):
+        self._sim_protocol.set_site_rate_model(model)
+
+    def get_site_rate_model(self) -> _Sailfish.SiteRateModel:
+        return self._sim_protocol.get_site_rate_model()

@@ -188,6 +188,9 @@ public:
 
 
     size_t sampleRootCategory() {
+        if (_rateCategorySampler == nullptr) {
+            errorMsg::reportError("Category sampler is nullptr, Please assign a valid sampler to the simulation context\n");
+        }
         return _rateCategorySampler->drawSample(_rng);
     }
 

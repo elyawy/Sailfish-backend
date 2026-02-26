@@ -12,7 +12,7 @@ class BlockTreeWithRates
 {
 private:
  // consider creating different sized avl_arrays to reduce ram usage.
-  using TreeType = avl_array_with_rates<std::uint32_t, std::uint32_t, 1000000U, true>;
+  using TreeType = avl_array_with_rates<std::uint32_t, std::uint32_t, 10000U, true>;
   std::unique_ptr<TreeType> _avlTree;
 public:
   BlockTreeWithRates() {

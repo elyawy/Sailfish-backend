@@ -31,3 +31,6 @@ class Msa:
     
     def write_msa(self, file_path) -> None:
         self._msa.write_msa(file_path)
+
+    def get_per_site_rate_categories(self) -> List[int]:
+        return self._msa.get_per_site_rate_categories()

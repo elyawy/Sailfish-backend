@@ -13,7 +13,7 @@
 namespace py = pybind11;
 
 PYBIND11_MAKE_OPAQUE(SparseSequenceContainer);
-
+PYBIND11_MAKE_OPAQUE(std::vector<size_t>);
 
 PYBIND11_MODULE(_Sailfish, m) {
     m.doc() = R"pbdoc(
@@ -41,7 +41,7 @@ PYBIND11_MODULE(_Sailfish, m) {
         .def(py::init<std::vector<double>>());
 
     py::bind_vector<SparseSequenceContainer, std::shared_ptr<SparseSequenceContainer>>(m, "SparseSequenceContainer");
-
+    py::bind_vector<std::vector<size_t>, std::shared_ptr<std::vector<size_t>>>(m, "IntVector");
 
     py::class_<tree>(m, "Tree")
         .def(py::init<const std::string&, bool>(), "Create Phylogenetic tree object from newick formatted file")
@@ -193,44 +193,36 @@ PYBIND11_MODULE(_Sailfish, m) {
         .def("generate_events", &IndelSimulator<SelectedRNG>::generateSimulation);
 
     // bindings for SubstitutionSimulator (amino)
-    py::class_<SubstitutionSimulator<SelectedRNG, 20>>(m, "AminoSubstitutionSimulator")
+    using AminoSim = SubstitutionSimulator<SelectedRNG, 20>;
+    py::class_<AminoSim>(m, "AminoSubstitutionSimulator")
         .def(py::init<modelFactory&, SimulationContext<SelectedRNG>&>())
-        .def("simulate_substitutions", [](SubstitutionSimulator<SelectedRNG, 20>& self, size_t length) {
+        .def("simulate_substitutions", [](AminoSim& self, size_t length) {
             return *self.simulateSubstitutions(length);})
-        .def("simulate_and_write_substitutions", &SubstitutionSimulator<SelectedRNG, 20>::simulateAndWriteSubstitutions)
-        .def("init_substitution_sim", &SubstitutionSimulator<SelectedRNG, 20>::initSubstitionSim)
-        .def("set_save_rates", &SubstitutionSimulator<SelectedRNG, 20>::setSaveRates)
-        .def("clear_rates_vec", &SubstitutionSimulator<SelectedRNG, 20>::clearRatesVec)
-        // .def("get_sequence_container", &SubstitutionSimulator<SelectedRNG, 20>::getSequenceContainer)
-        .def("set_aligned_sequence_map", &SubstitutionSimulator<SelectedRNG, 20>::setAlignedSequenceMap)
-        .def("get_site_rates", &SubstitutionSimulator<SelectedRNG, 20>::getSiteRates)
-        .def("set_per_site_rate_categories", [](SubstitutionSimulator<SelectedRNG, 20>& self, std::vector<size_t> cats) {
-            self.setPerSiteRateCategories(std::make_shared<const std::vector<size_t>>(std::move(cats)));
-        })
-        .def("get_per_site_rate_categories", [](SubstitutionSimulator<SelectedRNG, 20>& self) {
-            auto cats = self.getPerSiteRateCategories();
-            return cats ? std::vector<size_t>(*cats) : std::vector<size_t>{};
-        });
+        .def("simulate_and_write_substitutions", &AminoSim::simulateAndWriteSubstitutions)
+        .def("init_substitution_sim", &AminoSim::initSubstitionSim)
+        .def("set_save_rates", &AminoSim::setSaveRates)
+        .def("clear_rates_vec", &AminoSim::clearRatesVec)
+        // .def("get_sequence_container", &AminoSim::getSequenceContainer)
+        .def("set_aligned_sequence_map", &AminoSim::setAlignedSequenceMap)
+        .def("get_site_rates", &AminoSim::getSiteRates)
+        .def("set_per_site_rate_categories", &AminoSim::setPerSiteRateCategories)
+        .def("get_per_site_rate_categories", &AminoSim::getPerSiteRateCategories);
 
     // bindings for SubstitutionSimulator (nucleotide)
-    py::class_<SubstitutionSimulator<SelectedRNG, 4>>(m, "NucleotideSubstitutionSimulator")
+    using NucleotideSim = SubstitutionSimulator<SelectedRNG, 4>;
+    py::class_<NucleotideSim>(m, "NucleotideSubstitutionSimulator")
         .def(py::init<modelFactory&, SimulationContext<SelectedRNG>&>())
-        .def("simulate_substitutions", [](SubstitutionSimulator<SelectedRNG, 4>& self, size_t length) {
+        .def("simulate_substitutions", [](NucleotideSim& self, size_t length) {
             return *self.simulateSubstitutions(length);})
-        .def("simulate_and_write_substitutions", &SubstitutionSimulator<SelectedRNG, 4>::simulateAndWriteSubstitutions)
-        .def("init_substitution_sim", &SubstitutionSimulator<SelectedRNG, 4>::initSubstitionSim)
-        .def("set_save_rates", &SubstitutionSimulator<SelectedRNG, 4>::setSaveRates)
-        .def("clear_rates_vec", &SubstitutionSimulator<SelectedRNG, 4>::clearRatesVec)
-        // .def("get_sequence_container", &SubstitutionSimulator<SelectedRNG, 4>::getSequenceContainer)
-        .def("set_aligned_sequence_map", &SubstitutionSimulator<SelectedRNG, 4>::setAlignedSequenceMap)
-        .def("get_site_rates", &SubstitutionSimulator<SelectedRNG, 4>::getSiteRates)
-        .def("set_per_site_rate_categories", [](SubstitutionSimulator<SelectedRNG, 4>& self, std::vector<size_t> cats) {
-            self.setPerSiteRateCategories(std::make_shared<const std::vector<size_t>>(std::move(cats)));
-        })
-        .def("get_per_site_rate_categories", [](SubstitutionSimulator<SelectedRNG, 4>& self) {
-            auto cats = self.getPerSiteRateCategories();
-            return cats ? std::vector<size_t>(*cats) : std::vector<size_t>{};
-        });
+        .def("simulate_and_write_substitutions", &NucleotideSim::simulateAndWriteSubstitutions)
+        .def("init_substitution_sim", &NucleotideSim::initSubstitionSim)
+        .def("set_save_rates", &NucleotideSim::setSaveRates)
+        .def("clear_rates_vec", &NucleotideSim::clearRatesVec)
+        // .def("get_sequence_container", &NucleotideSim::getSequenceContainer)
+        .def("set_aligned_sequence_map", &NucleotideSim::setAlignedSequenceMap)
+        .def("get_site_rates", &NucleotideSim::getSiteRates)
+        .def("set_per_site_rate_categories", &NucleotideSim::setPerSiteRateCategories)
+        .def("get_per_site_rate_categories", &NucleotideSim::getPerSiteRateCategories);
 
 
     py::class_<MSA<SelectedRNG>>(m, "Msa")
@@ -243,9 +235,6 @@ PYBIND11_MODULE(_Sailfish, m) {
         .def("write_msa", &MSA<SelectedRNG>::writeFullMsa)
         .def("get_msa_row_string", &MSA<SelectedRNG>::generateMsaRowString)
         .def("get_sparse_msa", &MSA<SelectedRNG>::getSparseMSA)
-        .def("get_per_site_rate_categories", [](MSA<SelectedRNG>& self) {
-            auto cats = self.getPerSiteRateCategories();
-            return cats ? *cats : std::vector<size_t>{};
-        });
+        .def("get_per_site_rate_categories", &MSA<SelectedRNG>::getPerSiteRateCategories);
 
 }

@@ -29,7 +29,7 @@ class Simulator:
             simProtocol.set_deletion_rates(0.05)
             simProtocol.set_sequence_size(100)
             simProtocol.set_min_sequence_size(1)
-
+            simProtocol.set_site_rate_model(_Sailfish.SiteRateModel.SIMPLE)
         # verify sim_protocol
         if self._verify_sim_protocol(simProtocol):
             self._simProtocol = simProtocol
@@ -132,7 +132,6 @@ class Simulator:
             else:
                 try:
                     from msasim.correlation import build_auto_gamma_transition_matrix
-                    
                     transition_matrix = build_auto_gamma_transition_matrix(
                         alpha=gamma_alpha,
                         categories=gamma_categories,
@@ -145,6 +144,8 @@ class Simulator:
                         "Install with: pip install scipy or pip install 'msasim[correlation]'. "
                         "Ignoring correlation parameter."
                     )
+        else: # intialize non correlated transition matrix each row is the same and equal to the stationary distribution
+            transition_matrix = [probs for _ in range(len(probs))]
         return rates, probs, transition_matrix
     
     def _init_sub_model(self) -> None:
@@ -197,7 +198,7 @@ class Simulator:
             invariant_proportion=invariant_sites_proportion,
             site_rate_correlation=site_rate_correlation
         )
-
+        print(transition_matrix)
         self._model_factory.set_site_rate_model(rates, probs, transition_matrix)
 
         if self._substitution_simulator is not None:
@@ -220,11 +221,16 @@ class Simulator:
     def save_leaves_sequences(self):
         sim_context = self._simProtocol.get_sim_context()
         sim_context.set_save_leaves()
-
-    def gen_substitutions(self, length: int):
+    
+    def gen_substitutions(self, msa: Msa):
         if not self._is_sub_model_init:
             self._init_sub_model()
-        return self._substitution_simulator.simulate_substitutions(length)
+        
+        rate_categories = msa.get_per_site_rate_categories()
+        self._substitution_simulator.set_per_site_rate_categories(rate_categories)
+        self._substitution_simulator.set_aligned_sequence_map(msa._msa)
+
+        return self._substitution_simulator.simulate_substitutions(msa.get_length())
     
     # @profile
     def simulate(self, times: int = 1) -> List[Msa]:
@@ -240,7 +246,7 @@ class Simulator:
                 msa = Msa(eventmap, sim_context)
 
             if self._simulation_type != SIMULATION_TYPE.NOSUBS:
-                substitutions = self.gen_substitutions(msa.get_length())
+                substitutions = self.gen_substitutions(msa)
                 msa.fill_substitutions(substitutions)
 
             Msas.append(msa)
@@ -253,9 +259,13 @@ class Simulator:
             msa = Msa(msa_length, sim_context)
         else:
             eventmap = self.generate_events()
+            category_sampler = self._model_factory.get_rate_category_sampler(self._simProtocol.get_max_insertion_length())
+            sim_context.set_category_sampler(category_sampler)
             msa = Msa(eventmap, sim_context)
             msa_length = msa.get_length()
+            rate_categories = msa.get_per_site_rate_categories()
             self._substitution_simulator.set_aligned_sequence_map(msa._msa)
+            self._substitution_simulator.set_per_site_rate_categories(rate_categories)
 
         # sim.init_substitution_sim(mFac)
         if self._simulation_type == SIMULATION_TYPE.NOSUBS:
@@ -271,3 +281,6 @@ class Simulator:
     
     def get_rates(self) -> List[float]:
         return self._substitution_simulator.get_site_rates()
+    
+    def get_rate_categories(self) -> List[int]:
+        return self._substitution_simulator.get_per_site_rate_categories()

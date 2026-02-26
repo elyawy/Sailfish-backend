@@ -90,6 +90,8 @@ public:
         } else {
 			// Use existing categories - just validate size
 			if (_rateCategories->size() != seqLength) {
+				std::cout << "Error: Provided rate categories vector has size " << _rateCategories->size() 
+				          << " but expected " << seqLength << std::endl;
 				errorMsg::reportError("Rate categories size mismatch");
 			}
 		}

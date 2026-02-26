@@ -267,8 +267,8 @@ private:
     size_t _msaLength; // Length of the MSA
     std::shared_ptr<const SparseSequenceContainer> _substitutions;
 
-	std::shared_ptr<SparseMSA> _alignedSequenceMap;
-    std::shared_ptr<std::vector<size_t>> _perSiterateCategories;
+	std::shared_ptr<SparseMSA> _alignedSequenceMap = nullptr;
+    std::shared_ptr<std::vector<size_t>> _perSiterateCategories = nullptr;
     // IDs of sequences to save are accessed via _simContext->getNodesToSaveIndices()
     // Names of sequences to save are accessed via _simContext->getNodeToSaveNames()
 
