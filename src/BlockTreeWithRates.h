@@ -22,6 +22,8 @@ public:
   template<typename RngType = std::mt19937_64>
   void handleEvent (Event &ev, CategorySampler& sampler, RngType &rng) {
     if (ev.length == 0) return;
+    // std::cout << _avlTree->print_avl();
+
     // std::cout << "Handling event: type=" << (ev.type == INSERTION ? "INSERTION" : "DELETION") 
     // << " position=" << ev.position 
     // << " length=" << ev.length << std::endl;
@@ -29,7 +31,6 @@ public:
     if(!_avlTree->handle_event(ev, sampler, rng)) {
       throw std::out_of_range("event_position exceeds sequence");
     }
-    // std::cout << _avlTree->print_avl();
     // if (!_avlTree->validate_rate_integrity()) {
     //       std::cout << "Handling event: type=" << (ev.type == INSERTION ? "INSERTION" : "DELETION") 
     //           << " position=" << ev.position 

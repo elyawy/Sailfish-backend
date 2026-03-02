@@ -470,7 +470,9 @@ public:
         // Handle rate categories for insertion in the added part
         // Position within the block's rate categories
         // if on left edge of AP, use category from OP as left flank
-        if (position_in_ap == 0) {
+        if (position_in_ap == 0 && key_[block_index] == 0 && pos == 1) {
+          left_flank_category = SIZE_MAX;
+        } else if (position_in_ap == 0) {
           left_flank_category = (*event_block.parentRateCategories)[key_[block_index] + event_block.length - 2];
         } else {
           left_flank_category = *(event_block.rateCategories.begin() + position_in_ap - 1);
