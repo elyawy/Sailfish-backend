@@ -81,7 +81,9 @@ struct BlockWithRates {
     // Handle rate category insertions within this block.
     template<typename RngType = std::mt19937_64>
     void handleInsertion(size_t position, size_t leftFlankCategory, size_t rightFlankCategory, size_t insertLength, CategorySampler& sampler, RngType &rng) {
-      
+      assert(leftFlankCategory < sampler.getNumCategories() || leftFlankCategory == SIZE_MAX);
+      assert(rightFlankCategory < sampler.getNumCategories() || rightFlankCategory == SIZE_MAX);
+
       if (leftFlankCategory == SIZE_MAX && rightFlankCategory == SIZE_MAX) {
         for (size_t i = 0; i < insertLength; i++) {
           rateCategories.push_back(sampler.drawSample(rng));
@@ -509,14 +511,16 @@ public:
 
         // handle special key_[block_index] == 0 case:
         if (key_[block_index] == 0) {
+
+
           // if the event is at the left edge of the entire sequence, right flank should be the first category
           // in parent (index 0), and left flank should be SIZE_MAX.
-          left_flank_category = SIZE_MAX;
-          right_flank_category = (*event_block.parentRateCategories)[0];
+          left_flank_category = pos==1 ? SIZE_MAX : (*event_block.parentRateCategories)[pos-2];
+          right_flank_category = (*event_block.parentRateCategories)[pos - 1];
         } else {
           // if the event is in the original part, the left flank category is the one at position pos-1 of event_block.parentRateCategories and the right flank category is the one at position pos.
-          left_flank_category = (*event_block.parentRateCategories)[key_[block_index] + pos - 1];
-          right_flank_category = (*event_block.parentRateCategories)[key_[block_index] + pos];
+          left_flank_category = (*event_block.parentRateCategories)[key_[block_index] + pos - 2];
+          right_flank_category = (*event_block.parentRateCategories)[key_[block_index] + pos - 1];
         }
         updated_block.handleInsertion(0, left_flank_category, right_flank_category, event_size, sampler, rng);
 

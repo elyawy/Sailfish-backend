@@ -27,7 +27,7 @@ public:
                     const std::vector<MDOUBLE>& stationaryProbs,
                     size_t maxPathLength = 0)
         : _stationaryProbs(stationaryProbs), _previousCategory(-1), _maxPathLength(maxPathLength),
-        _uniformDist(0.0, 1.0) {
+        _uniformDist(0.0, 1.0), _numCategories(stationaryProbs.size()) {
         
         // Validate inputs
         if (stationaryProbs.empty()) {
@@ -181,7 +181,9 @@ public:
         }
         
         return path;
-    }    
+    }
+    
+    size_t getNumCategories() { return _numCategories;}
     /**
      * Reset to sample from stationary distribution (for new sequences)
      */
@@ -234,6 +236,7 @@ private:
     std::vector<std::vector<std::vector<double>>> _reachProbabilities;
     size_t _maxPathLength;
     std::uniform_real_distribution<double> _uniformDist;
+    size_t _numCategories;
 };
 
 #endif

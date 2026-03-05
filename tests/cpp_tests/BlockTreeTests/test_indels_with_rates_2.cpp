@@ -29,8 +29,10 @@ int main() {
     std::mt19937_64 rng(42);
 
      std::vector<Event> events = {
-        {DELETION, 1, 1},
-        {INSERTION, 0, 1}
+        {INSERTION, 0, 1},
+        {INSERTION, 9, 1},
+        // {INSERTION, 8, 1}
+
     };
 
     for (auto& ev : events) {

@@ -16,8 +16,8 @@ rate_deletion = 0.09
 trees_path = pathlib.Path("tests/trees").resolve()
 
 trees_map = {
-    # "10": trees_path / "normalbranches_nLeaves10.treefile",
-    # "100": trees_path / "normalbranches_nLeaves100.treefile",
+    "10": trees_path / "normalbranches_nLeaves10.treefile",
+    "100": trees_path / "normalbranches_nLeaves100.treefile",
     "1k": trees_path / "normalbranches_nLeaves1000.treefile",
     # "5k": trees_path / "normalbranches_nLeaves5000.treefile",
     # "10k": trees_path / "normalbranches_nLeaves10000.treefile"
@@ -40,8 +40,8 @@ def init_protocol(number_of_species) -> sim.Simulator:
     simulator = sim.Simulator(simulation_protocol, simulation_type=sim.SIMULATION_TYPE.DNA)
     simulator.set_replacement_model(model=sim.MODEL_CODES.NUCJC,
                                     gamma_parameters_alpha=1.0,
-                                    gamma_parameters_categories=2,
-                                    site_rate_correlation=0.0)
+                                    gamma_parameters_categories=8,
+                                    site_rate_correlation=0.8)
     
 
 

@@ -4,7 +4,7 @@
 
 // takes 10 minutes currently
 int main() {
-    tree tree_("../../trees/normalbranches_nLeaves1000.treefile");
+    tree tree_("../../trees/normalbranches_nLeaves10000.treefile");
 
     std::time_t t1 = 100;//std::time(0);
 
@@ -24,8 +24,8 @@ int main() {
     vector<double> insertionRates(tree_.getNodesNum() - 1);
     vector<double> deletionRates(tree_.getNodesNum() - 1);
 
-    fill(insertionRates.begin(), insertionRates.end(), 3.3);
-    fill(deletionRates.begin(), deletionRates.end(), 9.9);
+    fill(insertionRates.begin(), insertionRates.end(), 0.03);
+    fill(deletionRates.begin(), deletionRates.end(), 0.09);
 
     SimulationProtocol protocol(simContext.getTree()->getNodesNum() - 1);
     simContext.setProtocol(&protocol);
@@ -46,6 +46,7 @@ int main() {
 
 
     auto eventMap = indelSim.generateSimulation();
+    std::cout << "done with event generation\n";
 
     modelFactory mFac;
     mFac.setReplacementModel(modelCode::NUCJC);
@@ -66,10 +67,9 @@ int main() {
     simContext.setCategorySampler(&categorySampler);
 
     auto msa = MSA<pcg64_fast>(eventMap, simContext);
-
-
+    std::cout <<  msa.getMSAlength() << "\n";
     
-    std::cout << msa << "\n";
+    // std::cout << msa << "\n";
     
 
 
