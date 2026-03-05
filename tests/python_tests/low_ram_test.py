@@ -22,14 +22,3 @@ simulation.set_replacement_model(model=MODEL_CODES.WAG,
 
 home_path = pathlib.Path.home() / "test_sim.fasta"
 simulation.simulate_low_memory(home_path)
-# counter = 0
-# while True:
-#     print(counter)
-#     msa = simulation()
-#     counter += 1
-
-# for i in range(10000):
-#     print(i)
-#     msa = simulation()
-# msa.print_msa()
-# msa.print_msa()

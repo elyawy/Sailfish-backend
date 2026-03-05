@@ -1,6 +1,3 @@
-# import sys, pathlib, time
-# sys.path.insert(0,str(pathlib.Path(".").resolve()))
-
 from msasim import sailfish as sim
 from msasim.sailfish import MODEL_CODES
 

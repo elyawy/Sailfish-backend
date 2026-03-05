@@ -26,8 +26,8 @@ class Msa:
     def print_msa(self) -> str:
         return self._msa.print_msa()
     
-    def get_msa(self) -> str:
-        return self._msa.get_msa_string()
+    def get_msa_row(self, row_num: int) -> str:
+        return self._msa.get_msa_row_string(row_num)
     
     def write_msa(self, file_path) -> None:
         self._msa.write_msa(file_path)

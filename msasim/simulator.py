@@ -200,7 +200,7 @@ class Simulator:
         )
 
         self._model_factory.set_site_rate_model(rates, probs, transition_matrix)
-
+        
         if self._substitution_simulator is not None:
             self._substitution_simulator.init_substitution_sim(self._model_factory) 
 
@@ -253,6 +253,9 @@ class Simulator:
         return Msas
     
     def simulate_low_memory(self, output_file_path: pathlib.Path) -> Msa:
+        if not self._is_sub_model_init:
+            self._init_sub_model()
+
         sim_context = self._simProtocol.get_sim_context()
         if self._simProtocol._is_insertion_rate_zero and self._simProtocol._is_deletion_rate_zero:
             msa_length = self._simProtocol.get_sequence_size()
@@ -277,6 +280,8 @@ class Simulator:
         return self.simulate(1)[0]
     
     def save_rates(self, is_save: bool) -> None:
+        if not self._is_sub_model_init:
+            self._init_sub_model()
         self._substitution_simulator.set_save_rates(is_save)
     
     def get_rates(self) -> List[float]:
@@ -284,3 +289,6 @@ class Simulator:
     
     def get_rate_categories(self) -> List[int]:
         return self._substitution_simulator.get_per_site_rate_categories()
+    
+    def reset_replacement_model(self):
+        self._model_factory.reset()
