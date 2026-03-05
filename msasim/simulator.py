@@ -198,7 +198,7 @@ class Simulator:
             invariant_proportion=invariant_sites_proportion,
             site_rate_correlation=site_rate_correlation
         )
-        print(transition_matrix)
+
         self._model_factory.set_site_rate_model(rates, probs, transition_matrix)
 
         if self._substitution_simulator is not None:

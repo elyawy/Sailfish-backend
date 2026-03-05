@@ -14,7 +14,7 @@ sim_protocol = SimProtocol("tests/trees/normalbranches_nLeaves10.treefile",
                                insertion_rate=0.02,
                                deletion_dist=ZipfDistribution(1.7, 50),
                                insertion_dist=ZipfDistribution(1.7, 50),
-                               site_rate_model=SITE_RATE_MODELS.INDEL_AWARE,
+                               site_rate_model=SITE_RATE_MODELS.SIMPLE,
                                seed=5)
 sim_protocol.set_sequence_size(ROOT_SEQUENCE_LENGTH)
 

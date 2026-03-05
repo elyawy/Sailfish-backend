@@ -19,8 +19,8 @@ trees_map = {
     "10": trees_path / "normalbranches_nLeaves10.treefile",
     "100": trees_path / "normalbranches_nLeaves100.treefile",
     "1k": trees_path / "normalbranches_nLeaves1000.treefile",
-    # "5k": trees_path / "normalbranches_nLeaves5000.treefile",
-    # "10k": trees_path / "normalbranches_nLeaves10000.treefile"
+    "5k": trees_path / "normalbranches_nLeaves5000.treefile",
+    "10k": trees_path / "normalbranches_nLeaves10000.treefile"
     # "100k": trees_path / "normalbranches_nLeaves100000.treefile"
 }
 
@@ -33,7 +33,7 @@ def init_protocol(number_of_species) -> sim.Simulator:
     simulation_protocol.set_insertion_rates(rate_insertion)
     simulation_protocol.set_deletion_rates(rate_deletion)
     simulation_protocol.set_max_insertion_length(50)
-    simulation_protocol.set_site_rate_model(sim.SITE_RATE_MODELS.INDEL_AWARE)
+    simulation_protocol.set_site_rate_model(sim.SITE_RATE_MODELS.SIMPLE)
     simulation_protocol.set_sequence_size(30000)
     # time.sleep(3)
 

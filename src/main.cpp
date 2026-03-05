@@ -14,6 +14,8 @@ namespace py = pybind11;
 
 PYBIND11_MAKE_OPAQUE(SparseSequenceContainer);
 PYBIND11_MAKE_OPAQUE(std::vector<size_t>);
+PYBIND11_MAKE_OPAQUE(SparseMSA);
+
 
 PYBIND11_MODULE(_Sailfish, m) {
     m.doc() = R"pbdoc(
@@ -42,18 +44,18 @@ PYBIND11_MODULE(_Sailfish, m) {
 
     py::bind_vector<SparseSequenceContainer, std::shared_ptr<SparseSequenceContainer>>(m, "SparseSequenceContainer");
     py::bind_vector<std::vector<size_t>, std::shared_ptr<std::vector<size_t>>>(m, "IntVector");
-
-    py::class_<tree>(m, "Tree")
-        .def(py::init<const std::string&, bool>(), "Create Phylogenetic tree object from newick formatted file")
-        .def_property_readonly("num_nodes", &tree::getNodesNum)
-        .def_property_readonly("root", &tree::getRoot);
-
+    py::bind_vector<SparseMSA, std::shared_ptr<SparseMSA>>(m, "SparseMSA");
+    
     py::class_<tree::TreeNode>(m, "node")
         .def_property_readonly("sons", &tree::TreeNode::getSons)
         .def_property_readonly("num_leaves", &tree::TreeNode::getNumberLeaves)
         .def_property_readonly("name", &tree::TreeNode::name)
         .def("distance_to_father", &tree::TreeNode::dis2father);
 
+    py::class_<tree>(m, "Tree")
+        .def(py::init<const std::string&, bool>(), "Create Phylogenetic tree object from newick formatted file")
+        .def_property_readonly("num_nodes", &tree::getNodesNum)
+        .def_property_readonly("root", &tree::getRoot);
 
     py::enum_<SiteRateModel>(m, "SiteRateModel")
         .value("SIMPLE", SiteRateModel::SIMPLE)
@@ -192,6 +194,19 @@ PYBIND11_MODULE(_Sailfish, m) {
         .def("update_protocol", &IndelSimulator<SelectedRNG>::updateSimulationProtocol)
         .def("generate_events", &IndelSimulator<SelectedRNG>::generateSimulation);
 
+
+    py::class_<MSA<SelectedRNG>>(m, "Msa")
+        .def(py::init<EventMap&, SimulationContext<SelectedRNG>&>())
+        .def(py::init<size_t, SimulationContext<SelectedRNG>&>())
+        .def("length", &MSA<SelectedRNG>::getMSAlength)
+        .def("num_sequences", &MSA<SelectedRNG>::getNumberOfSequences)
+        .def("fill_substitutions", &MSA<SelectedRNG>::fillSubstitutions)
+        .def("print_msa", &MSA<SelectedRNG>::printFullMsa)
+        .def("write_msa", &MSA<SelectedRNG>::writeFullMsa)
+        .def("get_msa_row_string", &MSA<SelectedRNG>::generateMsaRowString)
+        .def("get_sparse_msa", &MSA<SelectedRNG>::getSparseMSA)
+        .def("get_per_site_rate_categories", &MSA<SelectedRNG>::getPerSiteRateCategories);
+
     // bindings for SubstitutionSimulator (amino)
     using AminoSim = SubstitutionSimulator<SelectedRNG, 20>;
     py::class_<AminoSim>(m, "AminoSubstitutionSimulator")
@@ -224,17 +239,5 @@ PYBIND11_MODULE(_Sailfish, m) {
         .def("set_per_site_rate_categories", &NucleotideSim::setPerSiteRateCategories)
         .def("get_per_site_rate_categories", &NucleotideSim::getPerSiteRateCategories);
 
-
-    py::class_<MSA<SelectedRNG>>(m, "Msa")
-        .def(py::init<EventMap&, SimulationContext<SelectedRNG>&>())
-        .def(py::init<size_t, SimulationContext<SelectedRNG>&>())
-        .def("length", &MSA<SelectedRNG>::getMSAlength)
-        .def("num_sequences", &MSA<SelectedRNG>::getNumberOfSequences)
-        .def("fill_substitutions", &MSA<SelectedRNG>::fillSubstitutions)
-        .def("print_msa", &MSA<SelectedRNG>::printFullMsa)
-        .def("write_msa", &MSA<SelectedRNG>::writeFullMsa)
-        .def("get_msa_row_string", &MSA<SelectedRNG>::generateMsaRowString)
-        .def("get_sparse_msa", &MSA<SelectedRNG>::getSparseMSA)
-        .def("get_per_site_rate_categories", &MSA<SelectedRNG>::getPerSiteRateCategories);
 
 }
