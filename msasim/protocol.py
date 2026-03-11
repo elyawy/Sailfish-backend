@@ -1,32 +1,28 @@
 """Simulation protocol configuration"""
 
+import warnings
+
 import _Sailfish
 from time import time_ns
 from typing import List, Optional, Dict
 from .tree import Tree
-from .distributions import Distribution, ZipfDistribution
+from .distributions import Distribution, ZipfDistribution, CustomDistribution
 
 class SimProtocol:
     """Configuration for MSA simulation"""
     
     def __init__(
         self, 
-        tree = None,
+        tree: Optional[Tree] = None,
         root_seq_size: int = 100,
-        deletion_rate: float = 0.0,
-        insertion_rate: float = 0.0,
-        deletion_dist: Distribution = None,
-        insertion_dist: Distribution = None,
+        deletion_rate: float = 0.05,
+        insertion_rate: float = 0.05,
+        deletion_dist: Optional[Distribution] = None,
+        insertion_dist: Optional[Distribution] = None,
         minimum_seq_size: int = 100,
         site_rate_model: _Sailfish.SiteRateModel = _Sailfish.SiteRateModel.SIMPLE,
-        seed: int = time_ns(),
+        seed: Optional[int] = None,
     ):
-        # Handle defaults
-        if deletion_dist is None:
-            deletion_dist = ZipfDistribution(1.7, 50)
-        if insertion_dist is None:
-            insertion_dist = ZipfDistribution(1.7, 50)
-            
         # Parse tree
         if isinstance(tree, Tree):
             self._tree = tree
@@ -35,10 +31,13 @@ class SimProtocol:
         else:
             raise ValueError("tree must be Tree object or newick string/path")
         
+        seed = seed if seed is not None else time_ns()
+        deletion_dist = deletion_dist if deletion_dist is not None else CustomDistribution([0.5,0.3,0.2])
+        insertion_dist = insertion_dist if insertion_dist is not None else CustomDistribution([0.5, 0.3, 0.2])
 
         self._num_branches = self._tree.get_num_nodes() - 1
         self._sim_protocol = _Sailfish.SimProtocol(self._num_branches)
-        self.set_seed(seed)
+        self._seed = seed
         self._sim_context = _Sailfish.SimulationContext(tree=self._tree._get_Sailfish_tree(), 
                                                         seed=self._seed, protocol=self._sim_protocol)
         self.set_sequence_size(root_seq_size)
@@ -51,6 +50,43 @@ class SimProtocol:
         self.set_min_sequence_size(min_sequence_size=minimum_seq_size)
         self.set_max_insertion_length(insertion_dist.get_truncation())
         self.set_site_rate_model(site_rate_model)
+
+    @classmethod
+    def default(cls) -> "SimProtocol":
+        warnings.warn("Using default SimProtocol: tree='(A:0.01,B:0.5,C:0.03);', root length=100")
+        protocol = cls(tree="(A:0.01,B:0.5,C:0.03);")
+        return protocol
+
+    def _verify_sim_protocol(self) -> bool:
+        if not self.get_tree():
+            raise ValueError(
+                "protocol missing tree, please provide when initializing the simProtocol"
+            )
+        if not self.get_sequence_size() or self.get_sequence_size() == 0:
+            raise ValueError(
+                "protocol missing root length, please provide -> simProtocol.set_sequence_size(int)"
+            )
+        if not self.get_insertion_length_distribution(0):
+            raise ValueError(
+                "protocol missing insertion length distribution, please provide -> "
+                "simProtocol.set_insertion_length_distributions(float)"
+            )
+        if not self.get_deletion_length_distribution(0):
+            raise ValueError(
+                "protocol missing deletion length distribution, please provide -> "
+                "simProtocol.set_deletion_length_distributions(float)"
+            )
+        if self.get_insertion_rate(0) < 0:
+            raise ValueError(
+                f"please provide a non-negative insertion rate, received: "
+                f"{self.get_insertion_rate(0)}"
+            )
+        if self.get_deletion_rate(0) < 0:
+            raise ValueError(
+                f"please provide a non-negative deletion rate, received: "
+                f"{self.get_deletion_rate(0)}"
+            )
+        return True
 
     def get_tree(self) -> Tree:
         return self._tree
@@ -69,6 +105,7 @@ class SimProtocol:
     
     def set_seed(self, seed: int) -> None:
         self._seed = seed
+        self._sim_context.reseed(seed)
     
     def get_seed(self) -> int:
         return self._seed
@@ -184,6 +221,9 @@ class SimProtocol:
 
     def set_site_rate_model(self, model: _Sailfish.SiteRateModel):
         self._sim_protocol.set_site_rate_model(model)
+        if self._is_insertion_rate_zero and self._is_deletion_rate_zero and model != _Sailfish.SiteRateModel.SIMPLE:
+            warnings.warn("both insertion and deletion rates are zero, site rate model will not have an effect on the simulation")
+            self._sim_protocol.set_site_rate_model(_Sailfish.SiteRateModel.SIMPLE)
 
     def get_site_rate_model(self) -> _Sailfish.SiteRateModel:
         return self._sim_protocol.get_site_rate_model()

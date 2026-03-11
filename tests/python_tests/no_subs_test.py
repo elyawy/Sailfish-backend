@@ -12,9 +12,10 @@ sim_protocol.set_insertion_rates(0.03)
 
 
 simulation = sim.Simulator(sim_protocol, simulation_type=sim.SIMULATION_TYPE.NOSUBS)
-simulation.set_replacement_model(model=sim.MODEL_CODES.NUCJC)
+# simulation.set_replacement_model(model=sim.MODEL_CODES.NUCJC)
 
-for i in range(10):
-    msa = simulation()
+msa = simulation()
 
-print(msa.get_msa_row(0))
+for row in range(msa.get_num_sequences()):
+    print(msa.get_msa_row(row))
+

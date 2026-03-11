@@ -10,7 +10,7 @@ from msasim.constants import MODEL_CODES, SIMULATION_TYPE, SITE_RATE_MODELS
 ROOT_SEQUENCE_LENGTH = 100
 
 sim_protocol = SimProtocol("tests/trees/normalbranches_nLeaves10.treefile",
-                               deletion_rate=0.0,
+                               deletion_rate=0.02,
                                insertion_rate=0.02,
                                deletion_dist=ZipfDistribution(1.7, 50),
                                insertion_dist=ZipfDistribution(1.7, 50),

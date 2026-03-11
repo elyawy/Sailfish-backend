@@ -19,7 +19,7 @@ public:
 		_stochasticProcess(mFac.getStochasticProcess()), _alphabet(mFac.getAlphabet()), 
 		_nodesToSave(simContext.getNodesToSave()), _idToRowInMSA(simContext.getIdToSaveIndices()),
 		_saveRates(false),
-		_rateCategorySampler(mFac.getEffectiveTransitionMatrix(), mFac.getStationaryProbs()),
+		_rateCategorySampler(mFac.getEffectiveTransitionMatrix(), mFac.getRateCategoryProbs()),
 		_rng(simContext.getRng()),
 		_finalMsaPath("") {
 
@@ -43,8 +43,14 @@ public:
 		_stochasticProcess = mFac.getStochasticProcess();
 		_alphabet = mFac.getAlphabet();
 
-		_rateCategorySampler = CategorySampler(mFac.getEffectiveTransitionMatrix(), mFac.getStationaryProbs());
-		_frequencySampler = std::make_unique<DiscreteDistribution>(mFac.getStationaryProbs());
+		std::vector<MDOUBLE> frequencies;
+		for (int j = 0; j < AlphabetSize; ++j) {
+			frequencies.push_back(_stochasticProcess->freq(j));
+			_charLookup[j] = _alphabet->fromInt(j);  // fix charLookup too
+		}
+
+		_rateCategorySampler = CategorySampler(mFac.getEffectiveTransitionMatrix(), mFac.getRateCategoryProbs());
+		_frequencySampler = std::make_unique<DiscreteDistribution>(frequencies);
 		_simulatedSequences = std::make_unique<SparseSequenceContainer>();
 
     }
@@ -139,9 +145,11 @@ public:
     void simulateAndWriteSubstitutions(size_t sequenceLength, const std::string& filePath) {
         setWriteFolder(filePath);
         generateSubstitutionsAlongTree(sequenceLength);
+		_outputFile.close();
     }
 
     std::shared_ptr<SparseSequenceContainer> simulateSubstitutions(size_t sequenceLength) {
+
         generateSubstitutionsAlongTree(sequenceLength);
 
         return getSequenceContainer();

@@ -27,10 +27,13 @@ class Msa:
         return self._msa.print_msa()
     
     def get_msa_row(self, row_num: int) -> str:
-        return self._msa.get_msa_row_string(row_num)
+        return self._msa.get_msa_row_string(row_num).rstrip()
     
     def write_msa(self, file_path) -> None:
         self._msa.write_msa(file_path)
 
     def get_per_site_rate_categories(self) -> List[int]:
         return self._msa.get_per_site_rate_categories()
+    
+    def get_sparse_msa(self) -> Dict[str, str]:
+        return self._msa.get_sparse_msa()

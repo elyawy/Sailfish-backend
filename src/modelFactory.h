@@ -191,7 +191,7 @@ public:
             return;
         }
         _customRates = rates;
-        _stationaryProbs = stationaryProbs;
+        _rateCategoryProbs = stationaryProbs;
         _transitionMatrix = transitionMatrix;
         _state = factoryState::COMPLETE;
     }
@@ -199,14 +199,14 @@ public:
     std::vector<std::vector<MDOUBLE>> getEffectiveTransitionMatrix() const {
         if (_transitionMatrix.empty()) {
             // Independent rates: P[i][j] = π[j]
-            size_t n = _stationaryProbs.size();
-            return std::vector<std::vector<MDOUBLE>>(n, _stationaryProbs);
+            size_t n = _rateCategoryProbs.size();
+            return std::vector<std::vector<MDOUBLE>>(n, _rateCategoryProbs);
         }
         return _transitionMatrix;
     }
 
-    const std::vector<MDOUBLE>& getStationaryProbs() const {
-        return _stationaryProbs;
+    const std::vector<MDOUBLE>& getRateCategoryProbs() const {
+        return _rateCategoryProbs;
     }
 
     void resetFactory() {
@@ -214,10 +214,11 @@ public:
         _alphabet = alphabetCode::NULLCODE;
         _alphPtr.reset();
         _transitionMatrix.clear();
-        _stationaryProbs.clear();
+        _rateCategoryProbs.clear();
         _customRates.clear();
         _cachedRepModel.reset();
         _cachedPij.reset();
+        _cachedDist.reset();
     }
 
     bool isModelValid() {
@@ -397,16 +398,16 @@ public:
         }
 
         // Create distribution with current rate model parameters
-        customDistribution dist(_customRates, _stationaryProbs);
+        _cachedDist = std::make_unique<customDistribution>(_customRates, _rateCategoryProbs);
 
-        return std::make_shared<stochasticProcess>(&dist, _cachedPij.get());
+        return std::make_shared<stochasticProcess>(_cachedDist.get(), _cachedPij.get());
     }
 
     CategorySampler getRateCategorySampler(size_t maxPathLength = 0) {
 
         // Create category sampler with current rate model parameters and return
         auto transitionMatrix = getEffectiveTransitionMatrix();
-        return CategorySampler(transitionMatrix, _stationaryProbs, maxPathLength);
+        return CategorySampler(transitionMatrix, _rateCategoryProbs, maxPathLength);
     }
 
     ~modelFactory() {}
@@ -422,11 +423,12 @@ private:
     size_t _gammaCategories;  // Kept for potential future use, not currently used
     std::vector<MDOUBLE> _customRates;
     std::vector<std::vector<MDOUBLE>> _transitionMatrix;
-    std::vector<MDOUBLE> _stationaryProbs;
+    std::vector<MDOUBLE> _rateCategoryProbs; // (stationary) probabilities over rate categories — NOT nucleotide/amino acid frequencies
 
     // Cached replacement model components (expensive to build)
-    std::unique_ptr<replacementModel> _cachedRepModel;
+    std::unique_ptr<replacementModel> _cachedRepModel; // Defines the Q matrix and equilibrium frequencies
     std::unique_ptr<pijAccelerator> _cachedPij;
+    std::unique_ptr<customDistribution> _cachedDist; // Defines the distribution over rate categories for the stochastic process
 };
 
 

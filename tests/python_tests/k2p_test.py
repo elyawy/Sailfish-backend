@@ -18,7 +18,6 @@ k2p_params = np.random.uniform(0.1,5, size=NUMBER_OF_MSAS_TO_SIMULATE)
 for idx, param in enumerate(k2p_params):
     if idx % 1000 == 0:
         print(f"simulated {idx}\t| {NUMBER_OF_MSAS_TO_SIMULATE}")
-    simulation.reset_replacement_model()
     simulation.set_replacement_model(model=MODEL_CODES.HKY,
                                     model_parameters=[0.25,0.25,0.25,0.25, param])
     
