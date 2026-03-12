@@ -182,10 +182,13 @@ class SimProtocol:
     def set_insertion_length_distributions(self, insertion_dist: Optional[Distribution] = None, insertion_dists: Optional[List[Distribution]] = None) -> None:
         if insertion_dist:
             self.insertion_dists = [insertion_dist] * self._num_branches
+            self.set_max_insertion_length(insertion_dist.get_truncation())
         elif insertion_dists:
             if not len(insertion_dists) == self._num_branches:
                 raise ValueError(f"The length of the insertion dists should be equal to the number of branches in the tree. The insertion_dists length is {len(insertion_dists)} and the number of branches is {self._num_branches}. You can pass a single value as insertion_dist which will be used for all branches.")
             self.insertion_dists = insertion_dists
+            max_truncation = max([dist.get_truncation() for dist in insertion_dists])
+            self.set_max_insertion_length(max_truncation)
         else:
             raise ValueError("please provide one of the following: deletion_rate (a single value used for all branches), or a deletion_rates (a list of values, each corresponding to a different branch)")
         

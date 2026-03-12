@@ -92,6 +92,10 @@ class Simulator:
         else:
             self._substitution_simulator.init_substitution_sim(self._sub_model.factory)
 
+    @property
+    def protocol(self) -> SimProtocol:
+        return self._simProtocol
+
     def get_sequences_to_save(self) -> List[bool]:
         return self._simProtocol.get_sim_context().get_nodes_to_save()
 
