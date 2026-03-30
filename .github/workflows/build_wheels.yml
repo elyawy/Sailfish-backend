@@ -59,7 +59,7 @@ jobs:
             phylolib-${{ matrix.config.id }}-
 
       - name: Build Phylolib on Host (on Cache Miss)
-        if: steps.cache-phylolib.outputs.cache-hit != 'true'
+        if: steps.cache-phylolib.outputs.cache-hit != 'true' && runner.os != 'Linux'
         shell: bash
         run: |
           cd libs/Phylolib

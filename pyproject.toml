@@ -14,7 +14,7 @@ build-verbosity = 1
 
 [tool.cibuildwheel.linux]
 before-all = """
-    cd libs/Phylolib && cmake -DCMAKE_BUILD_TYPE=Release . && make && cp libPhylolib.* ../
+    cd libs/Phylolib && rm -f CMakeCache.txt && cmake -DCMAKE_BUILD_TYPE=Release . && make && cp libPhylolib.* ../
 """
 
 [tool.cibuildwheel.windows]
