@@ -70,6 +70,30 @@ public:
 		return _siteRates;
 	}
 
+	void generate_substitution_log(const std::string& rootString) {
+		_rateCategories.resize(rootString.size());
+		std::vector<MDOUBLE> ratesVec(rootString.size());
+		MDOUBLE sumOfRatesAcrossSites = 0.0;
+		for (size_t h = 0; h < rootString.size(); h++)  {
+			int selectedRandomCategory = _rateCategorySampler.drawSample(*_rng);
+			_rateCategories[h] = selectedRandomCategory;
+			ratesVec[h] = _sp->rates(selectedRandomCategory);
+			sumOfRatesAcrossSites += ratesVec[h];
+		}
+		if (_saveRates) _siteRates.insert(_siteRates.end(), ratesVec.begin(), ratesVec.end());
+		
+		sequence rootSequence(rootString, _et->getRoot()->name(), "", _et->getRoot()->id(), _alph);
+
+		if ((*_nodesToSave)[_et->getRoot()->id()]){ 
+			saveSequence(rootSequence);
+		}
+
+		mutateSeqRecuresively(rootSequence, _et->getRoot());
+
+		// _subManager.clear();
+	}
+
+
 	void generate_substitution_log(int seqLength) {
 		std::vector<MDOUBLE> ratesVec(seqLength);
 		MDOUBLE sumOfRatesAcrossSites = 0.0;
@@ -82,8 +106,7 @@ public:
 		}
 		_siteRates.clear();
 		if (_saveRates) _siteRates.insert(_siteRates.end(), ratesVec.begin(), ratesVec.end());
-
-		// _currentSequence->resize(seqLength);
+		
 		sequence rootSequence = generateRootSeq(seqLength, ratesVec);
 
 		if ((*_nodesToSave)[_et->getRoot()->id()]){ 
@@ -274,6 +297,13 @@ private:
 		}
 	}
 
+	void setRootSequence(const sequence& rootSeq) {
+		_userRootSequence.clear();
+		for (size_t i = 0; i < rootSeq.seqLen(); i++) {
+			_userRootSequence.push_back(rootSeq[i]);
+		}
+	}
+
 
 	// bool testSumOfRates() {
 	// 	MDOUBLE sumOfRates = 0.0;
@@ -324,6 +354,8 @@ private:
 
 	RngType *_rng;
 	std::ofstream _outputFile;
+
+	std::vector<int> _userRootSequence;
 
 };
 

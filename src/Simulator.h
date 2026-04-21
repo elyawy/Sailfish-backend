@@ -234,13 +234,21 @@ public:
     }
 
 
-    void simulateAndWriteSubstitutions(size_t sequenceLength, const std::string& filePath) {
+    void simulateAndWriteSubstitutions(size_t sequenceLength, const std::string& filePath, const std::string& rootString = "") {
         _substitutionSim->setWriteFolder(filePath);
-        _substitutionSim->generate_substitution_log(sequenceLength);
+        if (!rootString.empty()) {
+            _substitutionSim->generate_substitution_log(rootString);
+        } else {
+            _substitutionSim->generate_substitution_log(sequenceLength);
+        }
     }
 
-    std::shared_ptr<sequenceContainer> simulateSubstitutions(size_t sequenceLength) {
-        _substitutionSim->generate_substitution_log(sequenceLength);
+    std::shared_ptr<sequenceContainer> simulateSubstitutions(size_t sequenceLength, const std::string& rootString = "") {
+        if (!rootString.empty()) {
+            _substitutionSim->generate_substitution_log(rootString);
+        } else {
+            _substitutionSim->generate_substitution_log(sequenceLength);
+        }
         auto seqContainer = _substitutionSim->getSequenceContainer();
 
         return seqContainer;
