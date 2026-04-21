@@ -81,7 +81,7 @@ public:
     void fillMSA(std::vector<CompressedSequence> &sequences, SuperSequence &superSeq) {
 		_numberOfSequences = superSeq.getNumSequences();
 		_msaLength = superSeq.getMsaSequenceLength();
-		superSeq.setAbsolutePositions();
+		_rootPositionsInMsa = superSeq.setAbsolutePositions();
 		// _alignedSequence.resize(_numberOfSequences);
         _alignedSequence.reserve(_numberOfSequences);
 
@@ -108,7 +108,7 @@ public:
                 currentSequence.push_back(-lastPosition);
                 totalSize += lastPosition;
             }
-
+            
             for(auto currentSite=seq.begin() + 1; currentSite!=seq.end(); currentSite++) {
 				currentPosition = (*(currentSite))->absolutePosition;
                 positionDifference = currentPosition - lastPosition - 1;
@@ -389,6 +389,8 @@ public:
     const std::unordered_map<size_t, std::vector<int>>& getAlignedSequence() const {
         return _alignedSequence;
     }
+
+    const std::vector<size_t>& getRootPositionsInMsa() const { return _rootPositionsInMsa; }
 	
 	~MSA() {
 	}
@@ -402,7 +404,7 @@ private:
 
 	std::unordered_map<size_t, std::vector<int>> _alignedSequence;
     std::vector<size_t> _sequencesToSave;
-
+    std::vector<size_t> _rootPositionsInMsa;
 
 };
 #endif

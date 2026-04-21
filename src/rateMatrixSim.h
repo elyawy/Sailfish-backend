@@ -70,31 +70,11 @@ public:
 		return _siteRates;
 	}
 
-	void generate_substitution_log(const std::string& rootString) {
-		_rateCategories.resize(rootString.size());
-		std::vector<MDOUBLE> ratesVec(rootString.size());
-		MDOUBLE sumOfRatesAcrossSites = 0.0;
-		for (size_t h = 0; h < rootString.size(); h++)  {
-			int selectedRandomCategory = _rateCategorySampler.drawSample(*_rng);
-			_rateCategories[h] = selectedRandomCategory;
-			ratesVec[h] = _sp->rates(selectedRandomCategory);
-			sumOfRatesAcrossSites += ratesVec[h];
-		}
-		if (_saveRates) _siteRates.insert(_siteRates.end(), ratesVec.begin(), ratesVec.end());
-		
-		sequence rootSequence(rootString, _et->getRoot()->name(), "", _et->getRoot()->id(), _alph);
-
-		if ((*_nodesToSave)[_et->getRoot()->id()]){ 
-			saveSequence(rootSequence);
-		}
-
-		mutateSeqRecuresively(rootSequence, _et->getRoot());
-
-		// _subManager.clear();
-	}
 
 
-	void generate_substitution_log(int seqLength) {
+	void generate_substitution_log(int seqLength,
+								   const std::string& rootString = "",
+								   const std::vector<size_t>& rootPositionsInMSA = {}) {
 		std::vector<MDOUBLE> ratesVec(seqLength);
 		MDOUBLE sumOfRatesAcrossSites = 0.0;
 		_rateCategories.resize(seqLength);
@@ -107,7 +87,15 @@ public:
 		_siteRates.clear();
 		if (_saveRates) _siteRates.insert(_siteRates.end(), ratesVec.begin(), ratesVec.end());
 		
+
 		sequence rootSequence = generateRootSeq(seqLength, ratesVec);
+		// if the root sequence is provided overwrite the generated root only at the positions specified in rootPositionsInMSA)
+		if (!rootString.empty()) {
+			for (size_t position = 0; position < rootPositionsInMSA.size(); position++) {
+				if (rootPositionsInMSA[position] == SIZE_MAX) continue; // this means that this position in the root sequence is not represented in the MSA, so we can skip it
+				rootSequence[rootPositionsInMSA[position]] = _alph->fromChar(rootString, position);
+			}
+		}
 
 		if ((*_nodesToSave)[_et->getRoot()->id()]){ 
 			saveSequence(rootSequence);

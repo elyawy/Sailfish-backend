@@ -264,12 +264,14 @@ class Simulator:
     def save_all_nodes_sequences(self):
         self._simulator.save_all_nodes_sequences()
 
-    def gen_substitutions(self, length: int, root_string: str = ""):
+    def gen_substitutions(self, length: int, root_string: str = "", root_positions_in_msa: List[int] = []) -> List[List[str]]:
         if not self._is_sub_model_init:
             self._init_sub_model()
-        return self._simulator.gen_substitutions(length, root_string)
+        return self._simulator.gen_substitutions(length, root_string, root_positions_in_msa)
     
     def set_root_sequence(self, sequence: str):
+        if self._simProtocol.get_sequence_size() != len(sequence):
+            raise ValueError(f"the provided root sequence length of {len(sequence)} does not match the sequence size in the simProtocol of {self._simProtocol.get_sequence_size()}")
         self._root_seq = sequence
     
     # @profile
@@ -281,10 +283,6 @@ class Simulator:
                           self._simProtocol.get_sequence_size(),
                           self.get_sequences_to_save())
             else:
-                # indels with user defined root sequence are not yet supported, since the root sequence is generated after the indel events are generated, we need to set the root sequence after the indel events are generated, but before the msa is generated, this is to ensure that the indel events are generated based on the length of the root sequence, and not based on the length of the msa, which is generated based on the indel events, this can be fixed in the future by generating the indel events based on the length of the root sequence, but for now we will just raise an error if the user tries to set a root sequence before generating the indel events.
-                if self._root_seq != "":
-                    raise ValueError("setting a root sequence is not yet supported when indels are simulated, please set the root sequence after generating the indel events, or set the root sequence before generating the indel events and set insertion and deletion rates to 0")
-
                 blocktree = self.gen_indels()
                 msa = Msa(blocktree._get_Sailfish_blocks(),
                           self._simProtocol._get_root(),
@@ -297,7 +295,7 @@ class Simulator:
                     msa_length = msa.get_length()
                 else:
                     msa_length = len(self._root_seq)
-                substitutions = self.gen_substitutions(msa.get_length(), self._root_seq)
+                substitutions = self.gen_substitutions(msa.get_length(), self._root_seq, msa.get_root_positions_in_msa())
                 msa.fill_substitutions(substitutions)
 
             Msas.append(msa)

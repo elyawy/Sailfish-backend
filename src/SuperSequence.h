@@ -21,8 +21,10 @@ private:
     size_t _leafNum;
     size_t _numSequences;
     size_t _msaSeqLength;
+    size_t _originalSequenceSize;
 public:
     SuperSequence(size_t sequenceSize, size_t numSequences) {
+        _originalSequenceSize = sequenceSize;
         _msaSeqLength = 0;
         _leafNum = 0;
         _numSequences = numSequences;
@@ -44,13 +46,18 @@ public:
         }
     }
 
-    void setAbsolutePositions() {
+    std::vector<size_t> setAbsolutePositions() {
+        std::vector<size_t> rootPositions(_originalSequenceSize, SIZE_MAX);
         size_t i = 0;
         for (auto &column: _sequence) {
             if (!column.isColumn) continue;
             column.absolutePosition = i;
+            if (column.position <= _originalSequenceSize) {
+                rootPositions[column.position - 1] = i;
+            }
             ++i;
         }
+        return rootPositions;
     }
 
     SequenceType::iterator insertItemAtPosition(SequenceType::iterator position, size_t item, bool isToSave) {

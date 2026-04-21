@@ -192,6 +192,7 @@ PYBIND11_MODULE(_Sailfish, m) {
         .def("write_msa", &MSA::writeFullMsa)
         .def("write_msa_from_dir", &MSA::writeMsaFromDir)
         .def("get_msa_string", &MSA::generateMsaString)
-        .def("get_msa", &MSA::getMSAVec);
+        .def("get_msa", &MSA::getMSAVec)
+        .def("get_root_positions_in_msa", &MSA::getRootPositionsInMsa);
 
 }

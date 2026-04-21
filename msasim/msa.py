@@ -15,6 +15,9 @@ class Msa:
     def get_length(self) -> int:
         return self._msa.length()
     
+    def get_root_positions_in_msa(self) -> List[int]:
+        return self._msa.get_root_positions_in_msa()
+    
     def get_num_sequences(self) -> int:
         return self._msa.num_sequences()
     

@@ -23,6 +23,8 @@ private:
     std::shared_ptr<std::vector<bool>> _nodesToSave;
     // std::uniform_int_distribution<int> _fair_die;
     BlockTree blocks;
+
+    std::vector<size_t> _rootPositionsInMsa;
 public:
     Simulator(SimulationProtocol* protocol): _protocol(protocol),
     _seed(protocol->getSeed()), _rng(protocol->getSeed()),
@@ -234,26 +236,41 @@ public:
     }
 
 
-    void simulateAndWriteSubstitutions(size_t sequenceLength, const std::string& filePath, const std::string& rootString = "") {
-        _substitutionSim->setWriteFolder(filePath);
-        if (!rootString.empty()) {
-            _substitutionSim->generate_substitution_log(rootString);
-        } else {
-            _substitutionSim->generate_substitution_log(sequenceLength);
+    void simulateAndWriteSubstitutions(size_t sequenceLength, const std::string& filePath,
+                                       const std::string& rootString = "",
+                                       const std::vector<size_t>& rootPositionsInMSA = {}) {
+        // generate dummy root positions vector if not provided
+        // should be numbers 0 to sequenceLength-1 in order.
+        if (rootPositionsInMSA.empty() && !rootString.empty()) {
+            std::vector<size_t> dummyRootPositionsInMSA(sequenceLength);
+            for (size_t i = 0; i < sequenceLength; i++) {
+                dummyRootPositionsInMSA[i] = i;
+            }
+            simulateAndWriteSubstitutions(sequenceLength, filePath, rootString, dummyRootPositionsInMSA);
         }
+
+        _substitutionSim->setWriteFolder(filePath);
+        _substitutionSim->generate_substitution_log(sequenceLength, rootString, rootPositionsInMSA);
     }
 
-    std::shared_ptr<sequenceContainer> simulateSubstitutions(size_t sequenceLength, const std::string& rootString = "") {
-        if (!rootString.empty()) {
-            _substitutionSim->generate_substitution_log(rootString);
-        } else {
-            _substitutionSim->generate_substitution_log(sequenceLength);
+    std::shared_ptr<sequenceContainer> simulateSubstitutions(size_t sequenceLength, const std::string& rootString = "", 
+                                                             const std::vector<size_t>& rootPositionsInMSA = {}) {
+        // generate dummy root positions vector if not provided
+        // should be numbers 0 to sequenceLength-1 in order.
+        if (rootPositionsInMSA.empty() && !rootString.empty()) {
+            std::vector<size_t> dummyRootPositionsInMSA(sequenceLength);
+            for (size_t i = 0; i < sequenceLength; i++) {
+                dummyRootPositionsInMSA[i] = i;
+            }
+            return simulateSubstitutions(sequenceLength, rootString, dummyRootPositionsInMSA);
         }
+
+        _substitutionSim->generate_substitution_log(sequenceLength, rootString, rootPositionsInMSA);
         auto seqContainer = _substitutionSim->getSequenceContainer();
 
         return seqContainer;
-
     }
+    
 
     void setAlignedSequenceMap(const MSA& msa) {
         const auto& alignedSeq = msa.getAlignedSequence();
