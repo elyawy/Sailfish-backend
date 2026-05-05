@@ -28,7 +28,7 @@ simulation.set_replacement_model(model=MODEL_CODES.WAG,
 msa = simulation()
 msa.print_msa()
 
-rate_categories =simulation.get_rate_categories()
+rate_categories = simulation.get_rate_categories()
 
 print("".join(map(str, rate_categories)))
 # counter = 0
