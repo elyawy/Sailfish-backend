@@ -91,7 +91,7 @@ public:
     void fillMSA(std::vector<CompressedSequence> &sequences, SuperSequence<RngType, BlockTreeType> &superSeq) {
 		_numberOfSequences = superSeq.getNumSequences();
 		_msaLength = superSeq.getMsaSequenceLength();
-		superSeq.setAbsolutePositions();
+		_rootPositionsInMsa = superSeq.setAbsolutePositions();
         _perSiterateCategories = superSeq.getMsaRateCategories();
 		// create AlignedSequenceMap shared pointer, can be shared with SubstitutionSimulator
         _alignedSequenceMap = std::make_shared<SparseMSA>();
@@ -257,6 +257,7 @@ public:
         return _perSiterateCategories;
     }
 
+    const std::vector<size_t>& getRootPositionsInMsa() const { return _rootPositionsInMsa; }
 	
 	~MSA() {
 	}
@@ -271,6 +272,7 @@ private:
     std::shared_ptr<std::vector<size_t>> _perSiterateCategories = nullptr;
     // IDs of sequences to save are accessed via _simContext->getNodesToSaveIndices()
     // Names of sequences to save are accessed via _simContext->getNodeToSaveNames()
+    std::vector<size_t> _rootPositionsInMsa;
 
 
 };

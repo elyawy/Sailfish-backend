@@ -30,6 +30,8 @@ private:
     size_t _leafNum;
     size_t _numSequences;
     size_t _msaSeqLength;
+    size_t _originalSequenceSize;
+
     BlockTreeType _blocks;
     RngType & _rng;
 
@@ -41,6 +43,7 @@ public:
          _rng(simContext.getRng()),
          _rateCategorySampler(simContext.getCategorySampler())
          {
+        _originalSequenceSize = sequenceSize;
         _msaSeqLength = 0;
         _leafNum = 0;
         _numSequences = simContext.getNumberOfNodesToSave();
@@ -62,21 +65,25 @@ public:
         }
     }
 
-    void setAbsolutePositions() {
+    std::vector<size_t> setAbsolutePositions() {
         if constexpr (std::is_same_v<BlockTreeType, BlockTreeWithRates>) {
             _msaRateCategories = std::make_shared<std::vector<size_t>>(_msaSeqLength);
         }
+        std::vector<size_t> rootPositions(_originalSequenceSize, SIZE_MAX);
         size_t i = 0;
         for (auto &column: _sequence) {
             if (!column.isColumn) continue;
             column.absolutePosition = i;
-
+            if (column.position <= _originalSequenceSize) {
+                rootPositions[column.position - 1] = i;
+            }
             if constexpr (std::is_same_v<BlockTreeType, BlockTreeWithRates>) {
                (*_msaRateCategories)[i] = column.rateCategory;
             }
             ++i;
 
         }
+        return rootPositions;
     }
 
     typename SequenceType::iterator insertItemAtPosition(typename SequenceType::iterator position, size_t item, bool isToSave) {

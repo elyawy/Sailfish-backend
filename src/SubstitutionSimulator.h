@@ -85,8 +85,9 @@ public:
 		return _siteRates;
 	}
 
-	void generateSubstitutionsAlongTree(int seqLength) {
-
+	void generateSubstitutionsAlongTree(int seqLength,
+									    const std::string& rootString = "",
+								        const std::vector<size_t>& rootPositionsInMSA = {}) {
 		if (_rateCategories == nullptr) {
 			auto newCategories = std::make_shared<std::vector<size_t>>(seqLength);
 			for (int h = 0; h < seqLength; h++) {
@@ -111,6 +112,15 @@ public:
 		}
 		
 		sequence rootSequence = generateRootSeq(seqLength);
+
+		// if the root sequence is provided overwrite the generated root only at the positions specified in rootPositionsInMSA)
+		if (!rootString.empty()) {
+			for (size_t position = 0; position < rootPositionsInMSA.size(); position++) {
+				if (rootPositionsInMSA[position] == SIZE_MAX) continue; // this means that this position in the root sequence is not represented in the MSA, so we can skip it
+				rootSequence[rootPositionsInMSA[position]] = _alphabet->fromChar(rootString, position);
+			}
+		}
+
 
 		if (_nodesToSave[_tree->getRoot()->id()]){ 
 			saveSequence(rootSequence);
@@ -142,15 +152,41 @@ public:
 	}
 
 
-    void simulateAndWriteSubstitutions(size_t sequenceLength, const std::string& filePath) {
+    void simulateAndWriteSubstitutions(
+		size_t sequenceLength, 
+		const std::string& filePath,
+		const std::string& rootString = "", 
+		const std::vector<size_t>& rootPositionsInMSA = {}) {
+
+		if (rootPositionsInMSA.empty() && !rootString.empty()) {
+            std::vector<size_t> dummyRootPositionsInMSA(sequenceLength);
+            for (size_t i = 0; i < sequenceLength; i++) {
+                dummyRootPositionsInMSA[i] = i;
+            }
+            simulateAndWriteSubstitutions(sequenceLength, filePath, rootString, dummyRootPositionsInMSA);
+        }
+
         setWriteFolder(filePath);
-        generateSubstitutionsAlongTree(sequenceLength);
+        generateSubstitutionsAlongTree(sequenceLength, rootString, rootPositionsInMSA);
 		_outputFile.close();
     }
 
-    std::shared_ptr<SparseSequenceContainer> simulateSubstitutions(size_t sequenceLength) {
+    std::shared_ptr<SparseSequenceContainer> simulateSubstitutions(
+		size_t sequenceLength,
+		const std::string& rootString = "", 
+		const std::vector<size_t>& rootPositionsInMSA = {}) {
 
-        generateSubstitutionsAlongTree(sequenceLength);
+		// generate dummy root positions vector if not provided
+        // should be numbers 0 to sequenceLength-1 in order.
+        if (rootPositionsInMSA.empty() && !rootString.empty()) {
+            std::vector<size_t> dummyRootPositionsInMSA(sequenceLength);
+            for (size_t i = 0; i < sequenceLength; i++) {
+                dummyRootPositionsInMSA[i] = i;
+            }
+            return simulateSubstitutions(sequenceLength, rootString, dummyRootPositionsInMSA);
+        }
+
+        generateSubstitutionsAlongTree(sequenceLength, rootString, rootPositionsInMSA);
 
         return getSequenceContainer();
     }

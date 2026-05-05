@@ -18,8 +18,10 @@ sim_protocol = SimProtocol("tests/trees/normalbranches_nLeaves10.treefile",
                                seed=5)
 sim_protocol.set_sequence_size(ROOT_SEQUENCE_LENGTH)
 
+
 simulation = Simulator(sim_protocol, simulation_type=SIMULATION_TYPE.PROTEIN)
-# simulation.save_root_sequence()
+simulation.save_root_sequence()
+# simulation.set_root_sequence("".join(["A" for _ in range(ROOT_SEQUENCE_LENGTH)]))
 simulation.set_replacement_model(model=MODEL_CODES.WAG, 
                                  gamma_parameters_alpha=1.0, 
                                  gamma_parameters_categories=4)
