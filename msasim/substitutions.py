@@ -182,7 +182,6 @@ class SubstitutionModel:
                 try:
                     from msasim.correlation import build_auto_gamma_transition_matrix
                     transition_matrix = build_auto_gamma_transition_matrix(
-                        alpha=gamma_alpha,
                         categories=gamma_categories,
                         rho=site_rate_correlation,
                     )
