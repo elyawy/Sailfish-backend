@@ -166,7 +166,10 @@ class Simulator:
                          Otherwise collect and return a list of Msa objects.
         """
         if output_path is not None:
-            self._strategy(output_path)
+            output_path = pathlib.Path(output_path).resolve()
+            for _ in range(times):
+                replicate_path = output_path.parent / f"{output_path.stem}_replicate_{_+1}.fasta"
+                self._strategy(replicate_path)
             return [None]  # Return a list of None for consistency with return type
         
 
