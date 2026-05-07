@@ -15,11 +15,13 @@ sim_protocol = SimProtocol("tests/trees/normalbranches_nLeaves10.treefile",
                                deletion_dist=ZipfDistribution(1.7, 50),
                                insertion_dist=ZipfDistribution(1.7, 50),
                                site_rate_model=SITE_RATE_MODELS.SIMPLE,
-                               seed=5)
+                               seed=11)
 sim_protocol.set_sequence_size(ROOT_SEQUENCE_LENGTH)
 
+
 simulation = Simulator(sim_protocol, simulation_type=SIMULATION_TYPE.PROTEIN)
-# simulation.save_root_sequence()
+simulation.save_root_sequence()
+simulation.set_root_sequence("".join(["M" for _ in range(ROOT_SEQUENCE_LENGTH)]))
 simulation.set_replacement_model(model=MODEL_CODES.WAG, 
                                  gamma_parameters_alpha=1.0, 
                                  gamma_parameters_categories=4)
@@ -31,14 +33,5 @@ msa.print_msa()
 rate_categories = simulation.get_rate_categories()
 
 print("".join(map(str, rate_categories)))
-# counter = 0
-# while True:
-#     print(counter)
-#     msa = simulation()
-#     counter += 1
 
-# for i in range(10000):
-#     print(i)
-#     msa = simulation()
-# msa.print_msa()
-# msa.print_msa()
+

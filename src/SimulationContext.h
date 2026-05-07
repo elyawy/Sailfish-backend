@@ -22,7 +22,7 @@ public:
         : _tree(t), _seed(seed), _rng(seed*PHI), 
           _nodesToSave(t->getNodesNum(), false), 
           _idToSaveIndices(t->getNodesNum(), SIZE_MAX),
-          _protocol(protocol) {
+          _protocol(protocol), _categorySampler(nullptr) {
             // By default, save leaves only
             setSaveLeaves();
           }
@@ -48,8 +48,15 @@ public:
         // since root is the first node it should be first in the indices and names lists
         _nodesToSaveIndices.insert(_nodesToSaveIndices.begin(), _tree->getRoot()->id());
         _idToSaveIndices[_tree->getRoot()->id()] = 0;
+        // shift all existing saved nodes' indices by 1
+        for (size_t nodeId = 0; nodeId < _idToSaveIndices.size(); nodeId++) {
+            if (nodeId != _tree->getRoot()->id() && _idToSaveIndices[nodeId] != SIZE_MAX) {
+                _idToSaveIndices[nodeId]++;
+            }
+        }
         _nodeToSaveNames.insert(_nodeToSaveNames.begin(), _tree->getRoot()->name());
         _numberOfNodesToSave++;
+
     }
 
     void setSaveLeaves() {

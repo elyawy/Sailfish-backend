@@ -205,14 +205,15 @@ PYBIND11_MODULE(_Sailfish, m) {
         .def("write_msa", &MSA<SelectedRNG>::writeFullMsa)
         .def("get_msa_row_string", &MSA<SelectedRNG>::generateMsaRowString)
         .def("get_sparse_msa", &MSA<SelectedRNG>::getSparseMSA)
-        .def("get_per_site_rate_categories", &MSA<SelectedRNG>::getPerSiteRateCategories);
+        .def("get_per_site_rate_categories", &MSA<SelectedRNG>::getPerSiteRateCategories)
+        .def("get_root_positions_in_msa", &MSA<SelectedRNG>::getRootPositionsInMsa);
 
     // bindings for SubstitutionSimulator (amino)
     using AminoSim = SubstitutionSimulator<SelectedRNG, 20>;
     py::class_<AminoSim>(m, "AminoSubstitutionSimulator")
         .def(py::init<modelFactory&, SimulationContext<SelectedRNG>&>())
-        .def("simulate_substitutions", [](AminoSim& self, size_t length) {
-            return *self.simulateSubstitutions(length);})
+        .def("simulate_substitutions", [](AminoSim& self, size_t length, const std::string& rootString, const std::vector<size_t>& rootPositionsInMSA) {
+            return *self.simulateSubstitutions(length, rootString, rootPositionsInMSA);})
         .def("simulate_and_write_substitutions", &AminoSim::simulateAndWriteSubstitutions)
         .def("init_substitution_sim", &AminoSim::initSubstitionSim)
         .def("set_save_rates", &AminoSim::setSaveRates)
@@ -227,8 +228,8 @@ PYBIND11_MODULE(_Sailfish, m) {
     using NucleotideSim = SubstitutionSimulator<SelectedRNG, 4>;
     py::class_<NucleotideSim>(m, "NucleotideSubstitutionSimulator")
         .def(py::init<modelFactory&, SimulationContext<SelectedRNG>&>())
-        .def("simulate_substitutions", [](NucleotideSim& self, size_t length) {
-            return *self.simulateSubstitutions(length);})
+        .def("simulate_substitutions", [](NucleotideSim& self, size_t length, const std::string& rootString, const std::vector<size_t>& rootPositionsInMSA) {
+            return *self.simulateSubstitutions(length, rootString, rootPositionsInMSA);})
         .def("simulate_and_write_substitutions", &NucleotideSim::simulateAndWriteSubstitutions)
         .def("init_substitution_sim", &NucleotideSim::initSubstitionSim)
         .def("set_save_rates", &NucleotideSim::setSaveRates)

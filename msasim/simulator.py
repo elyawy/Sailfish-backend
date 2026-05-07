@@ -20,6 +20,7 @@ class Simulator:
     ):
         if simProtocol is None:
             simProtocol = SimProtocol.default()
+        self._root_seq = ""
 
         if simProtocol._verify_sim_protocol():
             self._simProtocol = simProtocol
@@ -102,7 +103,7 @@ class Simulator:
         rate_categories = msa.get_per_site_rate_categories()
         self._substitution_simulator.set_per_site_rate_categories(rate_categories)
         self._substitution_simulator.set_aligned_sequence_map(msa._msa)
-        substitutions = self._substitution_simulator.simulate_substitutions(msa.get_length())
+        substitutions = self._substitution_simulator.simulate_substitutions(msa.get_length(), self._root_seq, msa.get_root_positions_in_msa())
         msa.fill_substitutions(substitutions)
 
     def _apply_substitutions_to_disk(self, msa: Msa, output_path: pathlib.Path) -> None:
@@ -112,7 +113,7 @@ class Simulator:
             msa.get_per_site_rate_categories()
         )
         self._substitution_simulator.simulate_and_write_substitutions(
-            msa.get_length(), str(output_path)
+            msa.get_length(), str(output_path), self._root_seq, msa.get_root_positions_in_msa()
         )
 
     def _simulate_root_only(self, output_path: Optional[pathlib.Path]) -> Optional[Msa]:
@@ -165,7 +166,10 @@ class Simulator:
                          Otherwise collect and return a list of Msa objects.
         """
         if output_path is not None:
-            self._strategy(output_path)
+            output_path = pathlib.Path(output_path).resolve()
+            for _ in range(times):
+                replicate_path = output_path.parent / f"{output_path.stem}_replicate_{_+1}.fasta"
+                self._strategy(replicate_path)
             return [None]  # Return a list of None for consistency with return type
         
 
@@ -246,3 +250,8 @@ class Simulator:
 
     def get_rate_categories(self) -> List[int]:
         return self._substitution_simulator.get_per_site_rate_categories()
+    
+    def set_root_sequence(self, sequence: str):
+        if self._simProtocol.get_sequence_size() != len(sequence):
+            raise ValueError(f"the provided root sequence length of {len(sequence)} does not match the sequence size in the simProtocol of {self._simProtocol.get_sequence_size()}")
+        self._root_seq = sequence
