@@ -24,7 +24,7 @@ EMSCRIPTEN_BINDINGS(_Sailfish) {
     register_vector<std::vector<double>>("DoubleMatrix");
     register_vector<Event>("EventSequence");
     register_vector<EventSequence>("EventMap");
-
+    register_vector<tree::TreeNode*>("NodeVector");
     // -------------------------------------------------------------------------
     // Tree
     // -------------------------------------------------------------------------
