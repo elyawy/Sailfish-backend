@@ -6,7 +6,7 @@ from setuptools import setup, find_packages
 
 
 
-__version__ = "26.5.2"
+__version__ = "26.5.3"
 
 # The main interface is through Pybind11Extension.
 # * You can add cxx_std=11/14/17, and then build_ext can be removed.
@@ -25,7 +25,7 @@ def print_sources(sources):
 
 ext_modules = [
     Pybind11Extension("_Sailfish",
-        sources = sorted(print_sources(glob("src/*.cpp"))),
+        sources = ["src/main.cpp"],
         cxx_std = "17",
         extra_objects=[str(x) for x in Path(".").resolve().glob("libs/*") if x.is_file()],
         # extra_compile_args=["-g"],

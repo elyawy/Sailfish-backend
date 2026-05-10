@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Sailfish WASM Demo</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: monospace; max-width: 860px; margin: 2rem auto; padding: 0 1rem; }
+    fieldset { border: 1px solid #ccc; border-radius: 4px; margin-bottom: 1rem; padding: 0.75rem 1rem; }
+    legend { font-weight: bold; padding: 0 0.25rem; }
+    label { display: block; margin-bottom: 0.5rem; }
+    input[type=number], select, textarea { font-family: monospace; padding: 0.2rem 0.4rem; }
+    textarea { width: 100%; }
+    button { padding: 0.4rem 1.2rem; cursor: pointer; margin-right: 0.5rem; font-size: 1rem; }
+    button:disabled { opacity: 0.4; cursor: not-allowed; }
+    #status { padding: 0.4rem 0; color: #666; }
+    #status.ready { color: green; }
+    #status.error { color: red; }
+    #output {
+      background: #f4f4f4; padding: 1rem; min-height: 6rem;
+      overflow-x: auto; white-space: pre-wrap;
+      border: 1px solid #ddd; border-radius: 4px; font-size: 0.85rem;
+    }
+  </style>
+</head>
+<body>
+  <h2>Sailfish WASM Demo</h2>
+
+  <div id="status">Loading WASM module…</div>
+
+  <fieldset>
+    <legend>Tree</legend>
+    <label>Newick string:
+      <textarea id="newick" rows="2">((Human:0.1,Chimp:0.15):0.2,(Mouse:0.3,Rat:0.25):0.2);</textarea>
+    </label>
+  </fieldset>
+
+  <fieldset>
+    <legend>Simulation parameters</legend>
+    <label>Model:
+      <select id="model">
+        <option value="LG">LG (amino acid)</option>
+        <option value="WAG">WAG (amino acid)</option>
+        <option value="DAYHOFF">Dayhoff (amino acid)</option>
+        <option value="JONES">JTT (amino acid)</option>
+        <option value="HKY">HKY (nucleotide)</option>
+        <option value="GTR">GTR (nucleotide)</option>
+        <option value="NUCJC">NucJC (nucleotide)</option>
+      </select>
+    </label>
+    <label>Root sequence length: <input id="seqlen" type="number" value="100" min="1" max="5000"></label>
+    <label>Random seed:          <input id="seed"   type="number" value="42"></label>
+  </fieldset>
+
+  <fieldset>
+    <legend>Indels</legend>
+    <label><input type="checkbox" id="indelEnabled"> Enable indel simulation</label>
+    <label>Insertion rate: <input id="insertionRate" type="number" value="0.05" min="0" max="1" step="0.01"></label>
+    <label>Deletion rate:  <input id="deletionRate"  type="number" value="0.05" min="0" max="1" step="0.01"></label>
+  </fieldset>
+
+  <fieldset>
+    <legend>Root sequence (optional)</legend>
+    <label>Leave blank to use a random root sequence.
+      <textarea id="rootSeq" rows="2" placeholder="e.g. ACDEFGHIKLMNPQRSTVWY…" oninput="document.getElementById('seqlen').value = this.value.length || document.getElementById('seqlen').value"></textarea>
+    </label>
+  </fieldset>
+
+  <button id="runBtn" disabled onclick="runSim()">Run simulation</button>
+  <button onclick="document.getElementById('output').textContent = ''">Clear</button>
+
+  <pre id="output"></pre>
+
+  <script type="module">
+    import createSailfish from './dist/sailfish.js';
+    const AMINO_MODELS = new Set(['LG','WAG','DAYHOFF','JONES','CPREV45','HIVB','HIVW','MTREV24']);
+
+    createSailfish().then(m => {
+      window.M = m;
+      document.getElementById('status').textContent = 'Module ready ✓';
+      document.getElementById('status').className = 'ready';
+      document.getElementById('runBtn').disabled = false;
+    }).catch(e => {
+      document.getElementById('status').textContent = 'Failed: ' + e.message;
+      document.getElementById('status').className = 'error';
+    });
+
+    window.runSim = function runSim() {
+      const newick       = document.getElementById('newick').value.trim();
+      const seqLen       = parseInt(document.getElementById('seqlen').value);
+      const seed         = parseInt(document.getElementById('seed').value);
+      const modelName    = document.getElementById('model').value;
+      const isAmino      = AMINO_MODELS.has(modelName);
+      const indelEnabled = document.getElementById('indelEnabled').checked;
+      const rootSeq     = document.getElementById('rootSeq').value.trim();
+      const insertionRate = parseFloat(document.getElementById('insertionRate').value);
+      const deletionRate  = parseFloat(document.getElementById('deletionRate').value);
+
+      const toDelete = [];
+      const track = o => { toDelete.push(o); return o; };
+
+      try {
+        // 1. Tree
+        const tree = track(new M.Tree(newick, false));
+
+        // 2. SimulationContext
+        const ctx = track(M.createSimulationContext(tree, seed));
+
+        // 3. modelFactory
+        const factory = track(new M.modelFactory());
+        factory.set_replacement_model(M.modelCode[modelName]);
+
+        const rates = track(new M.DoubleVector()); rates.push_back(1.0);
+        const probs = track(new M.DoubleVector()); probs.push_back(1.0);
+        factory.set_site_rate_model_no_matrix(rates, probs);
+        factory.build_replacement_model();
+
+        // 4. Substitution simulator
+        const sim = track(isAmino ? M.createAminoSim(factory, ctx)
+                                  : M.createNucleotideSim(factory, ctx));
+
+        let msa;
+        if (indelEnabled) {
+          const numEdges = tree.num_nodes - 1;
+
+          // Geometric-ish indel length distribution (p=0.5, capped at 20)
+          const distProbs = track(new M.DoubleVector());
+          for (let i = 0; i < 20; i++) distProbs.push_back(Math.pow(0.5, i + 1));
+          const dist = track(new M.DiscreteDistribution(distProbs));
+
+          // Protocol — must be tracked before dist so dist outlives it
+          const protocol = track(new M.SimProtocol(numEdges));
+          protocol.set_sequence_size(seqLen);
+          protocol.set_minimum_sequence_size(Math.max(1, Math.floor(seqLen / 10)));
+          protocol.set_max_insertion_length(20);
+          protocol.set_site_rate_model(M.SiteRateModel.INDEL_AWARE);
+
+          const insRates = track(new M.DoubleVector());
+          const delRates = track(new M.DoubleVector());
+          for (let i = 0; i < numEdges; i++) {
+            insRates.push_back(insertionRate);
+            delRates.push_back(deletionRate);
+          }
+          protocol.set_insertion_rates(insRates);
+          protocol.set_deletion_rates(delRates);
+          protocol.set_insertion_length_distribution_uniform(dist, numEdges);
+          protocol.set_deletion_length_distribution_uniform(dist, numEdges);
+
+          ctx.set_protocol(protocol);
+
+          // Run indel simulation
+          const indelSim = track(new M.IndelSimulator(ctx, protocol));
+          const eventMap = track(indelSim.generate_events());
+
+          // Category sampler needed for INDEL_AWARE mode
+          const categorySampler = track(factory.get_rate_category_sampler(protocol.get_max_insertion_length()));
+          ctx.set_category_sampler(categorySampler);
+
+          // Build MSA from indel events
+          msa = track(M.createMsaFromEvents(eventMap, ctx));
+
+          // Pass per-site rate categories to substitution simulator
+          sim.set_aligned_sequence_map(msa);
+          const rateCategories = track(msa.get_per_site_rate_categories());
+          sim.set_per_site_rate_categories(rateCategories);
+        } else {
+          // No indels — fixed-length MSA
+          msa = track(M.createMsaFromLength(seqLen, ctx));
+          sim.set_aligned_sequence_map(msa);
+        }
+
+        const msaLen  = msa.length();
+        const container = rootSeq
+          ? track(sim.simulate_substitutions_with_root(msaLen, rootSeq, msa.get_root_positions_in_msa()))
+          : track(sim.simulate_substitutions(msaLen));
+        msa.fill_substitutions(container);
+
+        // Read results
+        const nSeq = msa.num_sequences();
+        let out = `Model: ${modelName} | Indels: ${indelEnabled} | Sequences: ${nSeq} | MSA length: ${msaLen} | Seed: ${seed}\n`;
+        out += '─'.repeat(60) + '\n';
+        for (let i = 0; i < nSeq; i++) {
+          out += msa.get_msa_row_string(i) + '\n';
+        }
+        document.getElementById('output').textContent = out;
+
+      } catch(e) {
+        document.getElementById('output').textContent = 'Error: ' + e.message;
+        console.error(e);
+      } finally {
+        toDelete.reverse().forEach(o => { try { o.delete(); } catch(_){} });
+      }
+    }
+  </script>
+</body>
+</html>
