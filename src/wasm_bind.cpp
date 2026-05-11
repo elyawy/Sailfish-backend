@@ -126,6 +126,20 @@ EMSCRIPTEN_BINDINGS(_Sailfish) {
             self.setDeletionLengthDistributions(dists);
         }))
         .function("get_deletion_length_distribution",    &SimulationProtocol::getDeletionDistribution, allow_raw_pointers())
+        .function("set_insertion_length_distributions", optional_override([](SimulationProtocol& self, emscripten::val distArray, size_t numEdges) {
+            std::vector<DiscreteDistribution*> dists;
+            dists.reserve(numEdges);
+            for (size_t i = 0; i < numEdges; ++i)
+                dists.push_back(distArray[i].as<DiscreteDistribution*>(allow_raw_pointers()));
+            self.setInsertionLengthDistributions(dists);
+        }))
+        .function("set_deletion_length_distributions", optional_override([](SimulationProtocol& self, emscripten::val distArray, size_t numEdges) {
+            std::vector<DiscreteDistribution*> dists;
+            dists.reserve(numEdges);
+            for (size_t i = 0; i < numEdges; ++i)
+                dists.push_back(distArray[i].as<DiscreteDistribution*>(allow_raw_pointers()));
+            self.setDeletionLengthDistributions(dists);
+        }))
         .function("set_minimum_sequence_size",           &SimulationProtocol::setMinSequenceSize)
         .function("get_minimum_sequence_size",           &SimulationProtocol::getMinSequenceSize)
         .function("set_site_rate_model",                 &SimulationProtocol::setSiteRateModel)
