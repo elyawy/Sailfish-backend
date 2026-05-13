@@ -36,7 +36,7 @@ EMFLAGS   := -lembind \
 all: $(OUTDIR) $(OUT)
 
 $(OUT): $(SRC) $(PHYLOLIB)
-	$(EMCC) $(CXXFLAGS) -O2 $(SRC) $(PHYLOLIB) $(EMFLAGS) -o $(OUT)
+	$(EMCC) $(CXXFLAGS) -O3 $(SRC) $(PHYLOLIB) $(EMFLAGS) -o $(OUT)
 
 # ── Debug (no optimisation, DWARF source maps) ────────────────────────────────
 .PHONY: debug
