@@ -1,5 +1,6 @@
 #ifndef ___SUBSTITUTION_SIMULATOR_H
 #define ___SUBSTITUTION_SIMULATOR_H
+#include <optional>
 
 #include "../libs/Phylolib/includes/definitions.h"
 #include "../libs/Phylolib/includes/stochasticProcess.h"
@@ -21,7 +22,8 @@ public:
 		_saveRates(false),
 		_rateCategorySampler(mFac.getEffectiveTransitionMatrix(), mFac.getRateCategoryProbs()),
 		_rng(simContext.getRng()),
-		_finalMsaPath("") {
+		_finalMsaPath(""), _cacheBranchProbs(simContext.getCacheBranchProbs()),
+		_branchCache(_tree->getNodesNum()) {
 
 		std::vector<MDOUBLE> frequencies;
 		for (int j = 0; j < AlphabetSize; ++j) {
@@ -31,6 +33,7 @@ public:
 
 		_frequencySampler = std::make_unique<DiscreteDistribution>(frequencies);
 		_simulatedSequences = std::make_unique<SparseSequenceContainer>();
+		if (_cacheBranchProbs) warmCache();
 	}
 
 	virtual ~SubstitutionSimulator() {
@@ -52,7 +55,7 @@ public:
 		_rateCategorySampler = CategorySampler(mFac.getEffectiveTransitionMatrix(), mFac.getRateCategoryProbs());
 		_frequencySampler = std::make_unique<DiscreteDistribution>(frequencies);
 		_simulatedSequences = std::make_unique<SparseSequenceContainer>();
-
+		if (_cacheBranchProbs) warmCache();
     }
 
 
@@ -203,7 +206,6 @@ private:
 		sequence rootSeq(_alphabet);
 
 		rootSeq.resize(seqLength);
-
 		size_t rootID = _tree->getRoot()->id();
 		for (int i = 0; i < seqLength; i++) {
 			ALPHACHAR newChar = _frequencySampler->drawSample(_rng) - 1;
@@ -222,7 +224,12 @@ private:
 	void mutateEntireSeq(sequence& currentSequence, const MDOUBLE& branchLength) {
 		const int nodeId = currentSequence.id();
 		auto& rateCategories = (*_rateCategories);
-		BranchTransitionProbabilities<AlphabetSize> cachedPijt(branchLength, *_stochasticProcess);
+		
+
+		std::optional<BranchTransitionProbabilities<AlphabetSize>> localPijt;
+		if (!_cacheBranchProbs) localPijt.emplace(branchLength, *_stochasticProcess);
+		BranchTransitionProbabilities<AlphabetSize> cachedPijt = _cacheBranchProbs ? _branchCache[nodeId].value() : *localPijt;		
+		
 		size_t actualRowInMSA = _idToRowInMSA[nodeId];
 		// Check if this is a leaf we're saving (low memory mode)
 		if (_alignedSequenceMap != nullptr && _nodesToSave[nodeId]) {
@@ -277,8 +284,8 @@ private:
 				} else {
 					// Non-gap block - add these characters to the sparse sequence
 					for (int i = 0; i < blockSize; ++i, ++site) {
-						// build the string from the char from lookup
-						sparseSeq += _charLookup[currentSequence[site]];
+						ALPHACHAR currentChar = currentSequence[site];
+						sparseSeq += _charLookup[currentChar];
 					}
 				}
 			}
@@ -319,6 +326,17 @@ private:
 		_outputFile << "\n";
 	}
 
+	void warmCache() {
+    	warmCacheRecursive(_tree->getRoot());
+	}
+
+	void warmCacheRecursive(tree::nodeP node) {
+		for (auto& child : node->getSons()) {
+			_branchCache[child->id()].emplace(child->dis2father(), *_stochasticProcess);
+			warmCacheRecursive(child);
+		}
+	}
+
 
 
 	tree* _tree;
@@ -345,6 +363,11 @@ private:
 	std::ofstream _outputFile;
 
 	size_t _lengthOfCurrentSequence = 0;
+	bool _cacheBranchProbs;
+	std::vector<std::optional<BranchTransitionProbabilities<AlphabetSize>>> _branchCache;
+		// For each (rate category, site), create a bucket of sites that belong to it.
+		// This will be used later for efficient simulation along branches, as we can simulate all sites in the same category together.
+		// this should be a 2d grid for (rate category x alphabet character), where each cell points to a vector of sites from the current sequence.
 
 };
 

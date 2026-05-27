@@ -6,6 +6,9 @@ Auto-discrete-gamma correlation model (Yang 1995) for correlated substitution ra
 
 import numpy as np
 import warnings
+from scipy.stats import norm, multivariate_normal
+from scipy.stats import gamma
+from scipy.integrate import quad
 
 
 def build_auto_gamma_transition_matrix(
@@ -35,7 +38,6 @@ def build_auto_gamma_transition_matrix(
         Yang, Z. (1995). A space-time process model for the evolution of DNA sequences.
         Genetics, 139(2), 993-1005.
     """
-    from scipy.stats import norm, multivariate_normal
 
     if categories < 2:
         raise ValueError(f"Need at least 2 categories, got {categories}")
@@ -185,8 +187,6 @@ def calculate_discrete_gamma_correlation(
     Raises:
         ImportError: If scipy is not installed
     """
-    from scipy.stats import gamma
-    from scipy.integrate import quad
 
     # Compute conditional mean for each category
     r = np.zeros(K)

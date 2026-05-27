@@ -102,6 +102,9 @@ public:
         return _categorySampler;
     }
 
+    bool getCacheBranchProbs() const { return _cacheBranchProbs; }
+    void setCacheBranchProbs(bool cache) { _cacheBranchProbs = cache; }
+
 private:
     void setSaveLeavesRecursive(tree::nodeP node) {
         if (node->isLeaf()) {
@@ -143,6 +146,6 @@ private:
     size_t _numberOfNodesToSave = 0;
     SimulationProtocol* _protocol;  // Can be nullptr
     CategorySampler* _categorySampler; // Can be nullptr
+    bool _cacheBranchProbs = false; 
 };
-
 #endif

@@ -6,7 +6,7 @@ from setuptools import setup, find_packages
 
 
 
-__version__ = "26.5.3"
+__version__ = "26.5.4"
 
 # The main interface is through Pybind11Extension.
 # * You can add cxx_std=11/14/17, and then build_ext can be removed.
@@ -28,7 +28,7 @@ ext_modules = [
         sources = ["src/main.cpp"],
         cxx_std = "17",
         extra_objects=[str(x) for x in Path(".").resolve().glob("libs/*") if x.is_file()],
-        # extra_compile_args=["-g"],
+        extra_compile_args=["-O3"],
         # Example: passing in the version to the compiled code
         define_macros = [('VERSION_INFO', __version__)],
         ),

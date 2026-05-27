@@ -155,6 +155,7 @@ PYBIND11_MODULE(_Sailfish, m) {
             py::arg("tree"), py::arg("seed"), 
             py::arg("protocol") = nullptr)
         .def("get_tree", &SimulationContext<SelectedRNG>::getTree)
+        .def("set_cache_branch_probs", &SimulationContext<SelectedRNG>::setCacheBranchProbs)
         .def("get_nodes_to_save", &SimulationContext<SelectedRNG>::getNodesToSave)
         .def("set_save_leaves", &SimulationContext<SelectedRNG>::setSaveLeaves)
         .def("set_save_root", &SimulationContext<SelectedRNG>::setSaveRoot)
