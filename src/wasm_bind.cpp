@@ -4,6 +4,7 @@
 #include <string>
 
 #include "../libs/pcg/pcg_random.hpp"
+// #include "../libs/splitmix/Splitmix64.h"
 #include "../libs/Phylolib/includes/gammaDistribution.h"
 #include "./IndelSimulator.h"
 #include "./SubstitutionSimulator.h"
@@ -208,6 +209,7 @@ EMSCRIPTEN_BINDINGS(_Sailfish) {
         .function("set_save_root",       &SimulationContext<SelectedRNG>::setSaveRoot)
         .function("set_save_all",        &SimulationContext<SelectedRNG>::setSaveAll)
         .function("reseed",              &SimulationContext<SelectedRNG>::reseed)
+        .function("set_branch_prob_cache", &SimulationContext<SelectedRNG>::setCacheBranchProbs)
         .function("get_indel_protocol",  &SimulationContext<SelectedRNG>::getProtocol, allow_raw_pointers())
         .function("set_protocol",        &SimulationContext<SelectedRNG>::setProtocol,  allow_raw_pointers())
         .function("set_category_sampler",&SimulationContext<SelectedRNG>::setCategorySampler, allow_raw_pointers())
