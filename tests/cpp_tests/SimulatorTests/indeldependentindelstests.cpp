@@ -44,7 +44,7 @@ int main() {
     protocol.setDeletionRates(deletionRates);
     protocol.setMaxInsertionLength(150);
     protocol.setMinSequenceSize(10);
-    protocol.setSiteRateModel(SiteRateModel::SIMPLE);
+    protocol.setSiteRateModel(SiteRateModel::INDEL_AWARE);
 
 
     int rootLength = 5000;

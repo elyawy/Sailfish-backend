@@ -1,9 +1,9 @@
 
 #include "../../../src/IndelSimulator.h"
 #include "../../../src/SubstitutionSimulator.h"
-// #include "../../../libs/pcg/pcg_random.hpp"
+#include "../../../libs/pcg/pcg_random.hpp"
 
-#include "../../../libs/splitmix/Splitmix64.h"
+// #include "../../../libs/splitmix/Splitmix64.h"
 
 // takes 10 minutes currently
 int main() {
@@ -12,7 +12,7 @@ int main() {
     std::time_t t1 = 42;//std::time(0);
 
     // time general simulation setup
-    SimulationContext<Splitmix64> simContext(&tree_, t1);
+    SimulationContext<pcg64_fast> simContext(&tree_, t1);
     simContext.setCacheBranchProbs(false);
     
     vector<DiscreteDistribution*> insertionDists(tree_.getNodesNum() - 1);
@@ -49,7 +49,7 @@ int main() {
 
     std::cout << "Starting indel simulation...\n";
     // time indel simulator initialization in microseconds
-    IndelSimulator<Splitmix64> indelSim(simContext, &protocol);
+    IndelSimulator<pcg64_fast> indelSim(simContext, &protocol);
 
     //time event generation in microseconds
     // auto eventMap = indelSim.generateSimulation();
@@ -78,14 +78,14 @@ int main() {
 
     //time MSA construction in microseconds
     // auto msa = MSA<pcg64_fast>(eventMap, simContext);
-    auto msa = MSA<Splitmix64>(rootLength, simContext);
+    auto msa = MSA<pcg64_fast>(rootLength, simContext);
 
     std::cout << "MSA built. Number of sequences: " << msa.getNumberOfSequences() 
               << ", MSA length: " << msa.getMSAlength() << "\n";
 
 
     // time substitution simulator initialization in microseconds
-    SubstitutionSimulator<Splitmix64, 20> substitutionSim(mFac, simContext);
+    SubstitutionSimulator<pcg64_fast, 20> substitutionSim(mFac, simContext);
     
 
     substitutionSim.setAlignedSequenceMap(msa);

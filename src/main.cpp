@@ -14,6 +14,7 @@ namespace py = pybind11;
 
 PYBIND11_MAKE_OPAQUE(SparseSequenceContainer);
 PYBIND11_MAKE_OPAQUE(std::vector<size_t>);
+PYBIND11_MAKE_OPAQUE(std::vector<uint16_t>);
 PYBIND11_MAKE_OPAQUE(SparseMSA);
 
 
@@ -44,6 +45,8 @@ PYBIND11_MODULE(_Sailfish, m) {
 
     py::bind_vector<SparseSequenceContainer, std::shared_ptr<SparseSequenceContainer>>(m, "SparseSequenceContainer");
     py::bind_vector<std::vector<size_t>, std::shared_ptr<std::vector<size_t>>>(m, "IntVector");
+    py::bind_vector<std::vector<uint16_t>, std::shared_ptr<std::vector<uint16_t>>>(m, "Uint16Vector");
+
     py::bind_vector<SparseMSA, std::shared_ptr<SparseMSA>>(m, "SparseMSA");
     
     py::class_<tree::TreeNode>(m, "node")
