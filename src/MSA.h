@@ -253,7 +253,7 @@ public:
 
     std::shared_ptr<const SparseMSA> getSparseMSA() {return _alignedSequenceMap;}
 
-    std::shared_ptr<std::vector<uint16_t>> getPerSiteRateCategories() const {
+    std::shared_ptr<std::vector<uint8_t>> getPerSiteRateCategories() const {
         return _perSiterateCategories;
     }
 
@@ -269,7 +269,7 @@ private:
     std::shared_ptr<const SparseSequenceContainer> _substitutions;
 
 	std::shared_ptr<SparseMSA> _alignedSequenceMap = nullptr;
-    std::shared_ptr<std::vector<uint16_t>> _perSiterateCategories = nullptr;
+    std::shared_ptr<std::vector<uint8_t>> _perSiterateCategories = nullptr;
     // IDs of sequences to save are accessed via _simContext->getNodesToSaveIndices()
     // Names of sequences to save are accessed via _simContext->getNodeToSaveNames()
     std::vector<size_t> _rootPositionsInMsa;

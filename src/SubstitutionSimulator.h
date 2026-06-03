@@ -63,11 +63,11 @@ public:
 		_saveRates = saveRates;
 	}
 
-	void setPerSiteRateCategories(std::shared_ptr<const std::vector<uint16_t>> rateCategories) {
+	void setPerSiteRateCategories(std::shared_ptr<const std::vector<uint8_t>> rateCategories) {
 		_rateCategories = rateCategories;
 	}
 
-	std::shared_ptr<const std::vector<uint16_t>> getPerSiteRateCategories() const {
+	std::shared_ptr<const std::vector<uint8_t>> getPerSiteRateCategories() const {
 		return _rateCategories;
 	}
 
@@ -92,7 +92,7 @@ public:
 									    const std::string& rootString = "",
 								        const std::vector<size_t>& rootPositionsInMSA = {}) {
 		if (_rateCategories == nullptr) {
-			auto newCategories = std::make_shared<std::vector<uint16_t>>(seqLength);
+			auto newCategories = std::make_shared<std::vector<uint8_t>>(seqLength);
 			for (int h = 0; h < seqLength; h++) {
             	(*newCategories)[h] = _rateCategorySampler.drawSample(_rng);
 			}
@@ -347,7 +347,7 @@ private:
 	const std::vector<size_t>& _idToRowInMSA;
 	bool _saveRates;
 
-	std::shared_ptr<const std::vector<uint16_t>> _rateCategories = nullptr;
+	std::shared_ptr<const std::vector<uint8_t>> _rateCategories = nullptr;
 	std::vector<double> _siteRates;
 	std::unique_ptr<SparseSequenceContainer> _simulatedSequences;
 	std::unique_ptr<DiscreteDistribution> _frequencySampler;

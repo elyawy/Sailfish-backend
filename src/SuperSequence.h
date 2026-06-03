@@ -36,7 +36,7 @@ private:
     RngType & _rng;
 
     CategorySampler* _rateCategorySampler;
-    std::shared_ptr<std::vector<uint16_t>> _msaRateCategories;
+    std::shared_ptr<std::vector<uint8_t>> _msaRateCategories;
 
 public:
     SuperSequence<RngType, BlockTreeType>(size_t sequenceSize, SimulationContext<RngType> &simContext):
@@ -67,7 +67,7 @@ public:
 
     std::vector<size_t> setAbsolutePositions() {
         if constexpr (std::is_same_v<BlockTreeType, BlockTreeWithRates>) {
-            _msaRateCategories = std::make_shared<std::vector<uint16_t>>(_msaSeqLength);
+            _msaRateCategories = std::make_shared<std::vector<uint8_t>>(_msaSeqLength);
         }
         std::vector<size_t> rootPositions(_originalSequenceSize, SIZE_MAX);
         size_t i = 0;
@@ -201,7 +201,7 @@ public:
         return _rateCategorySampler->drawSample(_rng);
     }
 
-    std::shared_ptr<std::vector<uint16_t>> getMsaRateCategories() const {
+    std::shared_ptr<std::vector<uint8_t>> getMsaRateCategories() const {
         return _msaRateCategories;  // shared_ptr copy, increments ref count
     }
 
