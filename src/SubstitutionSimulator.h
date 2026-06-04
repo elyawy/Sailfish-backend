@@ -317,8 +317,12 @@ private:
 	void saveSequenceToDisk(const SimSequence &currentSequence) {
 		const int nodeId = currentSequence.id();
 		size_t actualRowInMSA = _idToRowInMSA[nodeId];
+
+		// reserve a string of the appropriate length.
+		std::string outputString;
+		outputString.reserve(_lengthOfCurrentSequence + 1); // +1 for newline
 		
-		_outputFile << ">" << currentSequence.name() << "\n";
+		outputString += ">" + currentSequence.name() + "\n";
 		
 		// Get gap structure for this sequence
 		if (_alignedSequenceMap != nullptr) {
@@ -327,20 +331,21 @@ private:
 			for (int blockSize : gapStructure) {
 				if (blockSize < 0) {
 					// Gap block - write gaps
-					_outputFile << std::string(-blockSize, '-');
+					outputString += std::string(-blockSize, '-');
 				} else {
 					// Non-gap block - write sequence characters
 					for (int i = 0; i < blockSize; ++i) {
-						_outputFile << _charLookup[currentSequence[site++]];
+						outputString += _charLookup[currentSequence[site++]];
 					}
 				}
 			}
 		} else {
 			for (size_t site = 0; site < currentSequence.seqLen(); ++site) {
-				_outputFile << _charLookup[currentSequence[site]];
+				outputString += _charLookup[currentSequence[site]];
 			}
 		}
-		_outputFile << "\n";
+		outputString += "\n";
+		_outputFile << outputString;
 	}
 
 	void warmCache() {
