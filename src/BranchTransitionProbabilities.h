@@ -40,7 +40,7 @@ public:
     }
     
 
-    DiscreteNDistribution<AlphabetSize+differenceToPowerOfTwo(AlphabetSize)>& getDistribution(int category, int character)  {
+    const DiscreteNDistribution<AlphabetSize+differenceToPowerOfTwo(AlphabetSize)>& getDistribution(int category, int character) const {
         size_t distributionIndex = category * AlphabetSize + character;
 
         return _distributions[distributionIndex];

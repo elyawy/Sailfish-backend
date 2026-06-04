@@ -11,6 +11,23 @@
 #include "CategorySampler.h"
 #include "BranchTransitionProbabilities.h"
 
+struct SimSequence {
+    std::vector<ALPHACHAR> data;
+    size_t _id;
+    std::string _name;
+
+    SimSequence() = default;
+    SimSequence(size_t len) : data(len) {}
+
+    ALPHACHAR& operator[](size_t i) { return data[i]; }
+    const ALPHACHAR& operator[](size_t i) const { return data[i]; }
+    size_t seqLen() const { return data.size(); }
+	size_t id() const { return _id; }
+	std::string name() const { return _name; }
+	void setID(size_t id) { _id = id; }
+	void setName(const std::string& name) { _name = name; }
+};
+
 
 template<typename RngType = std::mt19937_64,size_t AlphabetSize = 4>
 class SubstitutionSimulator {
@@ -114,7 +131,7 @@ public:
 			}
 		}
 		
-		sequence rootSequence = generateRootSeq(seqLength);
+		SimSequence rootSequence = generateRootSeq(seqLength);
 
 		// if the root sequence is provided overwrite the generated root only at the positions specified in rootPositionsInMSA)
 		if (!rootString.empty()) {
@@ -130,12 +147,13 @@ public:
 		}
 
 		mutateSeqRecuresively(rootSequence, _tree->getRoot());
+		_rateCategories.reset(); // free memory of categories to not reuse by mistake in the next simulation if this object is reused.
 	}
 
-	void mutateSeqRecuresively(const sequence& currentSequence, tree::nodeP currentNode) {
+	void mutateSeqRecuresively(const SimSequence& currentSequence, tree::nodeP currentNode) {
 		if (currentNode->isLeaf()) return;
 		for (auto &node: currentNode->getSons()) {
-			sequence childSeq(currentSequence);
+			SimSequence childSeq(currentSequence);
 			childSeq.setID(node->id());
 			childSeq.setName(node->name());
 			mutateSeqAlongBranch(childSeq, node->dis2father());
@@ -202,10 +220,9 @@ public:
 
 private:
 
-	sequence generateRootSeq(int seqLength) {
-		sequence rootSeq(_alphabet);
+	SimSequence generateRootSeq(int seqLength) {
+		SimSequence rootSeq(seqLength);
 
-		rootSeq.resize(seqLength);
 		size_t rootID = _tree->getRoot()->id();
 		for (int i = 0; i < seqLength; i++) {
 			ALPHACHAR newChar = _frequencySampler->drawSample(_rng) - 1;
@@ -217,18 +234,18 @@ private:
 
 	}
 
-	void mutateSeqAlongBranch(sequence& currentSequence, const MDOUBLE& distToFather) {
+	void mutateSeqAlongBranch(SimSequence& currentSequence, const MDOUBLE& distToFather) {
 		mutateEntireSeq(currentSequence, distToFather);
 	}
 
-	void mutateEntireSeq(sequence& currentSequence, const MDOUBLE& branchLength) {
+	void mutateEntireSeq(SimSequence& currentSequence, const MDOUBLE& branchLength) {
 		const int nodeId = currentSequence.id();
 		auto& rateCategories = (*_rateCategories);
 		
 
 		std::optional<BranchTransitionProbabilities<AlphabetSize>> localPijt;
 		if (!_cacheBranchProbs) localPijt.emplace(branchLength, *_stochasticProcess);
-		BranchTransitionProbabilities<AlphabetSize> cachedPijt = _cacheBranchProbs ? _branchCache[nodeId].value() : *localPijt;		
+		const BranchTransitionProbabilities<AlphabetSize>& cachedPijt = _cacheBranchProbs ? _branchCache[nodeId].value() : *localPijt;		
 		
 		size_t actualRowInMSA = _idToRowInMSA[nodeId];
 		// Check if this is a leaf we're saving (low memory mode)
@@ -264,7 +281,7 @@ private:
 	}
 
 
-	void saveSequence(const sequence &currentSequence) {
+	void saveSequence(const SimSequence &currentSequence) {
 		if (_finalMsaPath.size() > 0) {
 			saveSequenceToDisk(currentSequence);
 			return;
@@ -297,7 +314,7 @@ private:
 		_simulatedSequences->push_back(std::move(sparseSeq));
 	}
 
-	void saveSequenceToDisk(const sequence &currentSequence) {
+	void saveSequenceToDisk(const SimSequence &currentSequence) {
 		const int nodeId = currentSequence.id();
 		size_t actualRowInMSA = _idToRowInMSA[nodeId];
 		

@@ -4,7 +4,6 @@
 #include <vector>
 #include <random>
 #include "../libs/Phylolib/includes/tree.h"
-#include "../libs/Phylolib/includes/sequence.h"
 #include "SimulationProtocol.h"
 #include "CategorySampler.h"
 

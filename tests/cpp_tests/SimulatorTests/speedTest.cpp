@@ -13,7 +13,7 @@ int main() {
 
     // time general simulation setup
     SimulationContext<pcg64_fast> simContext(&tree_, t1);
-    simContext.setCacheBranchProbs(false);
+    simContext.setCacheBranchProbs(true);
     
     vector<DiscreteDistribution*> insertionDists(tree_.getNodesNum() - 1);
     vector<DiscreteDistribution*> deletionDists(tree_.getNodesNum() - 1);
@@ -44,7 +44,7 @@ int main() {
     protocol.setSiteRateModel(SiteRateModel::SIMPLE);
 
 
-    int rootLength = 1000000;
+    int rootLength = 1;
     protocol.setSequenceSize(rootLength);
 
     std::cout << "Starting indel simulation...\n";
@@ -97,8 +97,10 @@ int main() {
 
     // substitutionSim.simulateAndWriteSubstitutions(msa.getMSAlength(), "output_newflowtest.fasta");
     // time substitution simulation in microseconds
-    auto fullContainer = substitutionSim.simulateSubstitutions(msa.getMSAlength());
-    msa.fillSubstitutions(fullContainer);
+    for (int i = 0; i < 1000; ++i) {
+      auto fullContainer = substitutionSim.simulateSubstitutions(msa.getMSAlength());
+      msa.fillSubstitutions(fullContainer);
+    }
 
     // msa.writeFullMsa("test.fasta");
     
