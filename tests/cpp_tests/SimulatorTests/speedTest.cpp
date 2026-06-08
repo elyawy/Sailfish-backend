@@ -5,15 +5,14 @@
 
 // #include "../../../libs/splitmix/Splitmix64.h"
 
-// takes 10 minutes currently
 int main() {
-    tree tree_("../../trees/normalbranches_nLeaves1000.treefile");
+    tree tree_("../../trees/normalbranches_nLeaves100000.treefile");
 
     std::time_t t1 = 42;//std::time(0);
 
     // time general simulation setup
     SimulationContext<pcg64_fast> simContext(&tree_, t1);
-    simContext.setCacheBranchProbs(false);
+    simContext.setCacheBranchProbs(true);
     
     vector<DiscreteDistribution*> insertionDists(tree_.getNodesNum() - 1);
     vector<DiscreteDistribution*> deletionDists(tree_.getNodesNum() - 1);
@@ -44,7 +43,7 @@ int main() {
     protocol.setSiteRateModel(SiteRateModel::SIMPLE);
 
 
-    int rootLength = 1000;
+    int rootLength = 100;
     protocol.setSequenceSize(rootLength);
 
     std::cout << "Starting indel simulation...\n";
@@ -57,7 +56,7 @@ int main() {
     modelFactory mFac;
     // time model setup in microseconds
 
-    mFac.setReplacementModel(modelCode::NUCJC);
+    mFac.setReplacementModel(modelCode::WAG);
     // mFac.setModelParameters({0.25,0.25,0.25,0.25,0.1,0.2,0.3,0.4,0.5,0.6});
     mFac.setSiteRateModel({0.01, 0.0,2.0,4.0},
                           {0.25, 0.25, 0.25, 0.25},
@@ -84,8 +83,8 @@ int main() {
               << ", MSA length: " << msa.getMSAlength() << "\n";
 
 
-    // time substitution simulator initialization in microseconds
-    SubstitutionSimulator<pcg64_fast, 4> substitutionSim(mFac, simContext);
+    // time substitution simulator initialization 
+    SubstitutionSimulator<pcg64_fast, 20> substitutionSim(mFac, simContext);
     
 
     substitutionSim.setAlignedSequenceMap(msa);

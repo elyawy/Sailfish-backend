@@ -20,16 +20,17 @@ public:
     {
         const size_t numCategories = _sp.categories();
         _distributions.reserve(numCategories * AlphabetSize);
+        constexpr size_t PaddedSize = AlphabetSize + differenceToPowerOfTwo(AlphabetSize);
+        std::array<double, PaddedSize> probabilities{};
 
         for (size_t cat = 0; cat < numCategories; ++cat) {
             const double rate = _sp.rates(cat);
             
             for (size_t i = 0; i < AlphabetSize; ++i) {
-                std::vector<double> probabilities(AlphabetSize+differenceToPowerOfTwo(AlphabetSize), 0.0);
-                
+                probabilities.fill(0.0);
+
                 for (size_t j = 0; j < AlphabetSize; ++j) {
                     double prob = _sp.Pij_t(i, j, branchLength * rate);
-
                     probabilities[j] = (prob);
                 }
 

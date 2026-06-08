@@ -255,6 +255,3 @@ class Simulator:
         if self._simProtocol.get_sequence_size() != len(sequence):
             raise ValueError(f"the provided root sequence length of {len(sequence)} does not match the sequence size in the simProtocol of {self._simProtocol.get_sequence_size()}")
         self._root_seq = sequence
-
-    def set_cache_branch_probs(self, cache: bool) -> None:
-        self._simProtocol.get_sim_context().set_cache_branch_probs(cache)

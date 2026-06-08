@@ -40,7 +40,7 @@ public:
 		_rateCategorySampler(mFac.getEffectiveTransitionMatrix(), mFac.getRateCategoryProbs()),
 		_rng(simContext.getRng()),
 		_finalMsaPath(""), _cacheBranchProbs(simContext.getCacheBranchProbs()),
-		_branchCache(_tree->getNodesNum()) {
+		_branchtoCacheIndex{}, _nextCacheIndex(0) {
 
 		std::vector<MDOUBLE> frequencies;
 		for (int j = 0; j < AlphabetSize; ++j) {
@@ -72,7 +72,13 @@ public:
 		_rateCategorySampler = CategorySampler(mFac.getEffectiveTransitionMatrix(), mFac.getRateCategoryProbs());
 		_frequencySampler = std::make_unique<DiscreteDistribution>(frequencies);
 		_simulatedSequences = std::make_unique<SparseSequenceContainer>();
-		if (_cacheBranchProbs) warmCache();
+		if (_cacheBranchProbs) {
+			// clear existing cache
+			_branchCache.clear();
+			_branchtoCacheIndex.clear();
+			_nextCacheIndex = 0;
+			warmCache();
+		}
     }
 
 
@@ -242,10 +248,10 @@ private:
 		const int nodeId = currentSequence.id();
 		auto& rateCategories = (*_rateCategories);
 		
-
+		size_t branchID = _branchtoCacheIndex[branchLength];
 		std::optional<BranchTransitionProbabilities<AlphabetSize>> localPijt;
 		if (!_cacheBranchProbs) localPijt.emplace(branchLength, *_stochasticProcess);
-		const BranchTransitionProbabilities<AlphabetSize>& cachedPijt = _cacheBranchProbs ? _branchCache[nodeId].value() : *localPijt;		
+		const BranchTransitionProbabilities<AlphabetSize>& cachedPijt = _cacheBranchProbs ? _branchCache[branchID].value() : *localPijt;		
 		
 		size_t actualRowInMSA = _idToRowInMSA[nodeId];
 		// Check if this is a leaf we're saving (low memory mode)
@@ -348,13 +354,23 @@ private:
 		_outputFile << outputString;
 	}
 
+
+
 	void warmCache() {
     	warmCacheRecursive(_tree->getRoot());
 	}
 
 	void warmCacheRecursive(tree::nodeP node) {
 		for (auto& child : node->getSons()) {
-			_branchCache[child->id()].emplace(child->dis2father(), *_stochasticProcess);
+			// cache the transition probabilities for this branch
+			// the id should be based on the length of the branch.
+			// So we make the key the branch length times 10^6.
+			double branchLength = child->dis2father();
+			if (_branchtoCacheIndex.find(branchLength) == _branchtoCacheIndex.end()) {
+				BranchTransitionProbabilities<AlphabetSize> newProbs(branchLength, *_stochasticProcess);
+				_branchCache.push_back(newProbs);
+				_branchtoCacheIndex[branchLength] = _nextCacheIndex++;
+			}
 			warmCacheRecursive(child);
 		}
 	}
@@ -387,9 +403,8 @@ private:
 	size_t _lengthOfCurrentSequence = 0;
 	bool _cacheBranchProbs;
 	std::vector<std::optional<BranchTransitionProbabilities<AlphabetSize>>> _branchCache;
-		// For each (rate category, site), create a bucket of sites that belong to it.
-		// This will be used later for efficient simulation along branches, as we can simulate all sites in the same category together.
-		// this should be a 2d grid for (rate category x alphabet character), where each cell points to a vector of sites from the current sequence.
+	std::unordered_map<double, size_t> _branchtoCacheIndex;
+	size_t _nextCacheIndex = 0;
 
 };
 

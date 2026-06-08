@@ -14,6 +14,7 @@
 #include "../libs/Phylolib/includes/amino.h"
 #include "../libs/Phylolib/includes/nucleotide.h"
 #include "../libs/Phylolib/includes/chebyshevAccelerator.h"
+#include "../libs/Phylolib/includes/eigenAccelerator.h"
 #include "../libs/Phylolib/includes/trivialAccelerator.h"
 #include "../libs/Phylolib/includes/gammaDistribution.h"
 #include "../libs/Phylolib/includes/customDistribution.h"
@@ -374,7 +375,9 @@ public:
         std::unique_ptr<pijAccelerator> pij;
 
         if (_alphabet == alphabetCode::AMINOACID) {
-            pij = std::make_unique<chebyshevAccelerator>(repModel.get());
+            pij = std::make_unique<eigenAccelerator<20>>(repModel.get());
+            // pij = std::make_unique<chebyshevAccelerator>(repModel.get());
+
         } else if (_alphabet == alphabetCode::NUCLEOTIDE) {
             pij = std::make_unique<trivialAccelerator>(repModel.get());
         }
