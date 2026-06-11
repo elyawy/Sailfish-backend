@@ -120,7 +120,7 @@ public:
                 currentSequence.push_back(-lastPosition);
                 totalSize += lastPosition;
             }
-
+            
             for(auto currentSite=seq.begin() + 1; currentSite!=seq.end(); currentSite++) {
 				currentPosition = (*(currentSite))->absolutePosition;
                 positionDifference = currentPosition - lastPosition - 1;
@@ -256,6 +256,8 @@ public:
     std::shared_ptr<std::vector<uint8_t>> getPerSiteRateCategories() const {
         return _perSiterateCategories;
     }
+
+    const std::vector<size_t>& getRootPositionsInMsa() const { return _rootPositionsInMsa; }
 
     const std::vector<size_t>& getRootPositionsInMsa() const { return _rootPositionsInMsa; }
 	

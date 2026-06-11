@@ -84,6 +84,7 @@ public:
 
         }
         return rootPositions;
+        return rootPositions;
     }
 
     typename SequenceType::iterator insertItemAtPosition(typename SequenceType::iterator position, size_t item, bool isToSave) {
