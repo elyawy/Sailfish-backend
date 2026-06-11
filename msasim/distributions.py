@@ -15,6 +15,10 @@ class Distribution:
             if x < 0 or x > 1:
                 raise ValueError(f"Values must be in [0,1], got {x}")
         self._dist = _Sailfish.DiscreteDistribution(dist)
+        self._truncation = len(dist)
+
+    def get_truncation(self) -> int:
+        return self._truncation
     
     def _get_Sailfish_dist(self) -> _Sailfish.DiscreteDistribution:
         return self._dist

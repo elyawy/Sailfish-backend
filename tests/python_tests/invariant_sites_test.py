@@ -15,7 +15,15 @@ sim_protocol.set_sequence_size(ROOT_SEQUENCE_LENGTH)
 
 simulation = sim.Simulator(sim_protocol, simulation_type=sim.SIMULATION_TYPE.DNA)
 # simulation.save_root_sequence()
-simulation.set_replacement_model(model=MODEL_CODES.NUCJC, invariant_sites_proportion=0.5)
+simulation.set_replacement_model(model=MODEL_CODES.NUCJC, invariant_sites_proportion=0.8)
+simulation.save_rates(True)
 msa = simulation()
 
 msa.print_msa()
+
+rate_categories = simulation.get_rate_categories()
+
+print("".join(map(str, rate_categories)))
+
+rates = simulation.get_rates()
+print(rates)

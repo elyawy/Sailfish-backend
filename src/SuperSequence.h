@@ -4,30 +4,49 @@
 #include <cstddef> 
 #include <limits>
 
+#include "BlockTree.h"
+
+#include "BlockTreeWithRates.h"
+#include "SimulationContext.h"
+
+// TODO: add the rateCategory assignment that should be passed from the Sequence object.
+
+template<typename RngType = std::mt19937_64, typename BlockTreeType = BlockTree>
 class SuperSequence {
 public:
     struct columnContainer {
         const size_t position;
         size_t absolutePosition;
         bool isColumn;
+        double rateCategory;
     };
     
     using SequenceType = std::list<columnContainer>;
 
 private:
     SequenceType _sequence;
-    std::vector<SequenceType::iterator> _positionToIterator;
-    size_t _randomSequenceCounter;
+    std::vector<typename SequenceType::iterator> _positionToIterator;
+    size_t _nextSiteCounter;
     size_t _leafNum;
     size_t _numSequences;
     size_t _msaSeqLength;
     size_t _originalSequenceSize;
+
+    BlockTreeType _blocks;
+    RngType & _rng;
+
+    CategorySampler* _rateCategorySampler;
+    std::shared_ptr<std::vector<uint8_t>> _msaRateCategories;
+
 public:
-    SuperSequence(size_t sequenceSize, size_t numSequences) {
+    SuperSequence<RngType, BlockTreeType>(size_t sequenceSize, SimulationContext<RngType> &simContext):
+         _rng(simContext.getRng()),
+         _rateCategorySampler(simContext.getCategorySampler())
+         {
         _originalSequenceSize = sequenceSize;
         _msaSeqLength = 0;
         _leafNum = 0;
-        _numSequences = numSequences;
+        _numSequences = simContext.getNumberOfNodesToSave();
         _positionToIterator.resize(sequenceSize + 1);
 
         for (size_t i = 1; i <= sequenceSize; ++i) {
@@ -35,10 +54,10 @@ public:
             _sequence.push_back(column);
             _positionToIterator[i] = std::prev(_sequence.end());
         }
-        _randomSequenceCounter = sequenceSize + 1;
+        _nextSiteCounter = sequenceSize + 1;
     }
 
-    void referencePosition(SequenceType::iterator position) {
+    void referencePosition(typename SequenceType::iterator position) {
         // if (position->position == 0) return;
         if (!(*position).isColumn) {
             (*position).isColumn = true;
@@ -47,6 +66,9 @@ public:
     }
 
     std::vector<size_t> setAbsolutePositions() {
+        if constexpr (std::is_same_v<BlockTreeType, BlockTreeWithRates>) {
+            _msaRateCategories = std::make_shared<std::vector<uint8_t>>(_msaSeqLength);
+        }
         std::vector<size_t> rootPositions(_originalSequenceSize, SIZE_MAX);
         size_t i = 0;
         for (auto &column: _sequence) {
@@ -55,12 +77,17 @@ public:
             if (column.position <= _originalSequenceSize) {
                 rootPositions[column.position - 1] = i;
             }
+            if constexpr (std::is_same_v<BlockTreeType, BlockTreeWithRates>) {
+               (*_msaRateCategories)[i] = column.rateCategory;
+            }
             ++i;
+
         }
+        return rootPositions;
         return rootPositions;
     }
 
-    SequenceType::iterator insertItemAtPosition(SequenceType::iterator position, size_t item, bool isToSave) {
+    typename SequenceType::iterator insertItemAtPosition(typename SequenceType::iterator position, size_t item, bool isToSave) {
         // std::cout << "INSERT POS: " << *position << " " << item << "\n";
         // printSequence();
         columnContainer newColumn = {item, std::numeric_limits<size_t>::max(), false};
@@ -76,11 +103,11 @@ public:
     }
 
 
-    SequenceType::iterator begin() {
+    typename SequenceType::iterator begin() {
         return _sequence.begin();
     }
 
-    SequenceType::iterator end() {
+    typename SequenceType::iterator end() {
         return _sequence.end();
     }
 
@@ -91,12 +118,12 @@ public:
 
     size_t getRandomSequencePosition() {
         // std::cout << "get random pos: " << _randomSequenceCounter << "\n";
-        return _randomSequenceCounter;
+        return _nextSiteCounter;
     }
 
 
     size_t incrementRandomSequencePosition() {
-        size_t positionToReturn = ++_randomSequenceCounter;
+        size_t positionToReturn = ++_nextSiteCounter;
         // std::cout << "inceremted random pos: " << positionToReturn << "\n";
         return positionToReturn;
     }
@@ -116,7 +143,7 @@ public:
     }
 
 
-    SequenceType::iterator getIteratorByPosition(size_t position) {
+    typename SequenceType::iterator getIteratorByPosition(size_t position) {
         return _positionToIterator[position];
     }
 
@@ -130,7 +157,7 @@ public:
 
     bool checkSequenceValidity() {
         
-        for (size_t i = 1; i < _randomSequenceCounter; i++)
+        for (size_t i = 1; i < _nextSiteCounter; i++)
         {
             size_t numberOfAppearances = 0;
             for (auto j: _sequence) {
@@ -144,6 +171,41 @@ public:
         }
         return true;
     }
+
+    void initBlockTree(size_t seqLength){ 
+            _blocks.initTree(seqLength);
+    }
+
+
+    void initBlockTree(size_t seqLength, const std::vector<size_t> &rootRates){ 
+        _blocks.initTree(seqLength, rootRates);
+    }
+
+
+    void logEventInBlockTree(Event ev) {
+        // Conditional handling based on BlockTreeType
+        if constexpr (std::is_same_v<BlockTreeType, BlockTreeWithRates>) {
+            _blocks.handleEvent(ev, *_rateCategorySampler, _rng);
+        } else {
+            // Simple BlockTree doesn't need sampler/rng
+            _blocks.handleEvent(ev.type, ev.position, ev.length);
+        }
+    }
+
+    BlockTreeType& getBlockTree(){ return _blocks;}
+
+
+    size_t sampleRootCategory() {
+        if (_rateCategorySampler == nullptr) {
+            errorMsg::reportError("Category sampler is nullptr, Please assign a valid sampler to the simulation context\n");
+        }
+        return _rateCategorySampler->drawSample(_rng);
+    }
+
+    std::shared_ptr<std::vector<uint8_t>> getMsaRateCategories() const {
+        return _msaRateCategories;  // shared_ptr copy, increments ref count
+    }
+
 
 
     ~SuperSequence() {

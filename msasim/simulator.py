@@ -3,328 +3,255 @@
 import _Sailfish
 import warnings
 import pathlib
-from typing import Dict, Optional, List
+from typing import Optional, List
 from .protocol import SimProtocol
-from .distributions import PoissonDistribution
 from .msa import Msa
-from .constants import MODEL_CODES, SIMULATION_TYPE
+from .constants import SIMULATION_TYPE, SIMULATION_TYPES, DNA_MODELS, PROTEIN_MODELS
+from .substitutions import SubstitutionModel
 
-
-# TODO delete one of this (I think the above if not used)
-class BlockTreePython:
-    '''
-    Used to contain the events on a multiple branches (entire tree).
-    '''
-    def __init__(self, branch_block_dict: Dict[str, _Sailfish.Block]):
-        self._branch_block_dict = branch_block_dict
-        # dictionary of {str: List of blocks}
-        self._branch_block_dict_python = {i: x for i, x in branch_block_dict.items()}
-    
-    def _get_Sailfish_blocks(self) -> Dict[str, _Sailfish.Block]:
-        return self._branch_block_dict
-    
-    def get_branches_str(self) -> str:
-        return {i: self._branch_block_dict[i].print_tree() for i in list(self._branch_block_dict.keys())}
-    
-    def get_specific_branch(self, branch: str) -> str:
-        if not branch in self._branch_block_dict_python:
-            raise ValueError(f"branch not in the _branch_block, aviable branches are: {list(self._branch_block_dict_python.keys())}")
-        return self._branch_block_dict[branch].print_tree()
-    
-    def print_branches(self) -> str:
-        for i in list(self._branch_block_dict.keys()):
-            print(f"branch = {i}")
-            print(self._branch_block_dict[i].print_tree())
-    
-    def block_list(self)  -> List:
-        if not branch in self._branch_block_dict_python:
-            raise ValueError(f"branch not in the _branch_block, aviable branches are: {list(self._branch_block_dict_python.keys())}")
-        return self._branch_block_dict_python[branch]
 
 class Simulator:
     """Simulate MSAs based on SimProtocol"""
-    
-    def __init__(
-        self, 
-        simProtocol: Optional[SimProtocol] = None,
-        simulation_type: Optional[SIMULATION_TYPE] = None
-    ):
-        if not simProtocol:
-            warnings.warn("initalized a simulator without simProtocol -> using a default protocol with Tree = '(A:0.01,B:0.5,C:0.03);' and root length of 100")
-            # default simulation values
-            possion = PoissonDistribution(10, 100)
-            simProtocol = SimProtocol(tree="(A:0.01,B:0.5,C:0.03);")
-            simProtocol.set_insertion_length_distributions(possion)
-            simProtocol.set_deletion_length_distributions(possion)
-            simProtocol.set_insertion_rates(0.05)
-            simProtocol.set_deletion_rates(0.05)
-            simProtocol.set_sequence_size(100)
-            simProtocol.set_min_sequence_size(1)
 
+    def __init__(
+        self,
+        simProtocol: Optional[SimProtocol] = None,
+        simulation_type: Optional[SIMULATION_TYPE] = None,
+    ):
+        if simProtocol is None:
+            simProtocol = SimProtocol.default()
         self._root_seq = ""
-        # verify sim_protocol
-        if self._verify_sim_protocol(simProtocol):
+
+        if simProtocol._verify_sim_protocol():
             self._simProtocol = simProtocol
-            if simulation_type == SIMULATION_TYPE.PROTEIN:
-                self._simulator = _Sailfish.AminoSimulator(self._simProtocol._sim)
-            else:
-                self._simulator = _Sailfish.NucleotideSimulator(self._simProtocol._sim)
+            self._indel_simulator = _Sailfish.IndelSimulator(
+                self._simProtocol.get_sim_context(), self._simProtocol._sim_protocol
+            )
         else:
             raise ValueError("failed to verify simProtocol")
-        
+
         if not simulation_type:
             warnings.warn("simulation type not provided -> running indel only simulation")
             simulation_type = SIMULATION_TYPE.NOSUBS
-        
-        if simulation_type == SIMULATION_TYPE.PROTEIN:
-            self._alphabet = _Sailfish.alphabetCode.AMINOACID
-        elif simulation_type == SIMULATION_TYPE.DNA:
-            self._alphabet = _Sailfish.alphabetCode.NUCLEOTIDE
-        elif simulation_type == SIMULATION_TYPE.NOSUBS:
-            self._alphabet = _Sailfish.alphabetCode.NULLCODE
-        else:
-            raise ValueError(f"unknown simulation type, please provde one of the following: {[e.name for e in SIMULATION_TYPE]}")
-        
-        self._simulation_type = simulation_type
-        self._is_sub_model_init = False
-    
-    def _verify_sim_protocol(self, simProtocol) -> bool:
-        if not simProtocol.get_tree():
-            raise ValueError("protocol miss tree, please provide when initalizing the simProtocol")
-        if not simProtocol.get_sequence_size() or simProtocol.get_sequence_size() == 0:
-            raise ValueError("protocol miss root length, please provide -> simProtocol.set_sequence_size(int)")
-        if not simProtocol.get_insertion_length_distribution(0):
-            raise ValueError("protocol miss insertion length distribution, please provide -> simProtocol.set_insertion_length_distributions(float)")
-        if not simProtocol.get_deletion_length_distribution(0):
-            raise ValueError("protocol miss deletion length distribution, please provide -> simProtocol.set_deletion_length_distributions(float)")
-        if simProtocol.get_insertion_rate(0) < 0:
-            raise ValueError(f"please provide a non zero value for insertion rate, provided value of: {simProtocol.get_insertion_rate(0)} -> simProtocol.set_insertion_rate(float)")
-        if simProtocol.get_deletion_rate(0) < 0:
-            raise ValueError(f"please provide a non zero value for deletion rate, provided value of: {simProtocol.get_deletion_rate(0)} -> simProtocol.set_deletion_rate(float)")
-        return True
-    
-    def reset_sim(self):
-        # TODO, complete
-        pass
+            self._simProtocol._sim_protocol.set_site_rate_model(_Sailfish.SiteRateModel.SIMPLE)
 
-    def _create_site_rate_model(
-        self,
-        gamma_alpha: float = 1.0,
-        gamma_categories: int = 1,
-        invariant_proportion: float = 0.0,
-        site_rate_correlation: float = 0.0
-    ) -> tuple[List[float], List[float], List[List[float]]]:
-        """
-        Create rate categories and probabilities for the site rate model.
-        
-        Args:
-            gamma_alpha: Alpha parameter for gamma distribution
-            gamma_categories: Number of gamma rate categories
-            invariant_proportion: Proportion of invariant sites (0 to <1)
-            site_rate_correlation: Correlation between adjacent sites (0 to <1)
-                This is the ρ parameter for bivariate normal correlation.
-                The realized discrete gamma correlation ρ_dG will be somewhat different.
-        
-        Returns:
-            Tuple of (rates, probabilities, transition_matrix)
-            - rates: List of rate values for each category
-            - probabilities: Stationary probabilities for each category
-            - transition_matrix: K×K matrix for correlated rates (empty list if no correlation)
-        """
-        if invariant_proportion < 0.0 or invariant_proportion >= 1.0:
-            raise ValueError(f"invariant_proportion must be in [0, 1), received: {invariant_proportion}")
-        
-        if site_rate_correlation < 0.0 or site_rate_correlation >= 1.0:
-            raise ValueError(f"site_rate_correlation must be in [0, 1), received: {site_rate_correlation}")
-        
-        # Validate correlation requires multiple categories
-        if site_rate_correlation > 0.0 and gamma_categories == 1:
-            warnings.warn(
-                "site_rate_correlation > 0 requires gamma_categories > 1. "
-                "Setting site_rate_correlation to 0.0"
+        if simulation_type not in SIMULATION_TYPES:
+            raise ValueError(
+                f"unknown simulation type, please provide one of the following: "
+                f"{[e.name for e in SIMULATION_TYPE]}"
             )
-            site_rate_correlation = 0.0
-        
-        # Create gamma distribution
-        gamma_dist = _Sailfish.GammaDistribution(gamma_alpha, gamma_categories)
-        rates = list(gamma_dist.getAllRates())
-        probs = list(gamma_dist.getAllRatesProb())
-        
-        # Add invariant sites category if requested
-        if invariant_proportion > 0.0:
-            # Scale existing probabilities
-            scale_factor = 1.0 - invariant_proportion
-            probs = [p * scale_factor for p in probs]
-            
-            # Add invariant category at the beginning
-            rates.insert(0, 0.0)
-            probs.insert(0, invariant_proportion)
-        
-        # Build transition matrix for correlated rates
-        transition_matrix = []
-        if site_rate_correlation > 0.0:
-            if invariant_proportion > 0.0:
-                warnings.warn(
-                    "site_rate_correlation and invariant_sites_proportion cannot be used together. "
-                    "Using invariant sites only, ignoring correlation."
+
+        self._simulation_type = simulation_type
+        if self._simulation_type == SIMULATION_TYPE.NOSUBS:
+            self._substitution_simulator = None
+            self._sub_model = None
+        else:
+            self._sub_model = SubstitutionModel(simulation_type)
+            sim_context = self._simProtocol.get_sim_context()
+            if self._simulation_type == SIMULATION_TYPE.PROTEIN:
+                self._substitution_simulator = _Sailfish.AminoSubstitutionSimulator(
+                    self._sub_model.factory, sim_context
                 )
             else:
-                try:
-                    from msasim.correlation import build_auto_gamma_transition_matrix
-                    
-                    transition_matrix = build_auto_gamma_transition_matrix(
-                        alpha=gamma_alpha,
-                        categories=gamma_categories,
-                        rho=site_rate_correlation
-                    )
-                    
-                except ImportError:
-                    warnings.warn(
-                        "site_rate_correlation > 0 requires scipy. "
-                        "Install with: pip install scipy or pip install 'msasim[correlation]'. "
-                        "Ignoring correlation parameter."
-                    )
-        return rates, probs, transition_matrix
-    
-    def _init_sub_model(self) -> None:
-        self._model_factory = _Sailfish.modelFactory(self._simProtocol._get_Sailfish_tree())
-        self._model_factory.set_alphabet(self._alphabet)
-        if self._simulation_type == SIMULATION_TYPE.PROTEIN:
-            warnings.warn("replacement matrix not provided -> running with default parameters: WAG model")
-            self._model_factory.set_replacement_model(_Sailfish.modelCode.WAG)
-        else:
-            warnings.warn("replacement matrix not provided -> running with default parameters: JC model")
-            self._model_factory.set_replacement_model(_Sailfish.modelCode.NUCJC)
+                self._substitution_simulator = _Sailfish.NucleotideSubstitutionSimulator(
+                    self._sub_model.factory, sim_context
+                )
 
-    
-        rates, probs = self._create_site_rate_model()
-        self._model_factory.setSiteRateModel(rates, probs)    
-
-
-
-        self._simulator.init_substitution_sim(self._model_factory)
-        self._is_sub_model_init = True
-    
-    def set_replacement_model(
-            self,
-            model: _Sailfish.modelCode,
-            amino_model_file: pathlib.Path = None,
-            model_parameters: List = None,
-            gamma_parameters_alpha : float = 1.0,
-            gamma_parameters_categories: int = 1,
-            invariant_sites_proportion: float = 0.0,
-            site_rate_correlation: float = 0.0,
-        ) -> None:
-        if not model:
-            raise ValueError(f"please provide a substitution model from the the following list: {_Sailfish.modelCode}")
-        if int(gamma_parameters_categories) != gamma_parameters_categories:
-            raise ValueError(f"gamma_parameters_catergories has to be a positive int value: received value of {gamma_parameters_categories}")
-        self._model_factory = _Sailfish.modelFactory(self._simProtocol._get_Sailfish_tree())
-
-        self._model_factory.set_alphabet(self._alphabet)
-        if self._simulation_type == SIMULATION_TYPE.PROTEIN:
-            if model_parameters:
-                raise ValueError(f"no model parameters are used in protein, recevied value of: {model_parameters}")
-            self._model_factory.set_replacement_model(model)
-            if model == MODEL_CODES.CUSTOM and amino_model_file:
-                self._model_factory.set_amino_replacement_model_file(str(amino_model_file))
-        else:
-            if model == MODEL_CODES.NUCJC and model_parameters:
-                raise ValueError(f"no model parameters in JC model, recevied value of: {model_parameters}")
-            self._model_factory.set_replacement_model(model)
-            if model == MODEL_CODES.NUCJC and not model_parameters:
-                pass
-            elif not model_parameters:
-                raise ValueError("please provide a model parameters")
-            else:
-                self._model_factory.set_model_parameters(model_parameters)
-
-
-        rates, probs, transition_matrix = self._create_site_rate_model(
-            gamma_alpha=gamma_parameters_alpha,
-            gamma_categories=gamma_parameters_categories,
-            invariant_proportion=invariant_sites_proportion,
-            site_rate_correlation=site_rate_correlation
+        # Compute flags once — used to pick strategy at __init__ time
+        self._has_indels = not (
+            self._simProtocol._is_insertion_rate_zero
+            and self._simProtocol._is_deletion_rate_zero
         )
-        self._model_factory.setSiteRateModel(rates, probs, transition_matrix)
+        self._has_subs = self._simulation_type != SIMULATION_TYPE.NOSUBS
+        self._is_indel_aware = (
+            self._simProtocol.get_site_rate_model() == _Sailfish.SiteRateModel.INDEL_AWARE
+        )
 
-        self._simulator.init_substitution_sim(self._model_factory)
+        # Pick strategy once — no branching inside simulate()
+        if not self._has_indels and not self._has_subs:
+            self._strategy = self._simulate_root_only
+        elif not self._has_subs:
+            self._strategy = self._simulate_indels_only
+        elif not self._has_indels:
+            self._strategy = self._simulate_subs_only
+        else:
+            self._strategy = self._simulate_full
 
-        self._is_sub_model_init = True
+    # ------------------------------------------------------------------
+    # Private simulation strategies
+    # ------------------------------------------------------------------
+
+    def _build_msa_no_indels(self) -> Msa:
+        """Build a trivial MSA directly from root sequence size (no indel events)."""
+        return Msa(self._simProtocol.get_sequence_size(), self._simProtocol.get_sim_context())
+
+    def _build_msa_with_indels(self) -> Msa:
+        """Run indel simulation and build MSA, setting up the category sampler if INDEL_AWARE."""
+        sim_context = self._simProtocol.get_sim_context()
+        eventmap = self.generate_events()
+        if self._is_indel_aware:
+            # INDEL_AWARE: the MSA builder assigns rate categories to inserted sites
+            # during construction, so the sampler must be ready before Msa() is called.
+            category_sampler = self._sub_model.factory.get_rate_category_sampler(
+                self._simProtocol.get_max_insertion_length()
+            )
+            sim_context.set_category_sampler(category_sampler)
+        return Msa(eventmap, sim_context)
+
+    def _apply_substitutions(self, msa: Msa) -> None:
+        """Run substitution simulation and fill the MSA in-place."""
+        rate_categories = msa.get_per_site_rate_categories()
+        self._substitution_simulator.set_per_site_rate_categories(rate_categories)
+        self._substitution_simulator.set_aligned_sequence_map(msa._msa)
+        substitutions = self._substitution_simulator.simulate_substitutions(msa.get_length(), self._root_seq, msa.get_root_positions_in_msa())
+        msa.fill_substitutions(substitutions)
+
+    def _apply_substitutions_to_disk(self, msa: Msa, output_path: pathlib.Path) -> None:
+        """Simulate substitutions and write directly to disk without holding full MSA in memory."""
+        self._substitution_simulator.set_aligned_sequence_map(msa._msa)
+        self._substitution_simulator.set_per_site_rate_categories(
+            msa.get_per_site_rate_categories()
+        )
+        self._substitution_simulator.simulate_and_write_substitutions(
+            msa.get_length(), str(output_path), self._root_seq, msa.get_root_positions_in_msa()
+        )
+
+    def _simulate_root_only(self, output_path: Optional[pathlib.Path]) -> Optional[Msa]:
+        """No indels, no substitutions — return the bare root sequence MSA."""
+        msa = self._build_msa_no_indels()
+        if output_path:
+            msa.write_msa(str(output_path))
+            return None
+        return msa
+
+    def _simulate_indels_only(self, output_path: Optional[pathlib.Path]) -> Optional[Msa]:
+        """Indels only, no substitutions — template alignment with gap structure."""
+        msa = self._build_msa_with_indels()
+        if output_path:
+            msa.write_msa(str(output_path))
+            return None
+        return msa
+
+    def _simulate_subs_only(self, output_path: Optional[pathlib.Path]) -> Optional[Msa]:
+        """Substitutions only, no indels — linear MSA with no gap structure."""
+        msa = self._build_msa_no_indels()
+        if output_path:
+            self._apply_substitutions_to_disk(msa, output_path)
+            return None
+        self._apply_substitutions(msa)
+        return msa
+
+    def _simulate_full(self, output_path: Optional[pathlib.Path]) -> Optional[Msa]:
+        """Full simulation: indels + substitutions."""
+        msa = self._build_msa_with_indels()
+        if output_path:
+            self._apply_substitutions_to_disk(msa, output_path)
+            return None
+        self._apply_substitutions(msa)
+        return msa
+
+    # ------------------------------------------------------------------
+    # Public API
+    # ------------------------------------------------------------------
+
+    def simulate(
+        self, output_path: Optional[pathlib.Path] = None, times: int = 1, 
+    ) -> Optional[List[Msa]]:
+        """
+        Run the simulation.
+
+        Args:
+            times:       Number of replicates to generate. Ignored when output_path is set.
+            output_path: If provided, write directly to disk (low-memory mode) and return None.
+                         Otherwise collect and return a list of Msa objects.
+        """
+        if output_path is not None:
+            output_path = pathlib.Path(output_path).resolve()
+            for _ in range(times):
+                replicate_path = output_path.parent / f"{output_path.stem}_replicate_{_+1}.fasta"
+                self._strategy(replicate_path)
+            return [None]  # Return a list of None for consistency with return type
         
-    def gen_indels(self) -> BlockTreePython:
-        return BlockTreePython(self._simulator.gen_indels())
-    
-    def get_sequences_to_save(self) -> List[bool]:
-        return self._simulator.get_saved_nodes_mask()
-    
-    def save_root_sequence(self):
-        self._simulator.save_root_sequence()
-    
-    def save_all_nodes_sequences(self):
-        self._simulator.save_all_nodes_sequences()
 
-    def gen_substitutions(self, length: int, root_string: str = "", root_positions_in_msa: List[int] = []) -> List[List[str]]:
-        if not self._is_sub_model_init:
-            self._init_sub_model()
-        return self._simulator.gen_substitutions(length, root_string, root_positions_in_msa)
+        return [self._strategy(None) for _ in range(times)]
+
+    def __call__(self, output_path: Optional[pathlib.Path] = None) -> Msa:
+        return self.simulate(output_path=output_path, times=1)[0]
+
+    # ------------------------------------------------------------------
+    # Configuration / accessors (unchanged)
+    # ------------------------------------------------------------------
+
+    def reset_substitution_simulator(self, modelFactory: _Sailfish.modelFactory) -> None:
+        if self._simulation_type == SIMULATION_TYPE.PROTEIN:
+            self._substitution_simulator = _Sailfish.AminoSubstitutionSimulator(
+                modelFactory, self._simProtocol.get_sim_context()
+            )
+        else:
+            self._substitution_simulator = _Sailfish.NucleotideSubstitutionSimulator(
+                modelFactory, self._simProtocol.get_sim_context()
+            )
+
+    def set_replacement_model(
+        self,
+        model: _Sailfish.modelCode,
+        amino_model_file: pathlib.Path = None,
+        model_parameters: List = None,
+        gamma_parameters_alpha: float = 1.0,
+        gamma_parameters_categories: int = 1,
+        invariant_sites_proportion: float = 0.0,
+        site_rate_correlation: float = 0.0,
+    ) -> None:
+        next_simulation_type = (
+            SIMULATION_TYPE.PROTEIN if model in PROTEIN_MODELS else SIMULATION_TYPE.DNA
+        )
+        self._sub_model.set_replacement_model(
+            model=model,
+            amino_model_file=amino_model_file,
+            model_parameters=model_parameters,
+            gamma_parameters_alpha=gamma_parameters_alpha,
+            gamma_parameters_categories=gamma_parameters_categories,
+            invariant_sites_proportion=invariant_sites_proportion,
+            site_rate_correlation=site_rate_correlation,
+            simulation_type=self._simulation_type,
+        )
+        if next_simulation_type != self._simulation_type:
+            raise ValueError(
+                f"replacement model {model} is not compatible with current simulation type "
+                f"{self._simulation_type.name}. Please initialize a separate Simulator."
+            )
+        else:
+            self._substitution_simulator.init_substitution_sim(self._sub_model.factory)
+
+    @property
+    def protocol(self) -> SimProtocol:
+        return self._simProtocol
+
+    def get_sequences_to_save(self) -> List[bool]:
+        return self._simProtocol.get_sim_context().get_nodes_to_save()
+
+    def save_root_sequence(self):
+        self._simProtocol.get_sim_context().set_save_root()
+
+    def save_all_nodes_sequences(self):
+        self._simProtocol.get_sim_context().set_save_all_nodes()
+
+    def save_leaves_sequences(self):
+        self._simProtocol.get_sim_context().set_save_leaves()
+
+    def generate_events(self) -> List[List[_Sailfish.IndelEvent]]:
+        return self._indel_simulator.generate_events()
+
+    def save_rates(self, is_save: bool) -> None:
+        self._substitution_simulator.set_save_rates(is_save)
+
+    def get_rates(self) -> List[float]:
+        return self._substitution_simulator.get_site_rates()
+
+    def get_rate_categories(self) -> List[int]:
+        return self._substitution_simulator.get_per_site_rate_categories()
     
     def set_root_sequence(self, sequence: str):
         if self._simProtocol.get_sequence_size() != len(sequence):
             raise ValueError(f"the provided root sequence length of {len(sequence)} does not match the sequence size in the simProtocol of {self._simProtocol.get_sequence_size()}")
         self._root_seq = sequence
-    
-    # @profile
-    def simulate(self, times: int = 1) -> List[Msa]:
-        Msas = []
-        for _ in range(times):
-            if self._simProtocol._is_insertion_rate_zero and self._simProtocol._is_deletion_rate_zero:
-                msa = Msa(sum(self.get_sequences_to_save()),
-                          self._simProtocol.get_sequence_size(),
-                          self.get_sequences_to_save())
-            else:
-                blocktree = self.gen_indels()
-                msa = Msa(blocktree._get_Sailfish_blocks(),
-                          self._simProtocol._get_root(),
-                          self.get_sequences_to_save())
-
-            # sim.init_substitution_sim(mFac)
-            if self._simulation_type != SIMULATION_TYPE.NOSUBS:
-                # determine if root sequence is provided, if not use legth of the msa to generate substitutions
-                if self._root_seq == "":
-                    msa_length = msa.get_length()
-                else:
-                    msa_length = len(self._root_seq)
-                substitutions = self.gen_substitutions(msa.get_length(), self._root_seq, msa.get_root_positions_in_msa())
-                msa.fill_substitutions(substitutions)
-
-            Msas.append(msa)
-        return Msas
-    
-    def simulate_low_memory(self, output_file_path: pathlib.Path) -> Msa:
-        if self._simProtocol._is_insertion_rate_zero and self._simProtocol._is_deletion_rate_zero:
-            msa_length = self._simProtocol.get_sequence_size()
-        else:
-            blocktree = self.gen_indels()
-            msa = Msa(blocktree._get_Sailfish_blocks(),
-                        self._simProtocol._get_root(),
-                        self.get_sequences_to_save())
-            msa_length = msa.get_length()
-            self._simulator.set_aligned_sequence_map(msa._msa)
-
-        # sim.init_substitution_sim(mFac)
-        if self._simulation_type != SIMULATION_TYPE.NOSUBS:
-            self._simulator.gen_substitutions_to_file(msa_length, 
-                                                      str(output_file_path),
-                                                      self._root_seq)
-        else:
-            msa.write_msa(str(output_file_path))
-    
-    def __call__(self) -> Msa:
-        return self.simulate(1)[0]
-    
-    def save_rates(self, is_save: bool) -> None:
-        self._simulator.save_site_rates(is_save)
-    
-    def get_rates(self) -> List[float]:
-        return self._simulator.get_site_rates()

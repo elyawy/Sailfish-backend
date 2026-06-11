@@ -1,13 +1,15 @@
 """Multiple sequence alignment output"""
 
 import _Sailfish
+
 from typing import Dict, List
 
 class Msa:
     """MSA result from simulation"""
     
-    def __init__(self, species_dict: Dict, root_node, save_list: List[bool]):
-        self._msa = _Sailfish.Msa(species_dict, root_node, save_list)
+    def __init__(self, events: list[_Sailfish.IndelEvent], simContext: _Sailfish.SimulationContext):
+        self._simContext = simContext
+        self._msa = _Sailfish.Msa(events, simContext)
 
     def generate_msas(self, node):
         self._msa.generate_msas(node)
@@ -27,11 +29,14 @@ class Msa:
     def print_msa(self) -> str:
         return self._msa.print_msa()
     
-    def print_indels(self) -> str:
-        return self._msa.print_indels()
-    
-    def get_msa(self) -> str:
-        return self._msa.get_msa_string()
+    def get_msa_row(self, row_num: int) -> str:
+        return self._msa.get_msa_row_string(row_num).rstrip()
     
     def write_msa(self, file_path) -> None:
         self._msa.write_msa(file_path)
+
+    def get_per_site_rate_categories(self) -> List[int]:
+        return self._msa.get_per_site_rate_categories()
+    
+    def get_sparse_msa(self) -> Dict[str, str]:
+        return self._msa.get_sparse_msa()

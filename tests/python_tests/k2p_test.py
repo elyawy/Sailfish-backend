@@ -20,5 +20,6 @@ for idx, param in enumerate(k2p_params):
         print(f"simulated {idx}\t| {NUMBER_OF_MSAS_TO_SIMULATE}")
     simulation.set_replacement_model(model=MODEL_CODES.HKY,
                                     model_parameters=[0.25,0.25,0.25,0.25, param])
+    
     msa = simulation.simulate()
     # msa.write_msa(f"msas/k2p_param_{param}.fasta")
