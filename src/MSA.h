@@ -259,7 +259,6 @@ public:
 
     const std::vector<size_t>& getRootPositionsInMsa() const { return _rootPositionsInMsa; }
 
-    const std::vector<size_t>& getRootPositionsInMsa() const { return _rootPositionsInMsa; }
 	
 	~MSA() {
 	}

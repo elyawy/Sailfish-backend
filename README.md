@@ -1,3 +1,6 @@
+
+NOTICE: SAILFISH IS IN EARLY DEVELOPMENT AND SUBJECT TO CHANGE. API AND FEATURES MAY BE UNSTABLE. IT IS PROVIDED AS-IS WITHOUT ANY WARRANTY. USE AT YOUR OWN RISK. PLEASE REPORT ISSUES AND SUGGESTIONS ON GITHUB.
+
 # Sailfish
 
 Sailfish is a high-performance multiple sequence alignment (MSA) simulator written in C++ with a Python API. It enables rapid generation of large-scale simulated datasets with support for indels, substitutions, and realistic evolutionary models.
