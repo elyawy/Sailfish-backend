@@ -1,18 +1,132 @@
 """Substitution model configuration and rate model management."""
 
+from dataclasses import dataclass
+
 import _Sailfish
 import warnings
 import pathlib
 from typing import List, Optional
 
-from .constants import MODEL_CODES, SIMULATION_TYPE
+from .constants import MODEL_CODES, SIMULATION_TYPE, DNA_MODELS, PROTEIN_MODELS
 
 
-# Default model applied at construction — cheap to build, valid for both DNA and protein-less sims
-_DEFAULT_MODEL = {SIMULATION_TYPE.DNA: MODEL_CODES.NUCJC, SIMULATION_TYPE.PROTEIN: MODEL_CODES.JONES}
 _DEFAULT_GAMMA_ALPHA = 1.0
 _DEFAULT_GAMMA_CATEGORIES = 1
 
+@dataclass
+class SiteRateModelSpec:
+    """Site rate model specification for substitution models.
+
+    Supports two modes (mutually exclusive):
+    - Gamma: discretized gamma distribution with optional invariant sites and site rate correlation.
+    - Free rates: explicit rates and weights, summing to 1.0.
+
+    Attributes:
+        gamma_alpha (float): Shape parameter for the gamma distribution.
+        gamma_categories (int): Number of discrete rate categories.
+        invariant_proportion (float): Proportion of invariant sites.
+        site_rate_correlation (float): Autocorrelation between adjacent site rates.
+        free_rates (Optional[List[float]]): Explicit rate values (free rates mode).
+        free_rate_weights (Optional[List[float]]): Weights for each free rate, must sum to 1.0.
+    """
+    gamma_alpha: float = _DEFAULT_GAMMA_ALPHA
+    gamma_categories: int = _DEFAULT_GAMMA_CATEGORIES
+    invariant_proportion: float = 0.0
+    site_rate_correlation: float = 0.0
+    free_rates: Optional[List[float]] = None
+    free_rate_weights: Optional[List[float]] = None
+
+    # Validate on creation
+    def __post_init__(self):
+        # free rates take precedence over gamma model if both are provided
+        if (self.free_rates is None) != (self.free_rate_weights is None):
+            raise ValueError("free_rates and free_rate_weights must both be set or both be None")
+
+        if self.free_rates is not None and self.free_rate_weights is not None:
+            if len(self.free_rates) != len(self.free_rate_weights):
+                raise ValueError(
+                    f"free_rates and free_rate_weights must have the same length, "
+                    f"received: len(free_rates)={len(self.free_rates)}, len(free_rate_weights)={len(self.free_rate_weights)}"
+                )
+            if any(rate <= 0.0 for rate in self.free_rates):
+                raise ValueError(
+                    f"all free_rates must be positive, received: {self.free_rates}"
+                )
+            if any(weight < 0.0 for weight in self.free_rate_weights):
+                raise ValueError(
+                    f"all free_rate_weights must be non-negative, received: {self.free_rate_weights}"
+                )
+            total_weight = sum(self.free_rate_weights)
+            if abs(total_weight - 1.0) > 1e-6:
+                raise ValueError(
+                    f"sum of free_rate_weights must be 1.0, received: {self.free_rate_weights}"
+                )
+        
+        if self.gamma_categories <= 0:
+            raise ValueError(
+                f"gamma_categories must be a positive integer, received: {self.gamma_categories}"
+            )
+        if self.gamma_alpha <= 0.0:
+            raise ValueError(
+                f"gamma_alpha must be a positive float, received: {self.gamma_alpha}"
+            )
+        if self.invariant_proportion < 0.0 or self.invariant_proportion >= 1.0:
+            raise ValueError(
+                f"invariant_proportion must be in [0, 1), received: {self.invariant_proportion}"
+            )
+        if self.site_rate_correlation < 0.0 or self.site_rate_correlation >= 1.0:
+            raise ValueError(
+                f"site_rate_correlation must be in [0, 1), received: {self.site_rate_correlation}"
+            )
+        if self.site_rate_correlation > 0.0 and self.gamma_categories == 1:
+            raise ValueError(
+                "site_rate_correlation > 0 requires gamma_categories > 1. "
+                f"received: site_rate_correlation={self.site_rate_correlation}, gamma_categories={self.gamma_categories}"
+            )
+    
+
+@dataclass
+class ReplacementModelSpec:
+    """Replacement model specification for substitution models.
+
+    Attributes:
+        model (MODEL_CODES): Substitution model code.
+        amino_model_file (Optional[pathlib.Path]): Path to amino acid model file (for protein models).
+        model_parameters (Optional[List]): List of model parameters (for nucleotide models).
+    """
+    model: MODEL_CODES
+    model_parameters: Optional[List] = None
+    amino_model_file: Optional[pathlib.Path] = None
+    site_rate_model: Optional[SiteRateModelSpec] = None
+
+    @property
+    def model_type(self) -> SIMULATION_TYPE:
+        """Determine the simulation type based on the model code."""
+        if self.model in PROTEIN_MODELS:
+            return SIMULATION_TYPE.PROTEIN
+        elif self.model in DNA_MODELS:
+            return SIMULATION_TYPE.DNA
+        else:
+            raise ValueError(f"Unknown model code: {self.model}")
+        
+    #validate on creation
+    def __post_init__(self):
+
+        # Validate per simulation type
+        if self.model_type == SIMULATION_TYPE.PROTEIN:
+            if self.model_parameters:
+                raise ValueError(
+                    f"no model parameters are used in protein models, "
+                    f"received: {self.model_parameters}"
+                )
+        else:
+            if self.model == MODEL_CODES.NUCJC and self.model_parameters:
+                raise ValueError("no model parameters in JC model, received: {self.model_parameters}")
+            if self.model != MODEL_CODES.NUCJC and not self.model_parameters:
+                raise ValueError("please provide model_parameters for this nucleotide model")
+        
+        if self.model == MODEL_CODES.CUSTOM and not self.amino_model_file:
+            raise ValueError("amino_model_file is required for CUSTOM protein model")
 
 class SubstitutionModel:
     """
@@ -23,17 +137,10 @@ class SubstitutionModel:
     site-rate parameters (gamma, invariants, correlation) change.
     """
 
-    def __init__(self, model_type: SIMULATION_TYPE) -> None:
+    def __init__(self, replacement_model_spec: ReplacementModelSpec) -> None:
         self._factory = _Sailfish.modelFactory()
-
-        # Track substitution model identity to detect real changes
-        self._current_model: Optional[MODEL_CODES] = None
-        self._current_model_parameters: Optional[List] = None
-        self._current_amino_file: Optional[str] = None
-        self._model_type: SIMULATION_TYPE = model_type
-        # Apply defaults so the factory is immediately in a valid COMPLETE state
-        self._apply_default_model()
-
+        self._spec: Optional[ReplacementModelSpec] = None
+        self.set_replacement_model(replacement_model_spec)
     # ------------------------------------------------------------------
     # Public interface
     # ------------------------------------------------------------------
@@ -42,17 +149,15 @@ class SubstitutionModel:
     def factory(self) -> _Sailfish.modelFactory:
         """The underlying C++ modelFactory — passed to SubstitutionSimulator."""
         return self._factory
+    
+    @property
+    def model_type(self) -> SIMULATION_TYPE:
+        """The simulation type (DNA or protein) based on the current replacement model."""
+        return self._spec.model_type
 
     def set_replacement_model(
         self,
-        model: _Sailfish.modelCode,
-        amino_model_file: pathlib.Path = None,
-        model_parameters: List = None,
-        gamma_parameters_alpha: float = 1.0,
-        gamma_parameters_categories: int = 1,
-        invariant_sites_proportion: float = 0.0,
-        site_rate_correlation: float = 0.0,
-        simulation_type: SIMULATION_TYPE = None,
+        replacement_model_spec: ReplacementModelSpec,
     ) -> None:
         """
         Configure the substitution and site-rate model.
@@ -61,129 +166,75 @@ class SubstitutionModel:
         model itself changes. Updating only site-rate parameters (gamma, invariants,
         correlation) reuses the cached model.
         """
-        if not simulation_type:
-            raise ValueError("simulation_type is required to set the replacement model")
-
-        if not model:
-            raise ValueError(
-                f"please provide a substitution model from the following list: {_Sailfish.modelCode}"
-            )
-        if int(gamma_parameters_categories) != gamma_parameters_categories:
-            raise ValueError(
-                f"gamma_parameters_categories has to be a positive int value, "
-                f"received: {gamma_parameters_categories}"
-            )
-
-        # Validate per simulation type
-        if simulation_type == SIMULATION_TYPE.PROTEIN:
-            if model_parameters:
-                raise ValueError(
-                    f"no model parameters are used in protein models, "
-                    f"received: {model_parameters}"
-                )
-        else:
-            if model == MODEL_CODES.NUCJC and model_parameters:
-                raise ValueError("no model parameters in JC model, received: {model_parameters}")
-            if model != MODEL_CODES.NUCJC and not model_parameters:
-                raise ValueError("please provide model_parameters for this nucleotide model")
 
         sub_model_changed = (
-            model != self._current_model
-            or model_parameters != self._current_model_parameters
-            or (str(amino_model_file) if amino_model_file else None) != self._current_amino_file
+            self._spec is None
+            or replacement_model_spec.model != self._spec.model
+            or replacement_model_spec.model_parameters != self._spec.model_parameters
+            or replacement_model_spec.amino_model_file != self._spec.amino_model_file
         )
+
 
         if sub_model_changed:
             self._factory.reset()
-            self._factory.set_replacement_model(model)
-
-            if simulation_type == SIMULATION_TYPE.PROTEIN:
-                if model == MODEL_CODES.CUSTOM and amino_model_file:
-                    self._factory.set_amino_replacement_model_file(str(amino_model_file))
+            self._factory.set_replacement_model(replacement_model_spec.model)
+ 
+            if replacement_model_spec.model_type == SIMULATION_TYPE.PROTEIN:
+                if replacement_model_spec.model == MODEL_CODES.CUSTOM:
+                    self._factory.set_amino_replacement_model_file(
+                        str(replacement_model_spec.amino_model_file)
+                    )
             else:
-                if model_parameters:
-                    self._factory.set_model_parameters(model_parameters)
-
-            self._current_model = model
-            self._current_model_parameters = model_parameters
-            self._current_amino_file = str(amino_model_file) if amino_model_file else None
-
+                if replacement_model_spec.model_parameters:
+                    self._factory.set_model_parameters(replacement_model_spec.model_parameters)
+ 
         # Always update site-rate model — cheap, does not touch the cached pij
         rates, probs, transition_matrix = self._create_site_rate_model(
-            gamma_alpha=gamma_parameters_alpha,
-            gamma_categories=gamma_parameters_categories,
-            invariant_proportion=invariant_sites_proportion,
-            site_rate_correlation=site_rate_correlation,
+            replacement_model_spec.site_rate_model or SiteRateModelSpec()
         )
         self._factory.set_site_rate_model(rates, probs, transition_matrix)
-
+ 
+        self._spec = replacement_model_spec
     # ------------------------------------------------------------------
     # Private helpers
     # ------------------------------------------------------------------
 
-    def _apply_default_model(self) -> None:
-        """Set factory to a valid COMPLETE state using NUCJC + single rate category."""
-        self._factory.set_replacement_model(_DEFAULT_MODEL[self._model_type])
-        rates, probs, transition_matrix = self._create_site_rate_model(
-            gamma_alpha=_DEFAULT_GAMMA_ALPHA,
-            gamma_categories=_DEFAULT_GAMMA_CATEGORIES,
-        )
-        self._factory.set_site_rate_model(rates, probs, transition_matrix)
-        self._current_model = _DEFAULT_MODEL[self._model_type]
-        self._current_model_parameters = None
-        self._current_amino_file = None
-
-    def _create_site_rate_model(
-        self,
-        gamma_alpha: float = 1.0,
-        gamma_categories: int = 1,
-        invariant_proportion: float = 0.0,
-        site_rate_correlation: float = 0.0,
-    ) -> tuple:
+    def _create_site_rate_model(self, site_rate_model: SiteRateModelSpec) -> tuple:
         """
         Compute rate categories, stationary probabilities, and transition matrix.
-
+ 
         Returns:
             (rates, probs, transition_matrix)
         """
-        if invariant_proportion < 0.0 or invariant_proportion >= 1.0:
-            raise ValueError(
-                f"invariant_proportion must be in [0, 1), received: {invariant_proportion}"
+        if site_rate_model.free_rates is not None:
+            rates = list(site_rate_model.free_rates)
+            probs = list(site_rate_model.free_rate_weights)
+        else:
+            gamma_dist = _Sailfish.GammaDistribution(
+                site_rate_model.gamma_alpha, site_rate_model.gamma_categories
             )
-        if site_rate_correlation < 0.0 or site_rate_correlation >= 1.0:
-            raise ValueError(
-                f"site_rate_correlation must be in [0, 1), received: {site_rate_correlation}"
-            )
-        if site_rate_correlation > 0.0 and gamma_categories == 1:
-            warnings.warn(
-                "site_rate_correlation > 0 requires gamma_categories > 1. "
-                "Setting site_rate_correlation to 0.0"
-            )
-            site_rate_correlation = 0.0
-
-        gamma_dist = _Sailfish.GammaDistribution(gamma_alpha, gamma_categories)
-        rates = list(gamma_dist.getAllRates())
-        probs = list(gamma_dist.getAllRatesProb())
-
-        if invariant_proportion > 0.0:
-            scale_factor = 1.0 - invariant_proportion
-            probs = [p * scale_factor for p in probs]
-            rates.insert(0, 0.0)
-            probs.insert(0, invariant_proportion)
-
+            rates = list(gamma_dist.getAllRates())
+            probs = list(gamma_dist.getAllRatesProb())
+ 
+            if site_rate_model.invariant_proportion > 0.0:
+                scale_factor = 1.0 - site_rate_model.invariant_proportion
+                probs = [p * scale_factor for p in probs]
+                rates.insert(0, 0.0)
+                probs.insert(0, site_rate_model.invariant_proportion)
+ 
         transition_matrix = []
-        if site_rate_correlation > 0.0:
-            if invariant_proportion > 0.0:
+        if site_rate_model.site_rate_correlation > 0.0:
+            if site_rate_model.invariant_proportion > 0.0:
                 warnings.warn(
-                    "site_rate_correlation and invariant_sites_proportion cannot be used together. "
+                    "site_rate_correlation and invariant_proportion cannot be used together. "
                     "Using invariant sites only, ignoring correlation."
                 )
             else:
                 try:
                     from msasim.correlation import build_auto_gamma_transition_matrix
                     transition_matrix = build_auto_gamma_transition_matrix(
-                        categories=gamma_categories,
-                        rho=site_rate_correlation,
+                        categories=site_rate_model.gamma_categories,
+                        rho=site_rate_model.site_rate_correlation,
                     )
                 except ImportError:
                     warnings.warn(
@@ -191,8 +242,15 @@ class SubstitutionModel:
                         "Install with: pip install scipy or pip install 'msasim[correlation]'. "
                         "Ignoring correlation parameter."
                     )
-
+ 
         if len(transition_matrix) == 0:
             transition_matrix = [probs for _ in range(len(probs))]
-
+ 
         return rates, probs, transition_matrix
+ 
+    def build_substitution_simulator(self, sim_context):
+        if self.model_type == SIMULATION_TYPE.PROTEIN:
+            cls = _Sailfish.AminoSubstitutionSimulator
+        else:
+            cls = _Sailfish.NucleotideSubstitutionSimulator
+        return cls(self.factory, sim_context)

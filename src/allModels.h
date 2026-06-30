@@ -16,12 +16,12 @@
 enum modelCode {
     // nc:
     NUCJC,
-    AAJC, // amino acid JC
     GTR,
     HKY,
     TAMURA92,
     WYANGMODEL,
     // AA:
+    AAJC, // amino acid JC
     CPREV45,
     DAYHOFF,
     JONES,	// THIS IS JTT
@@ -30,7 +30,6 @@ enum modelCode {
     HIVB,
     HIVW,
     LG,
-    EMPIRICODON,
     EX_BURIED, 
     EX_EXPOSED,
     EHO_EXTENDED,
@@ -42,7 +41,11 @@ enum modelCode {
     EX_EHO_EXP_EXT,
     EX_EHO_EXP_HEL,
     EX_EHO_EXP_OTH,
-    CUSTOM
+    CUSTOM,
+    // CODON:
+    EMPIRICODON,
+    // NON-REVERSIBLE:
+    NONREV
 };
 
 #endif

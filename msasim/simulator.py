@@ -6,8 +6,8 @@ import pathlib
 from typing import Optional, List
 from .protocol import SimProtocol
 from .msa import Msa
-from .constants import SIMULATION_TYPE, SIMULATION_TYPES, DNA_MODELS, PROTEIN_MODELS
-from .substitutions import SubstitutionModel
+from .constants import SIMULATION_TYPE
+from .substitutions import SubstitutionModel, ReplacementModelSpec
 
 
 class Simulator:
@@ -16,7 +16,7 @@ class Simulator:
     def __init__(
         self,
         simProtocol: Optional[SimProtocol] = None,
-        simulation_type: Optional[SIMULATION_TYPE] = None,
+        replacement_model: Optional[ReplacementModelSpec] = None
     ):
         if simProtocol is None:
             simProtocol = SimProtocol.default()
@@ -30,33 +30,16 @@ class Simulator:
         else:
             raise ValueError("failed to verify simProtocol")
 
-        if not simulation_type:
-            warnings.warn("simulation type not provided -> running indel only simulation")
-            simulation_type = SIMULATION_TYPE.NOSUBS
+        if replacement_model is None:
+            warnings.warn("substitution replacement_model not provided -> running indel only simulation")
             self._simProtocol._sim_protocol.set_site_rate_model(_Sailfish.SiteRateModel.SIMPLE)
-
-        if simulation_type not in SIMULATION_TYPES:
-            raise ValueError(
-                f"unknown simulation type, please provide one of the following: "
-                f"{[e.name for e in SIMULATION_TYPE]}"
-            )
-
-        self._simulation_type = simulation_type
-        if self._simulation_type == SIMULATION_TYPE.NOSUBS:
             self._substitution_simulator = None
             self._sub_model = None
         else:
-            self._sub_model = SubstitutionModel(simulation_type)
+            self._sub_model = SubstitutionModel(replacement_model)
             sim_context = self._simProtocol.get_sim_context()
-            if self._simulation_type == SIMULATION_TYPE.PROTEIN:
-                self._substitution_simulator = _Sailfish.AminoSubstitutionSimulator(
-                    self._sub_model.factory, sim_context
-                )
-            else:
-                self._substitution_simulator = _Sailfish.NucleotideSubstitutionSimulator(
-                    self._sub_model.factory, sim_context
-                )
-
+            self._substitution_simulator = self._sub_model.build_substitution_simulator(sim_context)
+        
         # Compute flags once — used to pick strategy at __init__ time
         self._has_indels = not (
             self._simProtocol._is_insertion_rate_zero
@@ -77,6 +60,9 @@ class Simulator:
         else:
             self._strategy = self._simulate_full
 
+    @property
+    def _simulation_type(self) -> SIMULATION_TYPE:
+        return self._sub_model.model_type if self._sub_model else SIMULATION_TYPE.NOSUBS
     # ------------------------------------------------------------------
     # Private simulation strategies
     # ------------------------------------------------------------------
@@ -179,49 +165,20 @@ class Simulator:
         return self.simulate(output_path=output_path, times=1)[0]
 
     # ------------------------------------------------------------------
-    # Configuration / accessors (unchanged)
+    # Configuration / accessors
     # ------------------------------------------------------------------
 
-    def reset_substitution_simulator(self, modelFactory: _Sailfish.modelFactory) -> None:
-        if self._simulation_type == SIMULATION_TYPE.PROTEIN:
-            self._substitution_simulator = _Sailfish.AminoSubstitutionSimulator(
-                modelFactory, self._simProtocol.get_sim_context()
-            )
-        else:
-            self._substitution_simulator = _Sailfish.NucleotideSubstitutionSimulator(
-                modelFactory, self._simProtocol.get_sim_context()
-            )
-
-    def set_replacement_model(
-        self,
-        model: _Sailfish.modelCode,
-        amino_model_file: pathlib.Path = None,
-        model_parameters: List = None,
-        gamma_parameters_alpha: float = 1.0,
-        gamma_parameters_categories: int = 1,
-        invariant_sites_proportion: float = 0.0,
-        site_rate_correlation: float = 0.0,
-    ) -> None:
-        next_simulation_type = (
-            SIMULATION_TYPE.PROTEIN if model in PROTEIN_MODELS else SIMULATION_TYPE.DNA
-        )
-        self._sub_model.set_replacement_model(
-            model=model,
-            amino_model_file=amino_model_file,
-            model_parameters=model_parameters,
-            gamma_parameters_alpha=gamma_parameters_alpha,
-            gamma_parameters_categories=gamma_parameters_categories,
-            invariant_sites_proportion=invariant_sites_proportion,
-            site_rate_correlation=site_rate_correlation,
-            simulation_type=self._simulation_type,
-        )
-        if next_simulation_type != self._simulation_type:
+    def set_replacement_model(self, replacement_model: ReplacementModelSpec) -> None:
+        if self._sub_model is None:
+            raise ValueError("Simulator was constructed without a replacement model (NOSUBS).")
+        if replacement_model.model_type != self._sub_model.model_type:
             raise ValueError(
-                f"replacement model {model} is not compatible with current simulation type "
-                f"{self._simulation_type.name}. Please initialize a separate Simulator."
+                f"replacement model type {replacement_model.model_type} does not match "
+                f"current simulation type {self._sub_model.model_type.name}. "
+                f"Please initialize a separate Simulator."
             )
-        else:
-            self._substitution_simulator.init_substitution_sim(self._sub_model.factory)
+        self._sub_model.set_replacement_model(replacement_model)
+        self._substitution_simulator.init_substitution_sim(self._sub_model.factory)
 
     @property
     def protocol(self) -> SimProtocol:

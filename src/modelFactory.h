@@ -380,6 +380,10 @@ public:
 
         } else if (_alphabet == alphabetCode::NUCLEOTIDE) {
             pij = std::make_unique<trivialAccelerator>(repModel.get());
+        } else if (_model == modelCode::NONREV) {
+            pij = std::make_unique<nonRevAccelerator>();
+        } else {
+            throw std::runtime_error("Unknown alphabet type");
         }
 
         // Cache the built models

@@ -4,8 +4,8 @@
 from msasim import SimProtocol
 from msasim import Simulator
 from msasim.distributions import ZipfDistribution
-from msasim.constants import MODEL_CODES, SIMULATION_TYPE, SITE_RATE_MODELS
-
+from msasim.constants import MODEL_CODES, SITE_RATE_MODELS
+from msasim.substitutions import ReplacementModelSpec, SiteRateModelSpec
 
 ROOT_SEQUENCE_LENGTH = 100
 
@@ -18,20 +18,15 @@ sim_protocol = SimProtocol("tests/trees/normalbranches_nLeaves10.treefile",
                                seed=11)
 sim_protocol.set_sequence_size(ROOT_SEQUENCE_LENGTH)
 
+rate_model = SiteRateModelSpec(gamma_alpha=1.0, gamma_categories=4)
 
-simulation = Simulator(sim_protocol, simulation_type=SIMULATION_TYPE.PROTEIN)
-simulation.save_root_sequence()
-simulation.set_root_sequence("".join(["M" for _ in range(ROOT_SEQUENCE_LENGTH)]))
-simulation.set_replacement_model(model=MODEL_CODES.WAG, 
-                                 gamma_parameters_alpha=1.0, 
-                                 gamma_parameters_categories=4)
+replacement_model = ReplacementModelSpec(model=MODEL_CODES.WAG, 
+                                         site_rate_model=rate_model)
 
+simulator = Simulator(sim_protocol, replacement_model)
 
-msa = simulation()
+simulator.save_root_sequence()
+simulator.set_root_sequence("".join(["M" for _ in range(ROOT_SEQUENCE_LENGTH)]))
+
+msa = simulator()
 msa.print_msa()
-
-rate_categories = simulation.get_rate_categories()
-
-print("".join(map(str, rate_categories)))
-
-

@@ -1,11 +1,16 @@
 import pathlib
 import time
 import psutil
-from msasim import sailfish as sim
+from msasim import MODEL_CODES, ZipfDistribution
+from msasim import SimProtocol
+from msasim import Simulator
+from msasim.constants import SITE_RATE_MODELS
+from msasim.substitutions import ReplacementModelSpec, SiteRateModelSpec
 
 
-length_insertions = sim.ZipfDistribution(1.7, 50)
-length_deletions = sim.ZipfDistribution(1.7, 50)
+
+length_insertions = ZipfDistribution(1.7, 50)
+length_deletions = ZipfDistribution(1.7, 50)
 
 rate_insertion = 0.03
 rate_deletion = 0.09
@@ -27,24 +32,23 @@ trees_map = {
     # "1M": trees_path / "normalbranches_nLeaves1000000.treefile",
 }
 
-def init_protocol(number_of_species) -> sim.Simulator:
-    simulation_protocol = sim.SimProtocol(str(trees_map[number_of_species]))
+def init_protocol(number_of_species) -> Simulator:
+    simulation_protocol = SimProtocol(str(trees_map[number_of_species]))
     simulation_protocol.set_seed(100)
-
     simulation_protocol.set_insertion_length_distributions(length_insertions)
     simulation_protocol.set_deletion_length_distributions(length_deletions)
     simulation_protocol.set_insertion_rates(rate_insertion)
     simulation_protocol.set_deletion_rates(rate_deletion)
     simulation_protocol.set_max_insertion_length(50)
-    simulation_protocol.set_site_rate_model(sim.SITE_RATE_MODELS.SIMPLE)
+    simulation_protocol.set_site_rate_model(SITE_RATE_MODELS.SIMPLE)
     simulation_protocol.set_sequence_size(30000)
     # time.sleep(3)
+    rate_model = SiteRateModelSpec(gamma_alpha=1.0,
+                                             gamma_categories=8)
+    replacement_model = ReplacementModelSpec(model=MODEL_CODES.NUCJC,
+                                                   site_rate_model=rate_model)
 
-    simulator = sim.Simulator(simulation_protocol, simulation_type=sim.SIMULATION_TYPE.DNA)
-    simulator.set_replacement_model(model=sim.MODEL_CODES.NUCJC,
-                                    gamma_parameters_alpha=1.0,
-                                    gamma_parameters_categories=8)
-    
+    simulator = Simulator(simulation_protocol, replacement_model)
 
 
     return simulator
