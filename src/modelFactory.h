@@ -13,6 +13,8 @@
 #include "../libs/Phylolib/includes/tree.h"
 #include "../libs/Phylolib/includes/amino.h"
 #include "../libs/Phylolib/includes/nucleotide.h"
+#include "../libs/Phylolib/includes/codon.h"
+
 #include "../libs/Phylolib/includes/chebyshevAccelerator.h"
 #include "../libs/Phylolib/includes/eigenAccelerator.h"
 #include "../libs/Phylolib/includes/trivialAccelerator.h"
@@ -29,19 +31,13 @@
 // gamma = alpha
 // gamma_categories = 1,2,3,4...
 
-enum factoryState {
-    MODEL,
-    PARAMETERS,
-    MODEL_FILE,
-    SITERATES,
-    COMPLETE
-};
-
 enum alphabetCode {
     NULLCODE,
     NUCLEOTIDE,
-    AMINOACID
+    AMINOACID,
+    CODON
 };
+
 
 
 
@@ -50,151 +46,122 @@ class modelFactory
 
 public:
     modelFactory(): 
-        _state(factoryState::MODEL),
         _alphabet(alphabetCode::NUCLEOTIDE),
         _model(modelCode::NUCJC),  // Default model
         _alpha(1.0),
         _gammaCategories(1) {}
 
-    void setReplacementModel(modelCode model) {
-        if (_state != factoryState::MODEL) {
-            std::cout << "Please reset factory before changing the model.\n";
-            return;
-        }
-        
+    void buildModel(alphabetCode alphabet, modelCode model,
+                    const std::vector<MDOUBLE>& parameters = {},
+                    const std::string& modelFilePath = "") {
+        _alphabet = alphabet;
         _model = model;
-        
-        // Infer alphabet from model
+        _parameters = parameters;
+        _modelFilePath = modelFilePath;
+
+        size_t alphabetSize = 0;
+        if (alphabet == alphabetCode::NUCLEOTIDE) alphabetSize = 4;
+        else if (alphabet == alphabetCode::AMINOACID) alphabetSize = 20;
+        else if (alphabet == alphabetCode::CODON) alphabetSize = 61;
+
+        bool isReversible = (model != modelCode::NONREV);
+
+        std::vector<MDOUBLE> qMatrix(alphabetSize * alphabetSize, 0.0);
+        std::vector<MDOUBLE> frequencies(alphabetSize, 0.0);
+
         switch (_model) {
             case modelCode::NUCJC:
-            case modelCode::GTR:
-            case modelCode::HKY:
-            case modelCode::TAMURA92:
-                _alphabet = alphabetCode::NUCLEOTIDE;
+                _cachedRepModel = std::make_unique<nucJC>();
                 break;
-            
             case modelCode::AAJC:
-            case modelCode::CPREV45:
-            case modelCode::DAYHOFF:
-            case modelCode::JONES:
-            case modelCode::MTREV24:
-            case modelCode::WAG:
-            case modelCode::HIVB:
-            case modelCode::HIVW:
-            case modelCode::LG:
-            case modelCode::EX_BURIED:
-            case modelCode::EX_EXPOSED:
-            case modelCode::EHO_EXTENDED:
-            case modelCode::EHO_HELIX:
-            case modelCode::EHO_OTHER:
-            case modelCode::EX_EHO_BUR_EXT:
-            case modelCode::EX_EHO_BUR_HEL:
-            case modelCode::EX_EHO_BUR_OTH:
-            case modelCode::EX_EHO_EXP_EXT:
-            case modelCode::EX_EHO_EXP_HEL:
-            case modelCode::EX_EHO_EXP_OTH:
-            case modelCode::CUSTOM:
-                _alphabet = alphabetCode::AMINOACID;
+                _cachedRepModel = std::make_unique<aaJC>();
                 break;
-            
-            case modelCode::WYANGMODEL:
-                std::cout << "WYANGMODEL is not implemented.\n";
-                return;
-            case modelCode::EMPIRICODON:
-                std::cout << "EMPIRICODON is not implemented.\n";
-                return;
-            default:
-                std::cout << "Unknown model code.\n";
-                return;
-        }
-        
-        // Determine next state based on model requirements
-        _state = factoryState::PARAMETERS;
-        if (_alphabet == alphabetCode::AMINOACID) _state = factoryState::SITERATES;
-        if (_model == modelCode::AAJC || _model == modelCode::NUCJC) _state = factoryState::SITERATES;
-        if (_model == modelCode::CUSTOM) _state = factoryState::MODEL_FILE;
-        
-        // Invalidate cache when model changes
-        _cachedRepModel.reset();
-        _cachedPij.reset();
-    }
-
-    void setModelParameters(std::vector<MDOUBLE> params) {
-        if (_state != factoryState::PARAMETERS) {
-            std::cout << "Please specify an appropriate model before setting parameters.\n";
-            return;
-        }
-
-        switch (_model) {
-            case modelCode::GTR:
-                if (params.size() != 10) {
-                    std::cout << "The 'GTR' model requires 10 parameters, " 
-                              << params.size() << " were provided\n";
-                    return;
-                }
+            case modelCode::GTR: {
+                Vdouble frequencies(_parameters.begin(), _parameters.begin() + 4);
+                _cachedRepModel = std::make_unique<gtrModel>(
+                    frequencies, _parameters[4], _parameters[5], _parameters[6],
+                    _parameters[7], _parameters[8], _parameters[9]);
                 break;
-            case modelCode::HKY:
-                if (params.size() != 5) {
-                    std::cout << "The 'HKY' model requires 5 parameters, " 
-                              << params.size() << " were provided\n";
-                    return;
-                }
+            }
+            case modelCode::HKY: {
+                Vdouble inProbabilities(_parameters.begin(), _parameters.begin() + 4);
+                _cachedRepModel = std::make_unique<hky>(inProbabilities, _parameters[4]);
                 break;
+            }
             case modelCode::TAMURA92:
-                if (params.size() != 2) {
-                    std::cout << "The 'TAMURA92' model requires 2 parameters, " 
-                              << params.size() << " were provided\n";
-                    return;
+                _cachedRepModel = std::make_unique<tamura92>(_parameters[0], _parameters[1]);
+                break;
+            case modelCode::CUSTOM: {
+                std::ifstream in(_modelFilePath);
+                if (!in.is_open()) throw std::runtime_error("Could not open file");
+                std::stringstream contents;
+                char buffer;
+                while (in.get(buffer)) {
+                    if (buffer == '\"' || buffer == '\n') continue;
+                    contents << buffer;
                 }
+                datMatrixString aminoFileString(contents.str().c_str());
+                _cachedRepModel = std::make_unique<pupAll>(aminoFileString);
                 break;
-            default:
+            }
+            case modelCode::NONREV:
+                // no repModel — accelerator built directly from raw Q + frequencies below
+                _cachedRepModel = nullptr;
+                // Note: For NONREV parameters should contain the flattened NxN Q matrix followed by N frequencies
+                qMatrix.assign(_parameters.begin(), _parameters.end() - alphabetSize);
+                frequencies.assign(_parameters.end() - alphabetSize, _parameters.end());
                 break;
+            default: {
+                auto it = modelToDatMatrixHolder.find(_model);
+                if (it == modelToDatMatrixHolder.end())
+                    throw std::runtime_error("Unknown model code.");
+                _cachedRepModel = std::make_unique<pupAll>(it->second);
+                break;
+            }
         }
 
-        _parameters = params;
-        _state = factoryState::SITERATES;
-        
-        // Invalidate cache when parameters change
-        _cachedRepModel.reset();
-        _cachedPij.reset();
+        _cachedPij = acceleratorPicker(alphabetSize, isReversible, 
+                                       _cachedRepModel.get(), 
+                                       qMatrix, frequencies);
     }
 
-    void setCustomAAModelFile(const std::string &fileName) {
-        if (_state != factoryState::MODEL_FILE) {
-            std::cout << "Please set the model to 'CUSTOM' before proceeding.\n";
-            return;
-        }
-        _modelFilePath = fileName;
-        _state = factoryState::SITERATES;
-        
-        // Invalidate cache when model file changes
-        _cachedRepModel.reset();
-        _cachedPij.reset();
-    }
+    std::unique_ptr<pijAccelerator> acceleratorPicker(size_t alphabetSize, bool isReversible,
+        replacementModel* repModel = nullptr,
+        const std::vector<MDOUBLE>& qMatrix = {},
+        const std::vector<MDOUBLE>& frequencies = {}) {
 
-    void setGammaParameters(MDOUBLE alpha, size_t numCategories) {
-        if (_state != factoryState::SITERATES) {
-            std::cout << "Please specify a model and its correct parameters before proceeding.\n";
-            return;
+
+        if (!isReversible) {
+            switch (alphabetSize) {
+                case 4:
+                    return std::make_unique<nonRevAccelerator<4>>(qMatrix, frequencies);
+                case 20:
+                    return std::make_unique<nonRevAccelerator<20>>(qMatrix, frequencies);
+                case 61:
+                    return std::make_unique<nonRevAccelerator<61>>(qMatrix, frequencies);
+                default:
+                    throw std::runtime_error("Unsupported alphabet size for non-reversible model");
+            }
+        } 
+
+        if (alphabetSize == 4) {
+            return std::make_unique<trivialAccelerator>(repModel);
+        } else if (alphabetSize == 20) {
+            return std::make_unique<eigenAccelerator<20>>(repModel);
+        } else if (alphabetSize == 61) {
+            return std::make_unique<eigenAccelerator<61>>(repModel);
+        } else {
+            throw std::runtime_error("Unsupported alphabet size for reversible model");
         }
-        _alpha = alpha;
-        _gammaCategories = numCategories;
-        _state = factoryState::SITERATES;  // Stay in SITERATES state, not COMPLETE
-        // Note: This method is kept for state machine progression
-        // Actual rate categories should be set via setSiteRateModel()
+        
     }
 
     void setSiteRateModel(const std::vector<MDOUBLE>& rates,
                          const std::vector<MDOUBLE>& stationaryProbs,
                          const std::vector<std::vector<MDOUBLE>>& transitionMatrix = {}) {
-        if (_state != factoryState::SITERATES && _state != factoryState::COMPLETE) {
-            std::cout << "Please set gamma parameters before setting site rate model.\n";
-            return;
-        }
         _customRates = rates;
         _rateCategoryProbs = stationaryProbs;
         _transitionMatrix = transitionMatrix;
-        _state = factoryState::COMPLETE;
     }
 
     std::vector<std::vector<MDOUBLE>> getEffectiveTransitionMatrix() const {
@@ -208,22 +175,6 @@ public:
 
     const std::vector<MDOUBLE>& getRateCategoryProbs() const {
         return _rateCategoryProbs;
-    }
-
-    void resetFactory() {
-        _state = factoryState::MODEL;
-        _alphabet = alphabetCode::NULLCODE;
-        _alphPtr.reset();
-        _transitionMatrix.clear();
-        _rateCategoryProbs.clear();
-        _customRates.clear();
-        _cachedRepModel.reset();
-        _cachedPij.reset();
-        _cachedDist.reset();
-    }
-
-    bool isModelValid() {
-        return (_state == factoryState::COMPLETE);
     }
 
     alphabet* getAlphabet() {
@@ -243,6 +194,8 @@ public:
             _alphPtr = std::make_unique<nucleotide>();
         } else if (_alphabet == alphabetCode::AMINOACID) {
             _alphPtr = std::make_unique<amino>();
+        } else if (_alphabet == alphabetCode::CODON) {
+            _alphPtr = std::make_unique<codon>();
         } else {
             return nullptr;
         }
@@ -250,158 +203,12 @@ public:
         return _alphPtr.get();
     }
 
-    // Build and cache the replacement model and pij accelerator
-    // This is the expensive operation - call once after setting model parameters
-    // IMPORTANT: Must call setSiteRateModel() before calling this method
-    void buildReplacementModel() {
-        if (_state != factoryState::COMPLETE) {
-            std::cout << "Please call setSiteRateModel() before building replacement model.\n";
-            return;
-        }
-
-        std::unique_ptr<replacementModel> repModel;
-
-        switch (_model) {
-            case modelCode::NUCJC:
-                repModel = std::make_unique<nucJC>();
-                break;
-            case modelCode::AAJC:
-                repModel = std::make_unique<aaJC>();
-                break;
-            case modelCode::GTR: {
-                Vdouble frequencies = std::vector<MDOUBLE>(_parameters.begin(), _parameters.begin()+4);
-                const MDOUBLE a2c = _parameters[4];
-                const MDOUBLE a2g = _parameters[5];
-                const MDOUBLE a2t = _parameters[6];
-                const MDOUBLE c2g = _parameters[7];
-                const MDOUBLE c2t = _parameters[8];
-                const MDOUBLE g2t = _parameters[9];
-                repModel = std::make_unique<gtrModel>(frequencies, a2c, a2g, a2t, c2g, c2t, g2t);
-                break;
-            }
-            case modelCode::HKY: {
-                Vdouble inProbabilities = std::vector<MDOUBLE>(_parameters.begin(), _parameters.begin()+4);
-                const MDOUBLE TrTv = _parameters[4];
-                repModel = std::make_unique<hky>(inProbabilities, TrTv);
-                break;
-            }
-            case modelCode::TAMURA92: {
-                const MDOUBLE theta = _parameters[0];
-                const MDOUBLE TrTv = _parameters[1];
-                repModel = std::make_unique<tamura92>(theta, TrTv);
-                break;
-            }
-            case modelCode::WYANGMODEL:
-                throw std::runtime_error("Model not implemented: " + std::to_string(static_cast<int>(_model)));
-                break;
-            case modelCode::CPREV45:
-                repModel = std::make_unique<pupAll>(datMatrixHolder::cpREV45);
-                break;
-            case modelCode::DAYHOFF:
-                repModel = std::make_unique<pupAll>(datMatrixHolder::dayhoff);
-                break;
-            case modelCode::JONES:
-                repModel = std::make_unique<pupAll>(datMatrixHolder::jones);
-                break;
-            case modelCode::MTREV24:
-                repModel = std::make_unique<pupAll>(datMatrixHolder::mtREV24);
-                break;
-            case modelCode::WAG:
-                repModel = std::make_unique<pupAll>(datMatrixHolder::wag);
-                break;
-            case modelCode::HIVB:
-                repModel = std::make_unique<pupAll>(datMatrixHolder::HIVb);
-                break;
-            case modelCode::HIVW:
-                repModel = std::make_unique<pupAll>(datMatrixHolder::HIVw);
-                break;
-            case modelCode::LG:
-                repModel = std::make_unique<pupAll>(datMatrixHolder::lg);
-                break;
-            case modelCode::EMPIRICODON:
-                repModel = std::make_unique<pupAll>(datMatrixHolder::empiriCodon);
-                break;
-            case modelCode::EX_BURIED:
-                repModel = std::make_unique<pupAll>(datMatrixHolder::EX_BURIED);
-                break;
-            case modelCode::EX_EXPOSED:
-                repModel = std::make_unique<pupAll>(datMatrixHolder::EX_EXPOSED);
-                break;
-            case modelCode::EHO_EXTENDED:
-                repModel = std::make_unique<pupAll>(datMatrixHolder::EHO_EXTENDED);
-                break;
-            case modelCode::EHO_HELIX:
-                repModel = std::make_unique<pupAll>(datMatrixHolder::EHO_HELIX);
-                break;
-            case modelCode::EHO_OTHER:
-                repModel = std::make_unique<pupAll>(datMatrixHolder::EHO_OTHER);
-                break;
-            case modelCode::EX_EHO_BUR_EXT:
-                repModel = std::make_unique<pupAll>(datMatrixHolder::EX_EHO_BUR_EXT);
-                break;
-            case modelCode::EX_EHO_BUR_HEL:
-                repModel = std::make_unique<pupAll>(datMatrixHolder::EX_EHO_EXP_HEL);
-                break;
-            case modelCode::EX_EHO_BUR_OTH:
-                repModel = std::make_unique<pupAll>(datMatrixHolder::EX_EHO_BUR_OTH);
-                break;
-            case modelCode::EX_EHO_EXP_EXT:
-                repModel = std::make_unique<pupAll>(datMatrixHolder::EX_EHO_EXP_EXT);
-                break;
-            case modelCode::EX_EHO_EXP_HEL:
-                repModel = std::make_unique<pupAll>(datMatrixHolder::EX_EHO_EXP_HEL);
-                break;
-            case modelCode::EX_EHO_EXP_OTH:
-                repModel = std::make_unique<pupAll>(datMatrixHolder::EX_EHO_EXP_OTH);
-                break;
-            case modelCode::CUSTOM: {
-                std::ifstream in(_modelFilePath);
-                if (!in.is_open()) throw std::runtime_error("Could not open file");
-                std::stringstream contents;
-                char buffer;
-                while (in.get(buffer)) {
-                    if (buffer == '\"' || buffer == '\n') continue;
-                    contents << buffer;
-                }
-                in.close();
-                const std::string &tmpstr = contents.str();
-                const char* cstr = tmpstr.c_str();
-                datMatrixString aminoFileString(cstr);
-                repModel = std::make_unique<pupAll>(aminoFileString);
-                break;
-            }
-        }
-
-        std::unique_ptr<pijAccelerator> pij;
-
-        if (_alphabet == alphabetCode::AMINOACID) {
-            pij = std::make_unique<eigenAccelerator<20>>(repModel.get());
-            // pij = std::make_unique<chebyshevAccelerator>(repModel.get());
-
-        } else if (_alphabet == alphabetCode::NUCLEOTIDE) {
-            pij = std::make_unique<trivialAccelerator>(repModel.get());
-        } else if (_model == modelCode::NONREV) {
-            pij = std::make_unique<nonRevAccelerator>();
-        } else {
-            throw std::runtime_error("Unknown alphabet type");
-        }
-
-        // Cache the built models
-        _cachedRepModel = std::move(repModel);
-        _cachedPij = std::move(pij);
-    }
-
     // Get stochastic process using cached replacement model and current rate model
     // This is cheap - can be called many times with different rate models
     std::shared_ptr<stochasticProcess> getStochasticProcess() {
-        if (_state != factoryState::COMPLETE) {
-            std::cout << "Please set all the required model parameters.\n";
-            return nullptr;
-        }
-
         if (!_cachedPij) {
             // build replacement model if not already built
-            buildReplacementModel();
+            buildModel();
         }
 
         // Create distribution with current rate model parameters
@@ -420,7 +227,6 @@ public:
     ~modelFactory() {}
 
 private:
-    factoryState _state;
     std::unique_ptr<alphabet> _alphPtr;
     alphabetCode _alphabet;
     modelCode _model;

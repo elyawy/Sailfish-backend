@@ -2,6 +2,9 @@
 #ifndef ___ALL_MODELS
 #define ___ALL_MODELS
 
+
+#include <unordered_map>
+
 // nucleotide models
 #include "../libs/Phylolib/includes/nucJC.h"
 #include "../libs/Phylolib/includes/aaJC.h"
@@ -47,5 +50,29 @@ enum modelCode {
     // NON-REVERSIBLE:
     NONREV
 };
+
+static const std::unordered_map<modelCode, datMatrixHolder> modelToDatMatrixHolder = {
+    {modelCode::CPREV45, datMatrixHolder::cpREV45},
+    {modelCode::DAYHOFF, datMatrixHolder::dayhoff},
+    {modelCode::JONES, datMatrixHolder::jones},
+    {modelCode::MTREV24, datMatrixHolder::mtREV24},
+    {modelCode::WAG, datMatrixHolder::wag},
+    {modelCode::HIVB, datMatrixHolder::HIVb},
+    {modelCode::HIVW, datMatrixHolder::HIVw},
+    {modelCode::LG, datMatrixHolder::lg},
+    {modelCode::EMPIRICODON, datMatrixHolder::empiriCodon},
+    {modelCode::EX_BURIED, datMatrixHolder::EX_BURIED},
+    {modelCode::EX_EXPOSED, datMatrixHolder::EX_EXPOSED},
+    {modelCode::EHO_EXTENDED, datMatrixHolder::EHO_EXTENDED},
+    {modelCode::EHO_HELIX, datMatrixHolder::EHO_HELIX},
+    {modelCode::EHO_OTHER, datMatrixHolder::EHO_OTHER},
+    {modelCode::EX_EHO_BUR_EXT, datMatrixHolder::EX_EHO_BUR_EXT},
+    {modelCode::EX_EHO_BUR_HEL, datMatrixHolder::EX_EHO_BUR_HEL},
+    {modelCode::EX_EHO_BUR_OTH, datMatrixHolder::EX_EHO_BUR_OTH},
+    {modelCode::EX_EHO_EXP_EXT, datMatrixHolder::EX_EHO_EXP_EXT},
+    {modelCode::EX_EHO_EXP_HEL, datMatrixHolder::EX_EHO_EXP_HEL},
+    {modelCode::EX_EHO_EXP_OTH, datMatrixHolder::EX_EHO_EXP_OTH}
+};
+
 
 #endif
