@@ -15,7 +15,6 @@
 #include "../libs/Phylolib/includes/nucleotide.h"
 #include "../libs/Phylolib/includes/codon.h"
 
-#include "../libs/Phylolib/includes/chebyshevAccelerator.h"
 #include "../libs/Phylolib/includes/eigenAccelerator.h"
 #include "../libs/Phylolib/includes/trivialAccelerator.h"
 #include "../libs/Phylolib/includes/gammaDistribution.h"
@@ -194,7 +193,8 @@ public:
             _alphPtr = std::make_unique<nucleotide>();
         } else if (_alphabet == alphabetCode::AMINOACID) {
             _alphPtr = std::make_unique<amino>();
-        } else if (_alphabet == alphabetCode::CODON) {
+        } else if (_alphabet == alphabetCode::CODON)
+        {
             _alphPtr = std::make_unique<codon>();
         } else {
             return nullptr;

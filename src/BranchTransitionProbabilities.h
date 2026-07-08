@@ -2,14 +2,14 @@
 #define BRANCH_TRANSITION_PROBABILITIES_H
 
 #include <vector>
-#include "../libs/Phylolib/includes/DiscreteNDistribution.h"
+#include "DiscreteNDistribution.h"
 #include "../libs/Phylolib/includes/stochasticProcess.h"
 
 
-constexpr uint8_t differenceToPowerOfTwo(int alphabetSize) {
+constexpr uint8_t nearestHigherPowerOfTwo(int alphabetSize) {
     int p = 1;
     while (p < alphabetSize) p <<= 1;
-    return static_cast<uint8_t>(p - alphabetSize);
+    return static_cast<uint8_t>(p);
 }
 
 
@@ -20,7 +20,7 @@ public:
     {
         const size_t numCategories = _sp.categories();
         _distributions.reserve(numCategories * AlphabetSize);
-        constexpr size_t PaddedSize = AlphabetSize + differenceToPowerOfTwo(AlphabetSize);
+        constexpr size_t PaddedSize = nearestHigherPowerOfTwo(AlphabetSize);
         std::array<double, PaddedSize> probabilities{};
 
         for (size_t cat = 0; cat < numCategories; ++cat) {
@@ -41,7 +41,7 @@ public:
     }
     
 
-    const DiscreteNDistribution<AlphabetSize+differenceToPowerOfTwo(AlphabetSize)>& getDistribution(int category, int character) const {
+    const DiscreteNDistribution<nearestHigherPowerOfTwo(AlphabetSize)>& getDistribution(int category, int character) const {
         size_t distributionIndex = category * AlphabetSize + character;
 
         return _distributions[distributionIndex];
@@ -49,7 +49,7 @@ public:
 
 
 private:
-    std::vector<DiscreteNDistribution<AlphabetSize+differenceToPowerOfTwo(AlphabetSize)>> _distributions;
+    std::vector<DiscreteNDistribution<nearestHigherPowerOfTwo(AlphabetSize)>> _distributions;
 
 };
 

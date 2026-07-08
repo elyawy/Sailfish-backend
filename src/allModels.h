@@ -22,7 +22,6 @@ enum modelCode {
     GTR,
     HKY,
     TAMURA92,
-    WYANGMODEL,
     // AA:
     AAJC, // amino acid JC
     CPREV45,
@@ -47,7 +46,8 @@ enum modelCode {
     CUSTOM,
     // CODON:
     EMPIRICODON,
-    // NON-REVERSIBLE:
+    WYANGMODEL,
+    // NON-REVERSIBLE models:
     NONREV
 };
 

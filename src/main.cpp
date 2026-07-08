@@ -5,7 +5,8 @@
 #include <pybind11/stl.h>
 #include <memory>
 
-#include "../libs/pcg/pcg_random.hpp"
+// #include "../libs/pcg/pcg_random.hpp"
+#include "../libs/sfc/sfc64.h"
 #include "../libs/Phylolib/includes/gammaDistribution.h"
 #include "./IndelSimulator.h"
 #include "./SubstitutionSimulator.h"
@@ -38,7 +39,7 @@ PYBIND11_MODULE(_Sailfish, m) {
             Tree
     )pbdoc";
 
-    using SelectedRNG = pcg64_fast;
+    using SelectedRNG = SFC64;
 
     py::class_<DiscreteDistribution>(m, "DiscreteDistribution")
         .def(py::init<std::vector<double>>());
