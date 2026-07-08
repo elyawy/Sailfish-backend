@@ -13,7 +13,8 @@
 #include "../libs/Phylolib/includes/tree.h"
 #include "../libs/Phylolib/includes/amino.h"
 #include "../libs/Phylolib/includes/nucleotide.h"
-#include "../libs/Phylolib/includes/chebyshevAccelerator.h"
+#include "../libs/Phylolib/includes/codon.h"
+
 #include "../libs/Phylolib/includes/eigenAccelerator.h"
 #include "../libs/Phylolib/includes/trivialAccelerator.h"
 #include "../libs/Phylolib/includes/gammaDistribution.h"
@@ -40,7 +41,8 @@ enum factoryState {
 enum alphabetCode {
     NULLCODE,
     NUCLEOTIDE,
-    AMINOACID
+    AMINOACID,
+    CODON
 };
 
 
@@ -96,13 +98,12 @@ public:
             case modelCode::CUSTOM:
                 _alphabet = alphabetCode::AMINOACID;
                 break;
-            
             case modelCode::WYANGMODEL:
-                std::cout << "WYANGMODEL is not implemented.\n";
-                return;
+                _alphabet = alphabetCode::CODON;
+                break;
             case modelCode::EMPIRICODON:
-                std::cout << "EMPIRICODON is not implemented.\n";
-                return;
+                _alphabet = alphabetCode::CODON;
+                break;
             default:
                 std::cout << "Unknown model code.\n";
                 return;
@@ -147,6 +148,15 @@ public:
                     return;
                 }
                 break;
+            case modelCode::WYANGMODEL:
+            //	explicit wYangModel(const MDOUBLE inW, const MDOUBLE inK,bool globalW, codon * coAlpha);
+                if (params.size() != 2) {
+                    std::cout << "The 'WYANGMODEL' model requires 2 parameters, " 
+                              << params.size() << " were provided\n";
+                    return;
+                }
+                break;
+
             default:
                 break;
         }
@@ -243,6 +253,9 @@ public:
             _alphPtr = std::make_unique<nucleotide>();
         } else if (_alphabet == alphabetCode::AMINOACID) {
             _alphPtr = std::make_unique<amino>();
+        } else if (_alphabet == alphabetCode::CODON)
+        {
+            _alphPtr = std::make_unique<codon>();
         } else {
             return nullptr;
         }
@@ -291,9 +304,13 @@ public:
                 repModel = std::make_unique<tamura92>(theta, TrTv);
                 break;
             }
-            case modelCode::WYANGMODEL:
-                throw std::runtime_error("Model not implemented: " + std::to_string(static_cast<int>(_model)));
+            case modelCode::WYANGMODEL: {
+                codon *coAlpha = dynamic_cast<codon*>(getAlphabet()->clone());
+                const MDOUBLE inW = _parameters[0];
+                const MDOUBLE inK = _parameters[1];
+                repModel = std::make_unique<wYangModel>(inW, inK, true, coAlpha);
                 break;
+            }
             case modelCode::CPREV45:
                 repModel = std::make_unique<pupAll>(datMatrixHolder::cpREV45);
                 break;
@@ -319,7 +336,7 @@ public:
                 repModel = std::make_unique<pupAll>(datMatrixHolder::lg);
                 break;
             case modelCode::EMPIRICODON:
-                repModel = std::make_unique<pupAll>(datMatrixHolder::empiriCodon);
+                repModel = std::make_unique<pupAll>(datMatrixHolder::empiriCodon, 61);
                 break;
             case modelCode::EX_BURIED:
                 repModel = std::make_unique<pupAll>(datMatrixHolder::EX_BURIED);
@@ -376,9 +393,9 @@ public:
 
         if (_alphabet == alphabetCode::AMINOACID) {
             pij = std::make_unique<eigenAccelerator<20>>(repModel.get());
-            // pij = std::make_unique<chebyshevAccelerator>(repModel.get());
-
-        } else if (_alphabet == alphabetCode::NUCLEOTIDE) {
+        } else if (_alphabet == alphabetCode::CODON) {
+            pij = std::make_unique<eigenAccelerator<61>>(repModel.get());        
+        } else if(_alphabet == alphabetCode::NUCLEOTIDE) {
             pij = std::make_unique<trivialAccelerator>(repModel.get());
         }
 

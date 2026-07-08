@@ -20,7 +20,6 @@ enum modelCode {
     GTR,
     HKY,
     TAMURA92,
-    WYANGMODEL,
     // AA:
     CPREV45,
     DAYHOFF,
@@ -30,7 +29,6 @@ enum modelCode {
     HIVB,
     HIVW,
     LG,
-    EMPIRICODON,
     EX_BURIED, 
     EX_EXPOSED,
     EHO_EXTENDED,
@@ -42,7 +40,9 @@ enum modelCode {
     EX_EHO_EXP_EXT,
     EX_EHO_EXP_HEL,
     EX_EHO_EXP_OTH,
-    CUSTOM
+    EMPIRICODON,
+    WYANGMODEL,
+    CUSTOM,
 };
 
 #endif
