@@ -43,7 +43,7 @@ int main() {
     protocol.setSiteRateModel(SiteRateModel::SIMPLE);
 
 
-    int rootLength = 333333;
+    int rootLength = 33333333;
     protocol.setSequenceSize(rootLength);
 
     std::cout << "Starting indel simulation...\n";
@@ -56,8 +56,6 @@ int main() {
     modelFactory mFac;
     // time model setup in microseconds
 
-    mFac.setReplacementModel(modelCode::WYANGMODEL);
-    mFac.setModelParameters({0.2,0.8});
     mFac.setSiteRateModel({0.01, 0.0,2.0,4.0},
                           {0.25, 0.25, 0.25, 0.25},
                           {
@@ -68,8 +66,7 @@ int main() {
                           });
 
                       
-    if (!mFac.isModelValid()) return 1;
-    mFac.buildReplacementModel(); // to force model building
+    mFac.buildModel(alphabetCode::CODON, modelCode::WYANGMODEL, {0.2, 0.8}); // to force model building
     
     auto categorySampler = mFac.getRateCategorySampler(protocol.getMaxInsertionLength());
     simContext.setCategorySampler(&categorySampler);

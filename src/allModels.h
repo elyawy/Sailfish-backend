@@ -43,7 +43,7 @@ enum modelCode {
     EX_EHO_EXP_EXT,
     EX_EHO_EXP_HEL,
     EX_EHO_EXP_OTH,
-    CUSTOM,
+    CUSTOM, // CUSTOM is for reversible models, and defined through file.
     // CODON:
     EMPIRICODON,
     WYANGMODEL,
@@ -51,7 +51,7 @@ enum modelCode {
     NONREV
 };
 
-static const std::unordered_map<modelCode, datMatrixHolder> modelToDatMatrixHolder = {
+static const std::unordered_map<modelCode, datMatrixString> modelToDatMatrixHolder = {
     {modelCode::CPREV45, datMatrixHolder::cpREV45},
     {modelCode::DAYHOFF, datMatrixHolder::dayhoff},
     {modelCode::JONES, datMatrixHolder::jones},

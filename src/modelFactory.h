@@ -22,6 +22,7 @@
 
 #include "CategorySampler.h"
 #include "allModels.h"
+#include "nonRevAccelerator.h"
 
 // wrapper for all the information about the substitution model:
 // alphabet = aa/nc
@@ -76,9 +77,9 @@ public:
                 _cachedRepModel = std::make_unique<aaJC>();
                 break;
             case modelCode::GTR: {
-                Vdouble frequencies(_parameters.begin(), _parameters.begin() + 4);
+                Vdouble frequencies_(_parameters.begin(), _parameters.begin() + 4);
                 _cachedRepModel = std::make_unique<gtrModel>(
-                    frequencies, _parameters[4], _parameters[5], _parameters[6],
+                    frequencies_, _parameters[4], _parameters[5], _parameters[6],
                     _parameters[7], _parameters[8], _parameters[9]);
                 break;
             }
@@ -90,6 +91,11 @@ public:
             case modelCode::TAMURA92:
                 _cachedRepModel = std::make_unique<tamura92>(_parameters[0], _parameters[1]);
                 break;
+            case modelCode::WYANGMODEL: {
+                codon* coAlpha = dynamic_cast<codon*>(getAlphabet());
+                _cachedRepModel = std::make_unique<wYangModel>(_parameters[0], _parameters[1], true, coAlpha);
+                break;
+            }
             case modelCode::CUSTOM: {
                 std::ifstream in(_modelFilePath);
                 if (!in.is_open()) throw std::runtime_error("Could not open file");
@@ -107,6 +113,8 @@ public:
                 // no repModel — accelerator built directly from raw Q + frequencies below
                 _cachedRepModel = nullptr;
                 // Note: For NONREV parameters should contain the flattened NxN Q matrix followed by N frequencies
+                if (_parameters.size() != alphabetSize*alphabetSize + alphabetSize) 
+                    throw std::runtime_error("Incorrect number of parameters for NONREV model");
                 qMatrix.assign(_parameters.begin(), _parameters.end() - alphabetSize);
                 frequencies.assign(_parameters.end() - alphabetSize, _parameters.end());
                 break;
@@ -114,7 +122,7 @@ public:
                 auto it = modelToDatMatrixHolder.find(_model);
                 if (it == modelToDatMatrixHolder.end())
                     throw std::runtime_error("Unknown model code.");
-                _cachedRepModel = std::make_unique<pupAll>(it->second);
+                _cachedRepModel = std::make_unique<pupAll>(it->second, alphabetSize);
                 break;
             }
         }
@@ -207,8 +215,7 @@ public:
     // This is cheap - can be called many times with different rate models
     std::shared_ptr<stochasticProcess> getStochasticProcess() {
         if (!_cachedPij) {
-            // build replacement model if not already built
-            buildModel();
+            throw std::runtime_error("Model not built — call buildModel() first.");
         }
 
         // Create distribution with current rate model parameters
