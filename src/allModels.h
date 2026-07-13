@@ -43,12 +43,12 @@ enum modelCode {
     EX_EHO_EXP_EXT,
     EX_EHO_EXP_HEL,
     EX_EHO_EXP_OTH,
-    CUSTOM, // CUSTOM is for reversible models, and defined through file.
     // CODON:
     EMPIRICODON,
     WYANGMODEL,
-    // NON-REVERSIBLE models:
-    NONREV
+    // custom models:
+    REVERSIBLE, // REVERSIBLE is for reversible models, and defined through file.
+    NONREVERSIBLE, // NONREVERSIBLE is for non-reversible models, and defined through Q matrix and frequencies flat vector.
 };
 
 static const std::unordered_map<modelCode, datMatrixString> modelToDatMatrixHolder = {

@@ -41,8 +41,7 @@ enum alphabetCode {
 
 
 
-class modelFactory
-{
+class modelFactory {
 
 public:
     modelFactory(): 
@@ -96,7 +95,7 @@ public:
                 _cachedRepModel = std::make_unique<wYangModel>(_parameters[0], _parameters[1], true, coAlpha);
                 break;
             }
-            case modelCode::CUSTOM: {
+            case modelCode::REVERSIBLE: {
                 std::ifstream in(_modelFilePath);
                 if (!in.is_open()) throw std::runtime_error("Could not open file");
                 std::stringstream contents;
@@ -109,7 +108,7 @@ public:
                 _cachedRepModel = std::make_unique<pupAll>(aminoFileString);
                 break;
             }
-            case modelCode::NONREV:
+            case modelCode::NONREVERSIBLE: {
                 // no repModel — accelerator built directly from raw Q + frequencies below
                 _cachedRepModel = nullptr;
                 // Note: For NONREV parameters should contain the flattened NxN Q matrix followed by N frequencies
@@ -118,6 +117,7 @@ public:
                 qMatrix.assign(_parameters.begin(), _parameters.end() - alphabetSize);
                 frequencies.assign(_parameters.end() - alphabetSize, _parameters.end());
                 break;
+            }
             default: {
                 auto it = modelToDatMatrixHolder.find(_model);
                 if (it == modelToDatMatrixHolder.end())
@@ -125,8 +125,8 @@ public:
                 _cachedRepModel = std::make_unique<pupAll>(it->second, alphabetSize);
                 break;
             }
-        }
-
+        }   
+        
         _cachedPij = acceleratorPicker(alphabetSize, isReversible, 
                                        _cachedRepModel.get(), 
                                        qMatrix, frequencies);

@@ -7,7 +7,7 @@ import warnings
 import pathlib
 from typing import List, Optional
 
-from .constants import MODEL_CODES, SIMULATION_TYPE, DNA_MODELS, PROTEIN_MODELS
+from .constants import MODEL_CODES, SIMULATION_TYPE, ALPHABET_SIZES
 
 
 _DEFAULT_GAMMA_ALPHA = 1.0
@@ -91,42 +91,49 @@ class ReplacementModelSpec:
 
     Attributes:
         model (MODEL_CODES): Substitution model code.
+        alphabet (SIMULATION_TYPE): Alphabet type (DNA, protein, codon).
         amino_model_file (Optional[pathlib.Path]): Path to amino acid model file (for protein models).
         model_parameters (Optional[List]): List of model parameters (for nucleotide models).
     """
     model: MODEL_CODES
+    alphabet: SIMULATION_TYPE
     model_parameters: Optional[List] = None
     amino_model_file: Optional[pathlib.Path] = None
     site_rate_model: Optional[SiteRateModelSpec] = None
 
-    @property
-    def model_type(self) -> SIMULATION_TYPE:
-        """Determine the simulation type based on the model code."""
-        if self.model in PROTEIN_MODELS:
-            return SIMULATION_TYPE.PROTEIN
-        elif self.model in DNA_MODELS:
-            return SIMULATION_TYPE.DNA
-        else:
-            raise ValueError(f"Unknown model code: {self.model}")
         
     #validate on creation
     def __post_init__(self):
 
         # Validate per simulation type
-        if self.model_type == SIMULATION_TYPE.PROTEIN:
-            if self.model_parameters:
+        if self.alphabet == SIMULATION_TYPE.PROTEIN:
+            if self.model_parameters and (self.model != MODEL_CODES.NONREVERSIBLE):
                 raise ValueError(
                     f"no model parameters are used in protein models, "
                     f"received: {self.model_parameters}"
+                )
+        elif self.alphabet == SIMULATION_TYPE.CODON:
+            if self.model == MODEL_CODES.EMPIRICODON and self.model_parameters:
+                raise ValueError(
+                    f"no model parameters in EMPIRICODON model, received: {self.model_parameters}"
+                )
+            if self.model == MODEL_CODES.WYANG and not self.model_parameters:
+                raise ValueError(
+                    f"Selection factor and (Transition/Transversion) ratio parameters are required in WYANG model, received: {self.model_parameters}"
                 )
         else:
             if self.model == MODEL_CODES.NUCJC and self.model_parameters:
                 raise ValueError("no model parameters in JC model, received: {self.model_parameters}")
             if self.model != MODEL_CODES.NUCJC and not self.model_parameters:
                 raise ValueError("please provide model_parameters for this nucleotide model")
+
+        if self.model == MODEL_CODES.REVERSIBLE and not self.amino_model_file:
+            raise ValueError("amino_model_file is required for custom REVERSIBLE protein model")
         
-        if self.model == MODEL_CODES.CUSTOM and not self.amino_model_file:
-            raise ValueError("amino_model_file is required for CUSTOM protein model")
+        if self.model == MODEL_CODES.NONREVERSIBLE:
+            alphabet_size = ALPHABET_SIZES[self.alphabet]
+            if self.model_parameters is None or len(self.model_parameters) != (alphabet_size * alphabet_size + alphabet_size):
+                raise ValueError("model_parameters filled with Q matrix and frequencies are required for NONREVERSIBLE models")
 
 class SubstitutionModel:
     """
@@ -153,7 +160,7 @@ class SubstitutionModel:
     @property
     def model_type(self) -> SIMULATION_TYPE:
         """The simulation type (DNA or protein) based on the current replacement model."""
-        return self._spec.model_type
+        return self._spec.alphabet
 
     def set_replacement_model(
         self,
@@ -176,17 +183,10 @@ class SubstitutionModel:
 
 
         if sub_model_changed:
-            self._factory.reset()
-            self._factory.set_replacement_model(replacement_model_spec.model)
- 
-            if replacement_model_spec.model_type == SIMULATION_TYPE.PROTEIN:
-                if replacement_model_spec.model == MODEL_CODES.CUSTOM:
-                    self._factory.set_amino_replacement_model_file(
-                        str(replacement_model_spec.amino_model_file)
-                    )
-            else:
-                if replacement_model_spec.model_parameters:
-                    self._factory.set_model_parameters(replacement_model_spec.model_parameters)
+            self._factory.build_model(replacement_model_spec.alphabet, 
+                                      replacement_model_spec.model, 
+                                      replacement_model_spec.model_parameters, 
+                                      replacement_model_spec.amino_model_file)
  
         # Always update site-rate model — cheap, does not touch the cached pij
         rates, probs, transition_matrix = self._create_site_rate_model(
@@ -251,6 +251,8 @@ class SubstitutionModel:
     def build_substitution_simulator(self, sim_context):
         if self.model_type == SIMULATION_TYPE.PROTEIN:
             cls = _Sailfish.AminoSubstitutionSimulator
-        else:
+        elif self.model_type == SIMULATION_TYPE.DNA:
             cls = _Sailfish.NucleotideSubstitutionSimulator
+        elif self.model_type == SIMULATION_TYPE.CODON:
+            cls = _Sailfish.CodonSubstitutionSimulator
         return cls(self.factory, sim_context)
