@@ -249,10 +249,10 @@ class SubstitutionModel:
         return rates, probs, transition_matrix
  
     def build_substitution_simulator(self, sim_context):
-        if self.model_type == ALPHABET_CODES.PROTEIN:
+        if self.alphabet == ALPHABET_CODES.PROTEIN:
             cls = _Sailfish.AminoSubstitutionSimulator
-        elif self.model_type == ALPHABET_CODES.DNA:
+        elif self.alphabet == ALPHABET_CODES.DNA:
             cls = _Sailfish.NucleotideSubstitutionSimulator
-        elif self.model_type == ALPHABET_CODES.CODON:
+        elif self.alphabet == ALPHABET_CODES.CODON:
             cls = _Sailfish.CodonSubstitutionSimulator
         return cls(self.factory, sim_context)

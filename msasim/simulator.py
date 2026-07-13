@@ -62,15 +62,18 @@ class Simulator:
 
     @property
     def _simulation_type(self) -> ALPHABET_CODES:
-        return self._sub_model.model_type if self._sub_model else ALPHABET_CODES.NOSUBS
+        return self._sub_model.alphabet if self._sub_model else ALPHABET_CODES.NOSUBS
     # ------------------------------------------------------------------
     # Private simulation strategies
     # ------------------------------------------------------------------
 
     def _build_msa_no_indels(self) -> Msa:
         """Build a trivial MSA directly from root sequence size (no indel events)."""
-        return Msa(self._simProtocol.get_sequence_size(), self._simProtocol.get_sim_context())
-
+        msa = Msa(self._simProtocol.get_sequence_size(), self._simProtocol.get_sim_context())
+        if self._sub_model is not None and self._sub_model.alphabet == ALPHABET_CODES.CODON:
+            msa.set_char_len(3)
+        return msa
+    
     def _build_msa_with_indels(self) -> Msa:
         """Run indel simulation and build MSA, setting up the category sampler if INDEL_AWARE."""
         sim_context = self._simProtocol.get_sim_context()
@@ -82,8 +85,11 @@ class Simulator:
                 self._simProtocol.get_max_insertion_length()
             )
             sim_context.set_category_sampler(category_sampler)
-        return Msa(eventmap, sim_context)
-
+        msa = Msa(eventmap, sim_context)
+        if self._sub_model is not None and self._sub_model.alphabet == ALPHABET_CODES.CODON:
+            msa.set_char_len(3)
+        return msa
+    
     def _apply_substitutions(self, msa: Msa) -> None:
         """Run substitution simulation and fill the MSA in-place."""
         rate_categories = msa.get_per_site_rate_categories()
@@ -173,8 +179,8 @@ class Simulator:
             raise ValueError("Simulator was constructed without a replacement model (NOSUBS).")
         if replacement_model.alphabet != self._sub_model.alphabet:
             raise ValueError(
-                f"replacement model type {replacement_model.alphabet} does not match "
-                f"current simulation type {self._sub_model.alphabet}. "
+                f"replacement model type {replacement_model.alphabet.name} does not match "
+                f"current simulation type {self._sub_model.alphabet.name}. "
                 f"Please initialize a separate Simulator."
             )
         self._sub_model.set_replacement_model(replacement_model)

@@ -214,7 +214,8 @@ PYBIND11_MODULE(_Sailfish, m) {
         .def("get_msa_row_string", &MSA<SelectedRNG>::generateMsaRowString)
         .def("get_sparse_msa", &MSA<SelectedRNG>::getSparseMSA)
         .def("get_per_site_rate_categories", &MSA<SelectedRNG>::getPerSiteRateCategories)
-        .def("get_root_positions_in_msa", &MSA<SelectedRNG>::getRootPositionsInMsa);
+        .def("get_root_positions_in_msa", &MSA<SelectedRNG>::getRootPositionsInMsa)
+        .def("set_char_len", &MSA<SelectedRNG>::setCharLen);
 
     // bindings for SubstitutionSimulator (amino)
     using AminoSim = SubstitutionSimulator<SelectedRNG, 20>;

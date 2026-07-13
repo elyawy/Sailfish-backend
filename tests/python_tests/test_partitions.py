@@ -2,10 +2,10 @@
 
 import pytest
 
-from msasim import SimProtocol
+from msasim import  SimProtocol
 from msasim.substitutions import ReplacementModelSpec
 from msasim.advanced import PartitionModel, Partitions
-from msasim.constants import MODEL_CODES
+from msasim.constants import MODEL_CODES, ALPHABET_CODES
 
 
 def parse_fasta(fasta_str: str) -> dict:
@@ -26,7 +26,7 @@ def test_partitions_same_taxa_concatenates_lengths(tmp_path):
 
     partition1 = PartitionModel(
         name="p1",
-        replacement_model=ReplacementModelSpec(model=MODEL_CODES.NUCJC),
+        replacement_model=ReplacementModelSpec(model=MODEL_CODES.NUCJC, alphabet=ALPHABET_CODES.DNA),
         indel_model=SimProtocol(
             "(A:0.1,B:0.1);", root_seq_size=50,
             insertion_rate=0.0, deletion_rate=0.0, seed=1,
@@ -34,7 +34,7 @@ def test_partitions_same_taxa_concatenates_lengths(tmp_path):
     )
     partition2 = PartitionModel(
         name="p2",
-        replacement_model=ReplacementModelSpec(model=MODEL_CODES.NUCJC),
+        replacement_model=ReplacementModelSpec(model=MODEL_CODES.NUCJC, alphabet=ALPHABET_CODES.DNA),
         indel_model=SimProtocol(
             "(A:0.1,B:0.1);", root_seq_size=30,
             insertion_rate=0.0, deletion_rate=0.0, seed=2,
@@ -58,7 +58,7 @@ def test_partitions_different_taxa_pads_with_gaps(tmp_path):
 
     partition1 = PartitionModel(
         name="p1",
-        replacement_model=ReplacementModelSpec(model=MODEL_CODES.NUCJC),
+        replacement_model=ReplacementModelSpec(model=MODEL_CODES.NUCJC, alphabet=ALPHABET_CODES.DNA),
         indel_model=SimProtocol(
             "(A:0.1,B:0.1);", root_seq_size=20,
             insertion_rate=0.0, deletion_rate=0.0, seed=1,
@@ -66,7 +66,7 @@ def test_partitions_different_taxa_pads_with_gaps(tmp_path):
     )
     partition2 = PartitionModel(
         name="p2",
-        replacement_model=ReplacementModelSpec(model=MODEL_CODES.NUCJC),
+        replacement_model=ReplacementModelSpec(model=MODEL_CODES.NUCJC, alphabet=ALPHABET_CODES.DNA),
         indel_model=SimProtocol(
             "(A:0.1,C:0.1);", root_seq_size=15,
             insertion_rate=0.0, deletion_rate=0.0, seed=2,
@@ -99,7 +99,7 @@ def test_partitions_visual_inspection(tmp_path):
 
     partition1 = PartitionModel(
         name="p1",
-        replacement_model=ReplacementModelSpec(model=MODEL_CODES.NUCJC),
+        replacement_model=ReplacementModelSpec(model=MODEL_CODES.NUCJC, alphabet=ALPHABET_CODES.DNA),
         indel_model=SimProtocol(
             "(A:0.1,B:0.1);", root_seq_size=15,
             insertion_rate=0.0, deletion_rate=0.0, seed=1,
@@ -107,7 +107,7 @@ def test_partitions_visual_inspection(tmp_path):
     )
     partition2 = PartitionModel(
         name="p2",
-        replacement_model=ReplacementModelSpec(model=MODEL_CODES.NUCJC),
+        replacement_model=ReplacementModelSpec(model=MODEL_CODES.NUCJC, alphabet=ALPHABET_CODES.DNA),
         indel_model=SimProtocol(
             "(A:0.1,C:0.1);", root_seq_size=10,
             insertion_rate=0.0, deletion_rate=0.0, seed=2,

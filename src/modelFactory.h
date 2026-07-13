@@ -58,7 +58,7 @@ public:
         _parameters = parameters;
         _modelFilePath = modelFilePath;
 
-        size_t alphabetSize = 0;
+        int alphabetSize = 0;
         if (alphabet == alphabetCode::NUCLEOTIDE) alphabetSize = 4;
         else if (alphabet == alphabetCode::AMINOACID) alphabetSize = 20;
         else if (alphabet == alphabetCode::CODON) alphabetSize = 61;
@@ -105,7 +105,7 @@ public:
                     contents << buffer;
                 }
                 datMatrixString aminoFileString(contents.str().c_str());
-                _cachedRepModel = std::make_unique<pupAll>(aminoFileString);
+                _cachedRepModel = std::make_unique<pupAll>(aminoFileString, alphabetSize);
                 break;
             }
             case modelCode::NONREVERSIBLE: {
@@ -119,10 +119,8 @@ public:
                 break;
             }
             default: {
-                auto it = modelToDatMatrixHolder.find(_model);
-                if (it == modelToDatMatrixHolder.end())
-                    throw std::runtime_error("Unknown model code.");
-                _cachedRepModel = std::make_unique<pupAll>(it->second, alphabetSize);
+                const datMatrixString& modelString = getDatMatrixStringForModel(_model);
+                _cachedRepModel = std::make_unique<pupAll>(modelString, alphabetSize);
                 break;
             }
         }   

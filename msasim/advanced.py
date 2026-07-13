@@ -91,7 +91,7 @@ class MixtureModel:
 
     def __post_init__(self):
         # all models must be of the same type (nucleotide or amino acid)
-        model_types = {model.model_type for model in self.replacement_models}
+        model_types = {model.alphabet for model in self.replacement_models}
         if len(model_types) > 1:
             raise ValueError("All replacement models must be of the same type (nucleotide or amino acid)")
         if len(self.replacement_models) != len(self.model_weights):

@@ -2,9 +2,6 @@
 #ifndef ___ALL_MODELS
 #define ___ALL_MODELS
 
-
-#include <unordered_map>
-
 // nucleotide models
 #include "../libs/Phylolib/includes/nucJC.h"
 #include "../libs/Phylolib/includes/aaJC.h"
@@ -51,28 +48,33 @@ enum modelCode {
     NONREVERSIBLE, // NONREVERSIBLE is for non-reversible models, and defined through Q matrix and frequencies flat vector.
 };
 
-static const std::unordered_map<modelCode, datMatrixString> modelToDatMatrixHolder = {
-    {modelCode::CPREV45, datMatrixHolder::cpREV45},
-    {modelCode::DAYHOFF, datMatrixHolder::dayhoff},
-    {modelCode::JONES, datMatrixHolder::jones},
-    {modelCode::MTREV24, datMatrixHolder::mtREV24},
-    {modelCode::WAG, datMatrixHolder::wag},
-    {modelCode::HIVB, datMatrixHolder::HIVb},
-    {modelCode::HIVW, datMatrixHolder::HIVw},
-    {modelCode::LG, datMatrixHolder::lg},
-    {modelCode::EMPIRICODON, datMatrixHolder::empiriCodon},
-    {modelCode::EX_BURIED, datMatrixHolder::EX_BURIED},
-    {modelCode::EX_EXPOSED, datMatrixHolder::EX_EXPOSED},
-    {modelCode::EHO_EXTENDED, datMatrixHolder::EHO_EXTENDED},
-    {modelCode::EHO_HELIX, datMatrixHolder::EHO_HELIX},
-    {modelCode::EHO_OTHER, datMatrixHolder::EHO_OTHER},
-    {modelCode::EX_EHO_BUR_EXT, datMatrixHolder::EX_EHO_BUR_EXT},
-    {modelCode::EX_EHO_BUR_HEL, datMatrixHolder::EX_EHO_BUR_HEL},
-    {modelCode::EX_EHO_BUR_OTH, datMatrixHolder::EX_EHO_BUR_OTH},
-    {modelCode::EX_EHO_EXP_EXT, datMatrixHolder::EX_EHO_EXP_EXT},
-    {modelCode::EX_EHO_EXP_HEL, datMatrixHolder::EX_EHO_EXP_HEL},
-    {modelCode::EX_EHO_EXP_OTH, datMatrixHolder::EX_EHO_EXP_OTH}
-};
+// get the model with a switch case
+inline const datMatrixString& getDatMatrixStringForModel(modelCode model) {
+    switch (model) {
+        case CPREV45: return datMatrixHolder::cpREV45;
+        case DAYHOFF: return datMatrixHolder::dayhoff;
+        case JONES: return datMatrixHolder::jones;
+        case MTREV24: return datMatrixHolder::mtREV24;
+        case WAG: return datMatrixHolder::wag;
+        case HIVB: return datMatrixHolder::HIVb;
+        case HIVW: return datMatrixHolder::HIVw;
+        case LG: return datMatrixHolder::lg;
+        case EMPIRICODON: return datMatrixHolder::empiriCodon;
+        case EX_BURIED: return datMatrixHolder::EX_BURIED;
+        case EX_EXPOSED: return datMatrixHolder::EX_EXPOSED;
+        case EHO_EXTENDED: return datMatrixHolder::EHO_EXTENDED;
+        case EHO_HELIX: return datMatrixHolder::EHO_HELIX;
+        case EHO_OTHER: return datMatrixHolder::EHO_OTHER;
+        case EX_EHO_BUR_EXT: return datMatrixHolder::EX_EHO_BUR_EXT;
+        case EX_EHO_BUR_HEL: return datMatrixHolder::EX_EHO_BUR_HEL;
+        case EX_EHO_BUR_OTH: return datMatrixHolder::EX_EHO_BUR_OTH;
+        case EX_EHO_EXP_EXT: return datMatrixHolder::EX_EHO_EXP_EXT;
+        case EX_EHO_EXP_HEL: return datMatrixHolder::EX_EHO_EXP_HEL;
+        case EX_EHO_EXP_OTH: return datMatrixHolder::EX_EHO_EXP_OTH;
+        default:
+            throw std::runtime_error("Unknown model code.");
+    }
+}
 
 
 #endif
