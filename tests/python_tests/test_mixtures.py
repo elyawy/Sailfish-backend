@@ -1,10 +1,10 @@
 import numpy as np
-from msasim import SimProtocol, MODEL_CODES
+from msasim import SimProtocol, MODEL_CODES, ALPHABET_CODES
 from msasim.substitutions import ReplacementModelSpec
 from msasim.advanced import MixtureModel, Mixture
 
 tree = "(A:0.1,B:0.1,C:0.1);"
-models = [ReplacementModelSpec(model=MODEL_CODES.NUCJC) for _ in range(3)]
+models = [ReplacementModelSpec(model=MODEL_CODES.NUCJC, alphabet=ALPHABET_CODES.DNA) for _ in range(3)]
 weights = [0.3, 0.3, 0.4]
 
 

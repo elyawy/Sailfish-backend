@@ -6,7 +6,7 @@ import pathlib
 from typing import Optional, List
 from .protocol import SimProtocol
 from .msa import Msa
-from .constants import SIMULATION_TYPE
+from .constants import ALPHABET_CODES
 from .substitutions import SubstitutionModel, ReplacementModelSpec
 
 
@@ -45,7 +45,7 @@ class Simulator:
             self._simProtocol._is_insertion_rate_zero
             and self._simProtocol._is_deletion_rate_zero
         )
-        self._has_subs = self._simulation_type != SIMULATION_TYPE.NOSUBS
+        self._has_subs = self._simulation_type != ALPHABET_CODES.NOSUBS
         self._is_indel_aware = (
             self._simProtocol.get_site_rate_model() == _Sailfish.SiteRateModel.INDEL_AWARE
         )
@@ -61,8 +61,8 @@ class Simulator:
             self._strategy = self._simulate_full
 
     @property
-    def _simulation_type(self) -> SIMULATION_TYPE:
-        return self._sub_model.model_type if self._sub_model else SIMULATION_TYPE.NOSUBS
+    def _simulation_type(self) -> ALPHABET_CODES:
+        return self._sub_model.model_type if self._sub_model else ALPHABET_CODES.NOSUBS
     # ------------------------------------------------------------------
     # Private simulation strategies
     # ------------------------------------------------------------------
@@ -171,10 +171,10 @@ class Simulator:
     def set_replacement_model(self, replacement_model: ReplacementModelSpec) -> None:
         if self._sub_model is None:
             raise ValueError("Simulator was constructed without a replacement model (NOSUBS).")
-        if replacement_model.model_type != self._sub_model.model_type:
+        if replacement_model.alphabet != self._sub_model.alphabet:
             raise ValueError(
-                f"replacement model type {replacement_model.model_type} does not match "
-                f"current simulation type {self._sub_model.model_type.name}. "
+                f"replacement model type {replacement_model.alphabet} does not match "
+                f"current simulation type {self._sub_model.alphabet}. "
                 f"Please initialize a separate Simulator."
             )
         self._sub_model.set_replacement_model(replacement_model)

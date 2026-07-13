@@ -11,7 +11,7 @@ from .tree import Tree
 from .protocol import SimProtocol
 from .simulator import Simulator
 from .msa import Msa
-from .constants import SIMULATION_TYPE, MODEL_CODES
+from .constants import MODEL_CODES, ALPHABET_CODES
 from .substitutions import ReplacementModelSpec, SiteRateModelSpec
 
 __all__ = [
@@ -24,8 +24,8 @@ __all__ = [
     'SimProtocol',
     'Simulator',
     'Msa',
-    'SIMULATION_TYPE',
     'MODEL_CODES',
+    'ALPHABET_CODES',
     'ReplacementModelSpec',
     'SiteRateModelSpec'
 ]

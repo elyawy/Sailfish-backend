@@ -87,9 +87,9 @@ PYBIND11_MODULE(_Sailfish, m) {
 
 
     py::enum_<alphabetCode>(m, "alphabetCode")
-        .value("NULLCODE", alphabetCode::NULLCODE)
-        .value("NUCLEOTIDE", alphabetCode::NUCLEOTIDE)
-        .value("AMINOACID", alphabetCode::AMINOACID)
+        .value("NOSUBS", alphabetCode::NULLCODE)
+        .value("DNA", alphabetCode::NUCLEOTIDE)
+        .value("PROTEIN", alphabetCode::AMINOACID)
         .value("CODON", alphabetCode::CODON)
         .export_values();
 

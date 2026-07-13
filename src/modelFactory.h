@@ -63,7 +63,7 @@ public:
         else if (alphabet == alphabetCode::AMINOACID) alphabetSize = 20;
         else if (alphabet == alphabetCode::CODON) alphabetSize = 61;
 
-        bool isReversible = (model != modelCode::NONREV);
+        bool isReversible = (model != modelCode::NONREVERSIBLE);
 
         std::vector<MDOUBLE> qMatrix(alphabetSize * alphabetSize, 0.0);
         std::vector<MDOUBLE> frequencies(alphabetSize, 0.0);

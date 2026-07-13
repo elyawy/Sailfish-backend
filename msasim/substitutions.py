@@ -7,7 +7,7 @@ import warnings
 import pathlib
 from typing import List, Optional
 
-from .constants import MODEL_CODES, SIMULATION_TYPE, ALPHABET_SIZES
+from .constants import MODEL_CODES, ALPHABET_CODES, ALPHABET_SIZES
 
 
 _DEFAULT_GAMMA_ALPHA = 1.0
@@ -91,12 +91,12 @@ class ReplacementModelSpec:
 
     Attributes:
         model (MODEL_CODES): Substitution model code.
-        alphabet (SIMULATION_TYPE): Alphabet type (DNA, protein, codon).
+        alphabet (ALPHABET_CODES): Alphabet type (DNA, protein, codon).
         amino_model_file (Optional[pathlib.Path]): Path to amino acid model file (for protein models).
         model_parameters (Optional[List]): List of model parameters (for nucleotide models).
     """
     model: MODEL_CODES
-    alphabet: SIMULATION_TYPE
+    alphabet: ALPHABET_CODES
     model_parameters: Optional[List] = None
     amino_model_file: Optional[pathlib.Path] = None
     site_rate_model: Optional[SiteRateModelSpec] = None
@@ -106,13 +106,13 @@ class ReplacementModelSpec:
     def __post_init__(self):
 
         # Validate per simulation type
-        if self.alphabet == SIMULATION_TYPE.PROTEIN:
+        if self.alphabet == ALPHABET_CODES.PROTEIN:
             if self.model_parameters and (self.model != MODEL_CODES.NONREVERSIBLE):
                 raise ValueError(
                     f"no model parameters are used in protein models, "
                     f"received: {self.model_parameters}"
                 )
-        elif self.alphabet == SIMULATION_TYPE.CODON:
+        elif self.alphabet == ALPHABET_CODES.CODON:
             if self.model == MODEL_CODES.EMPIRICODON and self.model_parameters:
                 raise ValueError(
                     f"no model parameters in EMPIRICODON model, received: {self.model_parameters}"
@@ -158,7 +158,7 @@ class SubstitutionModel:
         return self._factory
     
     @property
-    def model_type(self) -> SIMULATION_TYPE:
+    def alphabet(self) -> ALPHABET_CODES:
         """The simulation type (DNA or protein) based on the current replacement model."""
         return self._spec.alphabet
 
@@ -185,8 +185,8 @@ class SubstitutionModel:
         if sub_model_changed:
             self._factory.build_model(replacement_model_spec.alphabet, 
                                       replacement_model_spec.model, 
-                                      replacement_model_spec.model_parameters, 
-                                      replacement_model_spec.amino_model_file)
+                                      replacement_model_spec.model_parameters or [],
+                                      str(replacement_model_spec.amino_model_file) if replacement_model_spec.amino_model_file else "",)
  
         # Always update site-rate model — cheap, does not touch the cached pij
         rates, probs, transition_matrix = self._create_site_rate_model(
@@ -249,10 +249,10 @@ class SubstitutionModel:
         return rates, probs, transition_matrix
  
     def build_substitution_simulator(self, sim_context):
-        if self.model_type == SIMULATION_TYPE.PROTEIN:
+        if self.model_type == ALPHABET_CODES.PROTEIN:
             cls = _Sailfish.AminoSubstitutionSimulator
-        elif self.model_type == SIMULATION_TYPE.DNA:
+        elif self.model_type == ALPHABET_CODES.DNA:
             cls = _Sailfish.NucleotideSubstitutionSimulator
-        elif self.model_type == SIMULATION_TYPE.CODON:
+        elif self.model_type == ALPHABET_CODES.CODON:
             cls = _Sailfish.CodonSubstitutionSimulator
         return cls(self.factory, sim_context)
