@@ -32,13 +32,13 @@ class Simulator:
 
         if replacement_model is None:
             warnings.warn("substitution replacement_model not provided -> running indel only simulation")
-            self._simProtocol.set_site_rate_model(_Sailfish.SiteRateModel.SIMPLE)
+            self._simProtocol._set_site_rate_model(_Sailfish.SiteRateModel.SIMPLE)
             self._substitution_simulator = None
             self._sub_model = None
         else:
             self._sub_model = SubstitutionModel(replacement_model)
             sim_context = self._simProtocol.get_sim_context()
-            self._simProtocol.set_site_rate_model(self._sub_model.rate_model.indel_awareness)
+            self._simProtocol._set_site_rate_model(self._sub_model.rate_model.indel_awareness)
             self._substitution_simulator = self._sub_model.build_substitution_simulator(sim_context)
         
         # Compute flags once — used to pick strategy at __init__ time
@@ -185,6 +185,7 @@ class Simulator:
                 f"Please initialize a separate Simulator."
             )
         self._sub_model.set_replacement_model(replacement_model)
+        self._simProtocol._set_site_rate_model(self._sub_model.rate_model.indel_awareness)
         self._substitution_simulator.init_substitution_sim(self._sub_model.factory)
 
     @property

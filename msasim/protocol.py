@@ -20,7 +20,6 @@ class SimProtocol:
         deletion_dist: Optional[Distribution] = None,
         insertion_dist: Optional[Distribution] = None,
         minimum_seq_size: int = 100,
-        site_rate_model: _Sailfish.SiteRateModel = _Sailfish.SiteRateModel.SIMPLE,
         seed: Optional[int] = None,
     ):
         # Parse tree
@@ -49,7 +48,6 @@ class SimProtocol:
         self.set_insertion_length_distributions(insertion_dist=insertion_dist)
         self.set_min_sequence_size(min_sequence_size=minimum_seq_size)
         self.set_max_insertion_length(insertion_dist.get_truncation())
-        self.set_site_rate_model(site_rate_model)
 
     @classmethod
     def default(cls) -> "SimProtocol":
@@ -225,7 +223,7 @@ class SimProtocol:
     def get_all_deletion_length_distribution(self) -> Dict:
         return {i: self.get_deletion_length_distribution(i) for i in range(self._num_branches)}
 
-    def set_site_rate_model(self, model: _Sailfish.SiteRateModel):
+    def _set_site_rate_model(self, model: _Sailfish.SiteRateModel):
         self._sim_protocol.set_site_rate_model(model)
         if self._is_insertion_rate_zero and self._is_deletion_rate_zero and model != _Sailfish.SiteRateModel.SIMPLE:
             warnings.warn("both insertion and deletion rates are zero, site rate model will not have an effect on the simulation")
