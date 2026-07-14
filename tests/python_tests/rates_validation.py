@@ -1,19 +1,21 @@
-from msasim import ALPHABET_CODES, sailfish as sim
+from msasim import ReplacementModelSpec, SiteRateModelSpec , Simulator, SimProtocol
+from msasim.constants import ALPHABET_CODES, MODEL_CODES, SITE_RATE_MODELS
 
 
-
-simulation_protocol = sim.SimProtocol("((A:0.1,B:0.05):0.02,C:0.05);")
+simulation_protocol = SimProtocol("((A:0.1,B:0.05):0.2,C:0.05);")
 simulation_protocol.set_seed(42)
 simulation_protocol.set_sequence_size(100)
 simulation_protocol.set_max_insertion_length(10)
-simulation_protocol.set_site_rate_model(sim.SITE_RATE_MODELS.INDEL_AWARE)
+simulation_protocol.set_site_rate_model(SITE_RATE_MODELS.INDEL_AWARE)
 # time.sleep(3)
 
-simulator = sim.Simulator(simulation_protocol, simulation_type=ALPHABET_CODES.DNA)
-simulator.set_replacement_model(model=sim.MODEL_CODES.NUCJC,
-                                gamma_parameters_alpha=1.0,
-                                gamma_parameters_categories=8,
-                                site_rate_correlation=0.5)
+site_rate_model_spec = SiteRateModelSpec(gamma_alpha=0.5,
+                                        gamma_categories=8,
+                                        site_rate_correlation=0.99,
+                                        indel_awareness=SITE_RATE_MODELS.INDEL_AWARE)
+rep_model = ReplacementModelSpec(MODEL_CODES.NUCJC, ALPHABET_CODES.DNA, site_rate_model=site_rate_model_spec)
+
+simulator = Simulator(simulation_protocol, rep_model)
 
 simulator.save_rates(True)
 

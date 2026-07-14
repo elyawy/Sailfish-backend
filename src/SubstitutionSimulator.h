@@ -101,6 +101,7 @@ public:
 
 	void setPerSiteRateCategories(std::shared_ptr<const std::vector<uint8_t>> rateCategories) {
 		_rateCategories = rateCategories;
+		_ratesCategoriesSetExternally = true;
 	}
 
 	std::shared_ptr<const std::vector<uint8_t>> getPerSiteRateCategories() const {
@@ -127,6 +128,7 @@ public:
 	void generateSubstitutionsAlongTree(int seqLength,
 									    const std::string& rootString = "",
 								        const std::vector<size_t>& rootPositionsInMSA = {}) {
+		if (!_ratesCategoriesSetExternally) _rateCategories.reset(); // free memory of categories to not reuse by mistake in the next simulation if this object is reused.
 		if (_rateCategories == nullptr) {
 			auto newCategories = std::make_shared<std::vector<uint8_t>>(seqLength);
 			for (int h = 0; h < seqLength; h++) {
@@ -166,7 +168,7 @@ public:
 		}
 
 		mutateSeqRecuresively(rootSequence, _tree->getRoot());
-		_rateCategories.reset(); // free memory of categories to not reuse by mistake in the next simulation if this object is reused.
+		_ratesCategoriesSetExternally = false; // reset the flag after the simulation is done.
 	}
 
 	void mutateSeqRecuresively(const SimSequence& currentSequence, tree::nodeP currentNode) {
@@ -407,6 +409,7 @@ private:
 	bool _saveRates;
 
 	std::shared_ptr<const std::vector<uint8_t>> _rateCategories = nullptr;
+	bool _ratesCategoriesSetExternally = false;
 	std::vector<double> _siteRates;
 	std::unique_ptr<SparseSequenceContainer> _simulatedSequences;
 	std::unique_ptr<DiscreteNDistribution<nearestHigherPowerOfTwo(AlphabetSize)>> _frequencySampler;

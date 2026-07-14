@@ -7,7 +7,7 @@ import warnings
 import pathlib
 from typing import List, Optional
 
-from .constants import MODEL_CODES, ALPHABET_CODES, ALPHABET_SIZES
+from .constants import MODEL_CODES, ALPHABET_CODES, ALPHABET_SIZES, SITE_RATE_MODELS
 
 
 _DEFAULT_GAMMA_ALPHA = 1.0
@@ -28,13 +28,16 @@ class SiteRateModelSpec:
         site_rate_correlation (float): Autocorrelation between adjacent site rates.
         free_rates (Optional[List[float]]): Explicit rate values (free rates mode).
         free_rate_weights (Optional[List[float]]): Weights for each free rate, must sum to 1.0.
+        indel_awareness (SITE_RATE_MODELS): Whether to use an indel-aware site rate model.
     """
+    
     gamma_alpha: float = _DEFAULT_GAMMA_ALPHA
     gamma_categories: int = _DEFAULT_GAMMA_CATEGORIES
     invariant_proportion: float = 0.0
     site_rate_correlation: float = 0.0
     free_rates: Optional[List[float]] = None
     free_rate_weights: Optional[List[float]] = None
+    indel_awareness: SITE_RATE_MODELS = SITE_RATE_MODELS.SIMPLE # indels do no affect site rates. 
 
     # Validate on creation
     def __post_init__(self):
@@ -161,6 +164,11 @@ class SubstitutionModel:
     def alphabet(self) -> ALPHABET_CODES:
         """The simulation type (DNA or protein) based on the current replacement model."""
         return self._spec.alphabet
+    
+    @property
+    def rate_model(self) -> SiteRateModelSpec:
+        """The current site rate model specification."""
+        return self._spec.site_rate_model
 
     def set_replacement_model(
         self,

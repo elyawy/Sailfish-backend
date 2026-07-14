@@ -1,7 +1,6 @@
 """Constants and enums for msasim"""
 
 import _Sailfish
-from enum import Enum
 
 MODEL_CODES = _Sailfish.modelCode
 ALPHABET_CODES = _Sailfish.alphabetCode
