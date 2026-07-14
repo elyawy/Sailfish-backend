@@ -1,6 +1,6 @@
 """Substitution model configuration and rate model management."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import _Sailfish
 import warnings
@@ -102,7 +102,7 @@ class ReplacementModelSpec:
     alphabet: ALPHABET_CODES
     model_parameters: Optional[List] = None
     amino_model_file: Optional[pathlib.Path] = None
-    site_rate_model: Optional[SiteRateModelSpec] = None
+    site_rate_model: SiteRateModelSpec = field(default_factory=SiteRateModelSpec)
 
         
     #validate on creation
