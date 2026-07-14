@@ -1,4 +1,4 @@
-from msasim import sailfish as sim
+from msasim import ALPHABET_CODES, sailfish as sim
 
 
 
@@ -9,7 +9,7 @@ simulation_protocol.set_max_insertion_length(10)
 simulation_protocol.set_site_rate_model(sim.SITE_RATE_MODELS.INDEL_AWARE)
 # time.sleep(3)
 
-simulator = sim.Simulator(simulation_protocol, simulation_type=sim.SIMULATION_TYPE.DNA)
+simulator = sim.Simulator(simulation_protocol, simulation_type=ALPHABET_CODES.DNA)
 simulator.set_replacement_model(model=sim.MODEL_CODES.NUCJC,
                                 gamma_parameters_alpha=1.0,
                                 gamma_parameters_categories=8,

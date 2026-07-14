@@ -44,7 +44,7 @@ int main() {
     protocol.setDeletionRates(deletionRates);
     protocol.setMaxInsertionLength(150);
     protocol.setMinSequenceSize(10);
-    protocol.setSiteRateModel(SiteRateModel::INDEL_AWARE);
+    protocol.setSiteRateModel(SiteRateModel::SIMPLE);
 
 
     int rootLength = 5000;
@@ -72,7 +72,7 @@ int main() {
     // time model setup in microseconds
     start = std::chrono::high_resolution_clock::now();
 
-    mFac.setReplacementModel(modelCode::WAG);
+    mFac.buildModel(alphabetCode::AMINOACID, modelCode::WAG);
     // mFac.setModelParameters({0.25,0.25,0.25,0.25,0.1,0.2,0.3,0.4,0.5,0.6});
     mFac.setSiteRateModel({0.01, 0.0,2.0,4.0},
                           {0.25, 0.25, 0.25, 0.25},
@@ -84,8 +84,6 @@ int main() {
                           });
 
 
-    if (!mFac.isModelValid()) return 1;
-    mFac.buildReplacementModel(); // to force model building
     end =  std::chrono::high_resolution_clock::now();
     duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
     std::cout << "Model setup took " << duration << " microseconds.\n";
