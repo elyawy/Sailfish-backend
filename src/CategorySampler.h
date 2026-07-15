@@ -111,8 +111,8 @@ public:
      * @return Category index
      */
     template<typename RngType = std::mt19937_64>
-    int drawSample(RngType &rng, int currentState) {
-        int nextCategory = _transitionSamplers[currentState].drawSample(rng) - 1;
+    uint8_t drawSample(RngType &rng, uint8_t currentState) {
+        uint8_t nextCategory = _transitionSamplers[currentState].drawSample(rng) - 1;
         _previousCategory = nextCategory;
         return nextCategory;
     }
@@ -124,8 +124,8 @@ public:
      * @return Category index
      */
     template<typename RngType = std::mt19937_64>
-    std::vector<size_t> drawSamples(RngType &rng, int firstState, size_t pathLength) {
-        std::vector<size_t> sampledCategories(pathLength, SIZE_MAX);
+    std::vector<uint8_t> drawSamples(RngType &rng, uint8_t firstState, size_t pathLength) {
+        std::vector<uint8_t> sampledCategories(pathLength, UINT8_MAX);
         _previousCategory = firstState;
         for (size_t i = 0; i < pathLength; i++)
         {
@@ -146,14 +146,14 @@ public:
      * @return Vector of sampled rate categories
      */
     template<typename RngType = std::mt19937_64>
-    std::vector<size_t> sampleBridge(size_t leftCategory, size_t rightCategory, size_t length, RngType &rng) {
+    std::vector<uint8_t> sampleBridge(uint8_t leftCategory, uint8_t rightCategory, size_t length, RngType &rng) {
         assert(length <= _maxPathLength);
         assert(leftCategory < _stationaryProbs.size());
         assert(rightCategory < _stationaryProbs.size());
         
         const std::vector<std::vector<double>>& reachProb = _reachProbabilities[rightCategory];
         int nStates = _stationaryProbs.size();
-        std::vector<size_t> path(length);
+        std::vector<uint8_t> path(length);
         
         int current = static_cast<int>(leftCategory);
         

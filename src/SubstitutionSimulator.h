@@ -11,6 +11,7 @@
 #include "CategorySampler.h"
 #include "BranchTransitionProbabilities.h"
 
+
 struct SimSequence {
     std::vector<ALPHACHAR> data;
     size_t _id;
@@ -42,13 +43,19 @@ public:
 		_finalMsaPath(""), _cacheBranchProbs(simContext.getCacheBranchProbs()),
 		_branchtoCacheIndex{}, _nextCacheIndex(0) {
 
-		std::vector<MDOUBLE> frequencies;
+		// init filled with 0.0
+		std::array<MDOUBLE, nearestHigherPowerOfTwo(AlphabetSize)> frequencies;
+		frequencies.fill(0.0);
 		for (int j = 0; j < AlphabetSize; ++j) {
-			frequencies.push_back(_stochasticProcess->freq(j));
-			_charLookup[j] = _alphabet->fromInt(j);
+			frequencies[j] = _stochasticProcess->freq(j);
+			if constexpr (std::is_same_v<CharType, char>) {
+				_charLookup[j] = _alphabet->fromInt(j)[0];  // string of length 1, just take the char
+			} else {
+				_charLookup[j] = _alphabet->fromInt(j);     // full 3-char codon string
+			}
 		}
 
-		_frequencySampler = std::make_unique<DiscreteDistribution>(frequencies);
+		_frequencySampler = std::make_unique<DiscreteNDistribution<nearestHigherPowerOfTwo(AlphabetSize)>>(frequencies);
 		_simulatedSequences = std::make_unique<SparseSequenceContainer>();
 		if (_cacheBranchProbs) warmCache();
 	}
@@ -63,14 +70,20 @@ public:
 		_stochasticProcess = mFac.getStochasticProcess();
 		_alphabet = mFac.getAlphabet();
 
-		std::vector<MDOUBLE> frequencies;
+		std::array<MDOUBLE, nearestHigherPowerOfTwo(AlphabetSize)> frequencies;
+		frequencies.fill(0.0);
+
 		for (int j = 0; j < AlphabetSize; ++j) {
-			frequencies.push_back(_stochasticProcess->freq(j));
-			_charLookup[j] = _alphabet->fromInt(j);  // fix charLookup too
+			frequencies[j] = _stochasticProcess->freq(j);
+			if constexpr (std::is_same_v<CharType, char>) {
+				_charLookup[j] = _alphabet->fromInt(j)[0];  // string of length 1, just take the char
+			} else {
+				_charLookup[j] = _alphabet->fromInt(j);     // full 3-char codon string
+			}
 		}
 
 		_rateCategorySampler = CategorySampler(mFac.getEffectiveTransitionMatrix(), mFac.getRateCategoryProbs());
-		_frequencySampler = std::make_unique<DiscreteDistribution>(frequencies);
+		_frequencySampler = std::make_unique<DiscreteNDistribution<nearestHigherPowerOfTwo(AlphabetSize)>>(frequencies);
 		_simulatedSequences = std::make_unique<SparseSequenceContainer>();
 		if (_cacheBranchProbs) {
 			// clear existing cache
@@ -88,6 +101,7 @@ public:
 
 	void setPerSiteRateCategories(std::shared_ptr<const std::vector<uint8_t>> rateCategories) {
 		_rateCategories = rateCategories;
+		_ratesCategoriesSetExternally = true;
 	}
 
 	std::shared_ptr<const std::vector<uint8_t>> getPerSiteRateCategories() const {
@@ -114,6 +128,7 @@ public:
 	void generateSubstitutionsAlongTree(int seqLength,
 									    const std::string& rootString = "",
 								        const std::vector<size_t>& rootPositionsInMSA = {}) {
+		if (!_ratesCategoriesSetExternally) _rateCategories.reset(); // free memory of categories to not reuse by mistake in the next simulation if this object is reused.
 		if (_rateCategories == nullptr) {
 			auto newCategories = std::make_shared<std::vector<uint8_t>>(seqLength);
 			for (int h = 0; h < seqLength; h++) {
@@ -153,7 +168,7 @@ public:
 		}
 
 		mutateSeqRecuresively(rootSequence, _tree->getRoot());
-		_rateCategories.reset(); // free memory of categories to not reuse by mistake in the next simulation if this object is reused.
+		_ratesCategoriesSetExternally = false; // reset the flag after the simulation is done.
 	}
 
 	void mutateSeqRecuresively(const SimSequence& currentSequence, tree::nodeP currentNode) {
@@ -277,6 +292,7 @@ private:
 			}
 		} else {
 			// Normal mode - mutate all sites
+			_lengthOfCurrentSequence = currentSequence.seqLen();
 			for (size_t site = 0; site < currentSequence.seqLen(); ++site) {
 				ALPHACHAR parentChar = currentSequence[site];
 				auto &Pijt = cachedPijt.getDistribution(rateCategories[site], parentChar);
@@ -292,14 +308,18 @@ private:
 			saveSequenceToDisk(currentSequence);
 			return;
 		}
+		// SparseSequence sparseSeq(_lengthOfCurrentSequence, '\0');
 		SparseSequence sparseSeq;
-		sparseSeq.reserve(_lengthOfCurrentSequence);
+		constexpr size_t charLen = (AlphabetSize <= 20) ? 1 : 3;
+		sparseSeq.reserve(_lengthOfCurrentSequence * charLen);
+
 		// populate the sparse sequence with only non-gap characters
 		// using the aligned sequence map if available to determine where the gaps are
 		if (_alignedSequenceMap != nullptr) {
 			size_t actualRowInMSA = _idToRowInMSA[currentSequence.id()];
 			const std::vector<int>& gapStructure = _alignedSequenceMap->at(actualRowInMSA);
 			size_t site = 0;
+			size_t writePos = 0;
 			for (int blockSize : gapStructure) {
 				if (blockSize < 0) {
 					// Gap block - skip these sites
@@ -307,8 +327,9 @@ private:
 				} else {
 					// Non-gap block - add these characters to the sparse sequence
 					for (int i = 0; i < blockSize; ++i, ++site) {
-						ALPHACHAR currentChar = currentSequence[site];
-						sparseSeq += _charLookup[currentChar];
+						// ALPHACHAR currentChar = currentSequence[site];
+						// sparseSeq[writePos++] = _charLookup[currentSequence[site]];
+						sparseSeq += _charLookup[currentSequence[site]];
 					}
 				}
 			}
@@ -326,7 +347,9 @@ private:
 
 		// reserve a string of the appropriate length.
 		std::string outputString;
-		outputString.reserve(_lengthOfCurrentSequence + 1); // +1 for newline
+		constexpr size_t charLen = (AlphabetSize <= 20) ? 1 : 3;
+		outputString.reserve(currentSequence.name().length() + (_lengthOfCurrentSequence * charLen) + 5);
+		
 		
 		outputString += ">" + currentSequence.name() + "\n";
 		
@@ -386,14 +409,16 @@ private:
 	bool _saveRates;
 
 	std::shared_ptr<const std::vector<uint8_t>> _rateCategories = nullptr;
+	bool _ratesCategoriesSetExternally = false;
 	std::vector<double> _siteRates;
 	std::unique_ptr<SparseSequenceContainer> _simulatedSequences;
-	std::unique_ptr<DiscreteDistribution> _frequencySampler;
+	std::unique_ptr<DiscreteNDistribution<nearestHigherPowerOfTwo(AlphabetSize)>> _frequencySampler;
 
 	CategorySampler _rateCategorySampler;
 	std::string _finalMsaPath;
 
-	std::array<std::string, AlphabetSize> _charLookup;
+	using CharType = std::conditional_t<(AlphabetSize <= 20), char, std::string>;
+	std::array<CharType, AlphabetSize> _charLookup;
 
 	std::shared_ptr<const SparseMSA> _alignedSequenceMap = nullptr;
 

@@ -35,6 +35,7 @@ class Tree:
         self._tree = _Sailfish.Tree(input_str, is_from_file)
         self._tree_str = tree_str
     
+    
     def get_num_nodes(self) -> int:
         return self._tree.num_nodes
     

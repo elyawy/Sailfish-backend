@@ -5,7 +5,8 @@
 #include <pybind11/stl.h>
 #include <memory>
 
-#include "../libs/pcg/pcg_random.hpp"
+// #include "../libs/pcg/pcg_random.hpp"
+#include "../libs/sfc/sfc64.h"
 #include "../libs/Phylolib/includes/gammaDistribution.h"
 #include "./IndelSimulator.h"
 #include "./SubstitutionSimulator.h"
@@ -38,7 +39,7 @@ PYBIND11_MODULE(_Sailfish, m) {
             Tree
     )pbdoc";
 
-    using SelectedRNG = pcg64_fast;
+    using SelectedRNG = SFC64;
 
     py::class_<DiscreteDistribution>(m, "DiscreteDistribution")
         .def(py::init<std::vector<double>>());
@@ -85,9 +86,12 @@ PYBIND11_MODULE(_Sailfish, m) {
         .def("get_max_insertion_length", &SimulationProtocol::getMaxInsertionLength);
 
 
-
-    // py::class_<sequenceContainer, std::shared_ptr<sequenceContainer>>(m, "sequenceContainer")
-    //     .def(py::init<>());
+    py::enum_<alphabetCode>(m, "alphabetCode")
+        .value("NOSUBS", alphabetCode::NULLCODE)
+        .value("DNA", alphabetCode::NUCLEOTIDE)
+        .value("PROTEIN", alphabetCode::AMINOACID)
+        .value("CODON", alphabetCode::CODON)
+        .export_values();
 
 
     py::enum_<modelCode>(m, "modelCode")
@@ -96,7 +100,6 @@ PYBIND11_MODULE(_Sailfish, m) {
         .value("GTR", modelCode::GTR)
         .value("HKY", modelCode::HKY)
         .value("TAMURA92", modelCode::TAMURA92)
-        // .value("WYANGMODEL", modelCode::WYANGMODEL)
         .value("CPREV45", modelCode::CPREV45)
         .value("DAYHOFF", modelCode::DAYHOFF)
         .value("JONES", modelCode::JONES)	// THIS IS JTT
@@ -105,7 +108,6 @@ PYBIND11_MODULE(_Sailfish, m) {
         .value("HIVB", modelCode::HIVB)
         .value("HIVW", modelCode::HIVW)
         .value("LG", modelCode::LG)
-        .value("EMPIRICODON", modelCode::EMPIRICODON)
         .value("EX_BURIED", modelCode::EX_BURIED) 
         .value("EX_EXPOSED", modelCode::EX_EXPOSED)
         .value("EHO_EXTENDED", modelCode::EHO_EXTENDED)
@@ -117,7 +119,10 @@ PYBIND11_MODULE(_Sailfish, m) {
         .value("EX_EHO_EXP_EXT", modelCode::EX_EHO_EXP_EXT)
         .value("EX_EHO_EXP_HEL", modelCode::EX_EHO_EXP_HEL)
         .value("EX_EHO_EXP_OTH", modelCode::EX_EHO_EXP_OTH)
-        .value("CUSTOM", modelCode::CUSTOM)
+        .value("WYANG", modelCode::WYANGMODEL)
+        .value("EMPIRICODON", modelCode::EMPIRICODON)
+        .value("REVERSIBLE", modelCode::REVERSIBLE)
+        .value("NONREVERSIBLE", modelCode::NONREVERSIBLE)
         .export_values();
 
     py::class_<gammaDistribution>(m, "GammaDistribution")
@@ -141,16 +146,15 @@ PYBIND11_MODULE(_Sailfish, m) {
 
     py::class_<modelFactory>(m, "modelFactory")
         .def(py::init<>())
-        .def("set_replacement_model" , &modelFactory::setReplacementModel)
-        .def("set_amino_replacement_model_file" , &modelFactory::setCustomAAModelFile)
-        .def("set_model_parameters" , &modelFactory::setModelParameters)
         .def("set_site_rate_model", &modelFactory::setSiteRateModel,
             py::arg("rates"),
             py::arg("stationary_probs"),
             py::arg("transition_matrix") = std::vector<std::vector<MDOUBLE>>())
-        .def("reset", &modelFactory::resetFactory)
-        .def("is_model_valid", &modelFactory::isModelValid)
-        .def("build_replacement_model", &modelFactory::buildReplacementModel)
+        .def("build_model", &modelFactory::buildModel,
+            py::arg("alphabet"),
+            py::arg("model"),
+            py::arg("parameters") = std::vector<MDOUBLE>{},
+            py::arg("model_file_path") = "")
         .def("get_rate_category_sampler", &modelFactory::getRateCategorySampler, py::arg("max_path_length") = 0);
 
     py::class_<SimulationContext<SelectedRNG>>(m, "SimulationContext")
@@ -210,7 +214,8 @@ PYBIND11_MODULE(_Sailfish, m) {
         .def("get_msa_row_string", &MSA<SelectedRNG>::generateMsaRowString)
         .def("get_sparse_msa", &MSA<SelectedRNG>::getSparseMSA)
         .def("get_per_site_rate_categories", &MSA<SelectedRNG>::getPerSiteRateCategories)
-        .def("get_root_positions_in_msa", &MSA<SelectedRNG>::getRootPositionsInMsa);
+        .def("get_root_positions_in_msa", &MSA<SelectedRNG>::getRootPositionsInMsa)
+        .def("set_char_len", &MSA<SelectedRNG>::setCharLen);
 
     // bindings for SubstitutionSimulator (amino)
     using AminoSim = SubstitutionSimulator<SelectedRNG, 20>;
@@ -243,6 +248,22 @@ PYBIND11_MODULE(_Sailfish, m) {
         .def("get_site_rates", &NucleotideSim::getSiteRates)
         .def("set_per_site_rate_categories", &NucleotideSim::setPerSiteRateCategories)
         .def("get_per_site_rate_categories", &NucleotideSim::getPerSiteRateCategories);
+
+
+    using CodonSim = SubstitutionSimulator<SelectedRNG, 61>;
+    py::class_<CodonSim>(m, "CodonSubstitutionSimulator")
+        .def(py::init<modelFactory&, SimulationContext<SelectedRNG>&>())
+        .def("simulate_substitutions", [](CodonSim& self, size_t length, const std::string& rootString, const std::vector<size_t>& rootPositionsInMSA) {
+            return *self.simulateSubstitutions(length, rootString, rootPositionsInMSA);})
+        .def("simulate_and_write_substitutions", &CodonSim::simulateAndWriteSubstitutions)
+        .def("init_substitution_sim", &CodonSim::initSubstitionSim)
+        .def("set_save_rates", &CodonSim::setSaveRates)
+        .def("clear_rates_vec", &CodonSim::clearRatesVec)
+        // .def("get_sequence_container", &CodonSim::getSequenceContainer)
+        .def("set_aligned_sequence_map", &CodonSim::setAlignedSequenceMap)
+        .def("get_site_rates", &CodonSim::getSiteRates)
+        .def("set_per_site_rate_categories", &CodonSim::setPerSiteRateCategories)
+        .def("get_per_site_rate_categories", &CodonSim::getPerSiteRateCategories);
 
 
 }

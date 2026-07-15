@@ -1,5 +1,4 @@
-
-NOTICE: SAILFISH IS IN EARLY DEVELOPMENT AND SUBJECT TO CHANGE. API AND FEATURES MAY BE UNSTABLE. IT IS PROVIDED AS-IS WITHOUT ANY WARRANTY. USE AT YOUR OWN RISK. PLEASE REPORT ISSUES AND SUGGESTIONS ON GITHUB.
+> NOTICE: SAILFISH IS IN EARLY DEVELOPMENT AND SUBJECT TO CHANGE. API AND FEATURES MAY BE UNSTABLE. IT IS PROVIDED AS-IS WITHOUT ANY WARRANTY. USE AT YOUR OWN RISK. PLEASE REPORT ISSUES AND SUGGESTIONS ON GITHUB.
 
 # Sailfish
 
@@ -8,10 +7,10 @@ Sailfish is a high-performance multiple sequence alignment (MSA) simulator writt
 ## Features
 
 - High-performance C++ engine with ergonomic Python interface
-- Support for both DNA and protein sequence evolution
+- Support for DNA, protein, and codon sequence evolution
 - Flexible indel modeling with multiple length distributions (Zipf, Geometric, Poisson, Custom)
 - 26+ substitution models including JTT, WAG, LG, HKY, GTR, and more
-- Gamma rate heterogeneity and invariant sites
+- Gamma rate heterogeneity, invariant sites, and site rate correlation
 - Per-branch parameter specification for heterogeneous models
 - Low-memory mode for large-scale simulations (1M+ sequences)
 - Reproducible simulations with explicit seed control
@@ -22,152 +21,151 @@ Sailfish is a high-performance multiple sequence alignment (MSA) simulator writt
 pip install msasim
 ```
 
-Requirements: Python >= 3.6
+Requirements: Python >= 3.7
 
 ## Quick Start
 
-### Basic Example with Indels and Substitutions
+### Full simulation (indels + substitutions)
 
 ```python
-from msasim import sailfish as sim
-from msasim.sailfish import MODEL_CODES, ZipfDistribution
+from msasim import SimProtocol, Simulator, ReplacementModelSpec
+from msasim import MODEL_CODES, ALPHABET_CODES
+from msasim.distributions import ZipfDistribution
 
-# Configure simulation protocol
-sim_protocol = sim.SimProtocol(
+protocol = SimProtocol(
     tree="(A:0.5,B:0.5);",
     root_seq_size=100,
-    deletion_rate=0.01,
-    insertion_rate=0.01,
+    deletion_rate=0.05,
+    insertion_rate=0.02,
     deletion_dist=ZipfDistribution(1.7, 50),
     insertion_dist=ZipfDistribution(1.7, 50),
-    seed=42
+    seed=42,
 )
 
-# Create simulator
-simulation = sim.Simulator(sim_protocol, simulation_type=sim.SIMULATION_TYPE.PROTEIN)
-
-# Configure substitution model with gamma rate heterogeneity
-simulation.set_replacement_model(
-    model=MODEL_CODES.WAG,
-    gamma_parameters_alpha=1.0,
-    gamma_parameters_categories=4
-)
-
-# Run simulation
-msa = simulation()
-
-# Output results
-msa.write_msa("output.fasta")
-msa.print_msa()
-```
-
-### Substitutions-Only Simulation
-
-```python
-from msasim import sailfish as sim
-from msasim.sailfish import MODEL_CODES
-
-# No indels configured
-protocol = sim.SimProtocol(
-    tree="path/to/tree.nwk",
-    root_seq_size=500,
-    seed=42
-)
-
-simulator = sim.Simulator(protocol, simulation_type=sim.SIMULATION_TYPE.PROTEIN)
-simulator.set_replacement_model(model=MODEL_CODES.LG)
+rep_model = ReplacementModelSpec(model=MODEL_CODES.WAG, alphabet=ALPHABET_CODES.PROTEIN)
+simulator = Simulator(protocol, replacement_model=rep_model)
 
 msa = simulator()
-msa.write_msa("alignment.fasta")
+msa.write_msa("output.fasta")
 ```
 
-### Batch Simulations
+### Indels only (no substitutions)
+
+Omit the `replacement_model` argument:
 
 ```python
-from msasim import sailfish as sim
-from msasim.sailfish import MODEL_CODES
+from msasim import SimProtocol, Simulator
+from msasim.distributions import ZipfDistribution
 
-# Initialize once with seed
-protocol = sim.SimProtocol(tree="tree.nwk", root_seq_size=500, seed=42)
-simulator = sim.Simulator(protocol, simulation_type=sim.SIMULATION_TYPE.PROTEIN)
-simulator.set_replacement_model(model=MODEL_CODES.JTT)
+protocol = SimProtocol(
+    tree="(A:0.5,B:0.5);",
+    root_seq_size=100,
+    deletion_rate=0.05,
+    insertion_rate=0.02,
+    deletion_dist=ZipfDistribution(1.7, 50),
+    insertion_dist=ZipfDistribution(1.7, 50),
+    seed=42,
+)
 
-# Generate multiple replicates
-# Internal RNG advances automatically for reproducibility
+simulator = Simulator(protocol)
+msa = simulator()
+```
+
+### Substitutions only (no indels)
+
+Set both rates to zero:
+
+```python
+from msasim import SimProtocol, Simulator, ReplacementModelSpec
+from msasim import MODEL_CODES, ALPHABET_CODES
+
+protocol = SimProtocol(
+    tree="(A:0.5,B:0.5);",
+    root_seq_size=100,
+    insertion_rate=0.0,
+    deletion_rate=0.0,
+    seed=42,
+)
+
+rep_model = ReplacementModelSpec(model=MODEL_CODES.NUCJC, alphabet=ALPHABET_CODES.DNA)
+simulator = Simulator(protocol, replacement_model=rep_model)
+msa = simulator()
+```
+
+### Gamma rate heterogeneity
+
+```python
+from msasim import SimProtocol, Simulator, ReplacementModelSpec, SiteRateModelSpec
+from msasim import MODEL_CODES, ALPHABET_CODES
+
+protocol = SimProtocol(tree="(A:0.5,B:0.5);", root_seq_size=100, seed=42)
+
+rate_model = SiteRateModelSpec(gamma_alpha=1.0, gamma_categories=4)
+rep_model = ReplacementModelSpec(
+    model=MODEL_CODES.WAG,
+    alphabet=ALPHABET_CODES.PROTEIN,
+    site_rate_model=rate_model,
+)
+simulator = Simulator(protocol, replacement_model=rep_model)
+msa = simulator()
+```
+
+### Batch simulations
+
+```python
+from msasim import SimProtocol, Simulator, ReplacementModelSpec
+from msasim import MODEL_CODES, ALPHABET_CODES
+
+protocol = SimProtocol(tree="tree.nwk", root_seq_size=500, seed=42)
+rep_model = ReplacementModelSpec(model=MODEL_CODES.LG, alphabet=ALPHABET_CODES.PROTEIN)
+simulator = Simulator(protocol, replacement_model=rep_model)
+
+# Internal RNG advances deterministically across calls
 for i in range(100):
     msa = simulator()
     msa.write_msa(f"replicate_{i:04d}.fasta")
 ```
 
-### Low-Memory Mode for Large Simulations
+### Low-memory mode for large simulations
 
 ```python
 import pathlib
-from msasim import sailfish as sim
-from msasim.sailfish import MODEL_CODES
+from msasim import SimProtocol, Simulator, ReplacementModelSpec
+from msasim import MODEL_CODES, ALPHABET_CODES
 
-protocol = sim.SimProtocol(tree="large_tree.nwk", root_seq_size=10000, seed=42)
-simulator = sim.Simulator(protocol, simulation_type=sim.SIMULATION_TYPE.DNA)
-simulator.set_replacement_model(model=MODEL_CODES.NUCJC)
+protocol = SimProtocol(tree="large_tree.nwk", root_seq_size=10000, seed=42)
+rep_model = ReplacementModelSpec(model=MODEL_CODES.NUCJC, alphabet=ALPHABET_CODES.DNA)
+simulator = Simulator(protocol, replacement_model=rep_model)
 
-# Write directly to disk without holding MSA in memory
-simulator.simulate_low_memory(pathlib.Path("large_alignment.fasta"))
+simulator.simulate(output_path=pathlib.Path("large_alignment.fasta"))
+# → writes large_alignment_replicate_1.fasta
 ```
 
 ## Documentation
 
-For complete API documentation, including all available models, distributions, and advanced features, see [API_REFERENCE.md](API_REFERENCE.md).
+For the complete API reference see [API_REFERENCE.md](API_REFERENCE.md).
 
 ## Core Concepts
 
-### Simulation Types
+### Simulation type is inferred from the model
 
-- `SIMULATION_TYPE.NOSUBS`: Indels only, no substitutions
-- `SIMULATION_TYPE.DNA`: DNA sequences with nucleotide models
-- `SIMULATION_TYPE.PROTEIN`: Protein sequences with amino acid models
+There is no `simulation_type` argument. The alphabet (`DNA`, `PROTEIN`, `CODON`) is taken from the `ReplacementModelSpec`. Passing no `replacement_model` runs an indels-only simulation.
 
-### Available Models
+### Indel length distributions
 
-**Nucleotide**: JC, HKY, GTR, Tamura92
-**Protein**: WAG, LG, JTT (JONES), Dayhoff, MTREV24, CPREV45, HIV models, and more
+- `ZipfDistribution(a, truncation)` — power-law, typical for biological indels
+- `GeometricDistribution(p, truncation)` — exponentially decreasing
+- `PoissonDistribution(lambda, truncation)` — Poisson-based
+- `CustomDistribution(probs)` — user-defined probability vector
 
-See [API_REFERENCE.md#substitution-models](API_REFERENCE.md#substitution-models) for the complete list.
+### Available substitution models
 
-### Indel Length Distributions
+**DNA:** `NUCJC`, `HKY`, `GTR`, `TAMURA92`  
+**Protein:** `WAG`, `LG`, `JONES` (JTT), `DAYHOFF`, `MTREV24`, `CPREV45`, `HIVB`, `HIVW`, and more  
+**Codon:** `EMPIRICODON`, `WYANG`
 
-- **ZipfDistribution**: Power-law distribution (typical for biological data)
-- **GeometricDistribution**: Exponentially decreasing
-- **PoissonDistribution**: Poisson-based
-- **CustomDistribution**: User-defined probability vector
+See [API_REFERENCE.md](API_REFERENCE.md) for the full list.
 
-## Common Use Cases
-
-### 1. Phylogenetic Method Validation
-
-Generate known-truth alignments with specified evolutionary parameters to test inference methods.
-
-### 2. Benchmarking Alignment Tools
-
-Create challenging datasets with varying indel rates and substitution patterns.
-
-### 3. Statistical Power Analysis
-
-Simulate datasets under different evolutionary scenarios to assess method sensitivity.
-
-### 4. Model Comparison
-
-Generate alignments under different substitution models for model selection studies.
-
-## Performance Notes
-
-Typical simulation times on modern hardware:
-- 10K sequences × 30K sites: ~10 seconds
-- 100K sequences × 30K sites: ~2 minutes
-- 1M sequences × 30K sites: ~20 minutes
-
-For simulations with >100K sequences or memory constraints, use `simulate_low_memory()`.
-
-Memory usage estimate: `(num_sequences × alignment_length) / 300,000` MB
 
 ## Project Goals
 
@@ -187,4 +185,4 @@ If you use Sailfish in your research, please cite:
 
 ## License
 
-[License information to be added]
+Academic Free License v3.0. See [LICENSE](LICENSE) for details.

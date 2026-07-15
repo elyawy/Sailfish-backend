@@ -115,19 +115,20 @@ public:
             }
             auto previousSite = *seq.begin();
             
-            lastPosition = previousSite->absolutePosition;
+            lastPosition = previousSite->absolutePosition();
             if (lastPosition > 0) {
                 currentSequence.push_back(-lastPosition);
                 totalSize += lastPosition;
             }
             
             for(auto currentSite=seq.begin() + 1; currentSite!=seq.end(); currentSite++) {
-				currentPosition = (*(currentSite))->absolutePosition;
+				currentPosition = (*(currentSite))->absolutePosition();
                 positionDifference = currentPosition - lastPosition - 1;
 
                 if (positionDifference == 0) cumulatedDifference++;
                 if (positionDifference > 0) {
                     currentSequence.push_back(cumulatedDifference);
+                    if (i == 0) _seq0NonGapSites += cumulatedDifference; 
                     currentSequence.push_back(-(positionDifference));
                     totalSize += (cumulatedDifference + positionDifference);
                     cumulatedDifference = 1;
@@ -140,6 +141,7 @@ public:
             }
 			if (cumulatedDifference > 0 && (totalSize != _msaLength)) {
                 currentSequence.push_back(cumulatedDifference);
+                if (i == 0) _seq0NonGapSites += cumulatedDifference; 
                 totalSize += cumulatedDifference;
             }
             if (totalSize < _msaLength) currentSequence.push_back(-(_msaLength - totalSize));
@@ -155,8 +157,12 @@ public:
         _substitutions = _seqContainer;
     }
 
+    void setCharLen(size_t charLen) {
+        assert(charLen == 1 || charLen == 3);
+        _charLen = charLen;
+    }
 
-	MSA<RngType>(size_t msaLength, SimulationContext<RngType> &simContext): 
+	MSA<RngType>(size_t msaLength, SimulationContext<RngType> &simContext):
         _simContext(simContext), _msaLength(msaLength), 
         _numberOfSequences(simContext.getNumberOfNodesToSave()) {
             // create dummy aligned sequence map without gaps.
@@ -189,7 +195,7 @@ public:
 
     std::string generateMsaRowString(size_t row) {
         std::string msaString;
-        msaString.reserve(_msaLength + 1);
+        msaString.reserve((_msaLength * _charLen) + _simContext.getNodeToSaveNames()[row].length() + 5);
 
         msaString.append(">");
         msaString.append(_simContext.getNodeToSaveNames()[row]);
@@ -209,14 +215,14 @@ public:
             int strSize = alignedSeqRow[col];
             if (strSize < 0) {
                 strSize = -strSize;
-                msaString.append(strSize, '-');
+                msaString.append(strSize* _charLen, '-');
             } else {
                 if (_substitutions == nullptr) {
-                    msaString.append(strSize, 'A');
+                    msaString.append(strSize * _charLen, 'A');
                 } else {
-                    msaString.append(currentSeq.substr(passedSeq, strSize));
+                    msaString.append(currentSeq.substr(passedSeq, strSize * _charLen));
                 }
-                passedSeq += strSize;
+                passedSeq += (strSize * _charLen);
             }
         }
         msaString.append("\n");
@@ -275,6 +281,7 @@ private:
     // Names of sequences to save are accessed via _simContext->getNodeToSaveNames()
     std::vector<size_t> _rootPositionsInMsa;
 
-
+    size_t _seq0NonGapSites = 0;
+    size_t _charLen = 1; // default to 1, will be set to 3 if alphabet size > 20
 };
 #endif

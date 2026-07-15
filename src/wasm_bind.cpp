@@ -296,8 +296,8 @@ EMSCRIPTEN_BINDINGS(_Sailfish) {
         .function("clear_rates_vec",                  &AminoSim::clearRatesVec)
         .function("set_aligned_sequence_map",         &AminoSim::setAlignedSequenceMap)
         .function("get_site_rates",                   &AminoSim::getSiteRates)
-        .function("set_per_site_rate_categories", optional_override([](AminoSim& self, const std::vector<size_t>& cats) {
-            self.setPerSiteRateCategories(std::make_shared<std::vector<size_t>>(cats));
+        .function("set_per_site_rate_categories", optional_override([](AminoSim& self, const std::vector<uint8_t>& cats) {
+            self.setPerSiteRateCategories(std::make_shared<std::vector<uint8_t>>(cats));
         }))
         .function("get_per_site_rate_categories", optional_override([](AminoSim& self) {
             return *self.getPerSiteRateCategories();
@@ -316,8 +316,8 @@ EMSCRIPTEN_BINDINGS(_Sailfish) {
         .function("clear_rates_vec",                  &NucleotideSim::clearRatesVec)
         .function("set_aligned_sequence_map",         &NucleotideSim::setAlignedSequenceMap)
         .function("get_site_rates",                   &NucleotideSim::getSiteRates)
-        .function("set_per_site_rate_categories", optional_override([](NucleotideSim& self, const std::vector<size_t>& cats) {
-            self.setPerSiteRateCategories(std::make_shared<std::vector<size_t>>(cats));
+        .function("set_per_site_rate_categories", optional_override([](NucleotideSim& self, const std::vector<uint8_t>& cats) {
+            self.setPerSiteRateCategories(std::make_shared<std::vector<uint8_t>>(cats));
         }))
         .function("get_per_site_rate_categories", optional_override([](NucleotideSim& self) {
             return *self.getPerSiteRateCategories();

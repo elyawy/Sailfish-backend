@@ -66,10 +66,10 @@
 struct BlockWithRates {
     size_t length;
     size_t insertion;
-    const std::vector<size_t>* parentRateCategories;
-    std::vector<size_t> rateCategories;
+    const std::vector<uint8_t>* parentRateCategories;
+    std::vector<uint8_t> rateCategories;
 
-    BlockWithRates(const std::vector<size_t>& parentRates, size_t blockLength, size_t insertionPos) 
+    BlockWithRates(const std::vector<uint8_t>& parentRates, size_t blockLength, size_t insertionPos) 
         : length(blockLength), insertion(insertionPos), parentRateCategories(&parentRates),
         rateCategories() {}
 
@@ -80,27 +80,27 @@ struct BlockWithRates {
 
     // Handle rate category insertions within this block.
     template<typename RngType = std::mt19937_64>
-    void handleInsertion(size_t position, size_t leftFlankCategory, size_t rightFlankCategory, size_t insertLength, CategorySampler& sampler, RngType &rng) {
-      assert(leftFlankCategory < sampler.getNumCategories() || leftFlankCategory == SIZE_MAX);
-      assert(rightFlankCategory < sampler.getNumCategories() || rightFlankCategory == SIZE_MAX);
+    void handleInsertion(size_t position, uint8_t leftFlankCategory, uint8_t rightFlankCategory, size_t insertLength, CategorySampler& sampler, RngType &rng) {
+      assert(leftFlankCategory < sampler.getNumCategories() || leftFlankCategory == UINT8_MAX);
+      assert(rightFlankCategory < sampler.getNumCategories() || rightFlankCategory == UINT8_MAX);
 
-      if (leftFlankCategory == SIZE_MAX && rightFlankCategory == SIZE_MAX) {
+      if (leftFlankCategory == UINT8_MAX && rightFlankCategory == UINT8_MAX) {
         for (size_t i = 0; i < insertLength; i++) {
           rateCategories.push_back(sampler.drawSample(rng));
         }
         return;
       }
-      std::vector<size_t> newRates;
+      std::vector<uint8_t> newRates;
       // handle insertion at the beginning case.
-      if (leftFlankCategory == SIZE_MAX && rightFlankCategory != SIZE_MAX) {
+      if (leftFlankCategory == UINT8_MAX && rightFlankCategory != UINT8_MAX) {
         newRates = sampler.drawSamples(rng, rightFlankCategory, insertLength);
         std::reverse(newRates.begin(), newRates.end());
       }
-      if (leftFlankCategory != SIZE_MAX && rightFlankCategory != SIZE_MAX) {
+      if (leftFlankCategory != UINT8_MAX && rightFlankCategory != UINT8_MAX) {
         newRates = sampler.sampleBridge(leftFlankCategory, rightFlankCategory, insertLength, rng);
       }
       // handle insertion at the end case.
-      if (leftFlankCategory != SIZE_MAX && rightFlankCategory == SIZE_MAX) {
+      if (leftFlankCategory != UINT8_MAX && rightFlankCategory == UINT8_MAX) {
         newRates = sampler.drawSamples(rng, leftFlankCategory, insertLength);
       }
       // insert new positions in rateCategories vector.
@@ -128,11 +128,11 @@ struct BlockWithRates {
     } 
 
     // Get the surviving rate categories after deleting from the beginning
-    std::vector<size_t> getSurvivingRates(size_t numDeleted) const {
+    std::vector<uint8_t> getSurvivingRates(size_t numDeleted) const {
         if (rateCategories.empty() || numDeleted >= rateCategories.size()) {
             return {};  // Return empty vector
         }
-        return std::vector<size_t>(
+        return std::vector<uint8_t>(
             rateCategories.begin() + numDeleted,
             rateCategories.end()
         );
@@ -453,8 +453,8 @@ public:
     // if the event is within the insertion the flanking positions are simply in the rateCategories vector of the block,
     // if the event is in the original part, the left flank category is the one at position pos-1 of event_block.parentRateCategories and the right flank category is the one at position pos.
     // if the event is at the edge of the block, we need to use the next block's category as the right flank for sampling new categories for the inserted part.
-    size_t left_flank_category = SIZE_MAX;
-    size_t right_flank_category = SIZE_MAX;
+    uint8_t left_flank_category = UINT8_MAX;
+    uint8_t right_flank_category = UINT8_MAX;
 
     pos = pos + 1;
     // insertion in added part - no split, just update
@@ -465,15 +465,15 @@ public:
         // rates not working for now, need to handle cases where the insetion is at
         // the edge of the parent sequence.
         // if at the left edge of the entire sequence, right flank should be the first category
-        // in parent (index 0), and left flank should be SIZE_MAX.
+        // in parent (index 0), and left flank should be UINT8_MAX.
         // if at the right edge of the entire sequence, left flank should be the last category in parent,
-        // and right flank should be SIZE_MAX.
+        // and right flank should be UINT8_MAX.
 
         // Handle rate categories for insertion in the added part
         // Position within the block's rate categories
         // if on left edge of AP, use category from OP as left flank
         if (position_in_ap == 0 && key_[block_index] == 0 && pos == 1) {
-          left_flank_category = SIZE_MAX;
+          left_flank_category = UINT8_MAX;
         } else if (position_in_ap == 0) {
           left_flank_category = (*event_block.parentRateCategories)[key_[block_index] + event_block.length - 2];
         } else {
@@ -483,9 +483,9 @@ public:
         // If inserting after all existing insertions (at the right edge of this block), we need to use the next block's first category as the right flank for sampling new categories.
         if (position_in_ap >= original_insertion) {
           size_type next_block_index = get_next_block(block_index);
-          // if on right edge of AP, and no next block, set right flank category to SIZE_MAX.
+          // if on right edge of AP, and no next block, set right flank category to UINT8_MAX.
           if (next_block_index == INVALID_IDX) {
-            right_flank_category = SIZE_MAX;
+            right_flank_category = UINT8_MAX;
           } else {
             size_t next_block_start = key_[next_block_index]; // actual position within the parent sequence
             right_flank_category = (*event_block.parentRateCategories)[next_block_start-1];
@@ -514,8 +514,8 @@ public:
 
 
           // if the event is at the left edge of the entire sequence, right flank should be the first category
-          // in parent (index 0), and left flank should be SIZE_MAX.
-          left_flank_category = pos==1 ? SIZE_MAX : (*event_block.parentRateCategories)[pos-2];
+          // in parent (index 0), and left flank should be UINT8_MAX.
+          left_flank_category = pos==1 ? UINT8_MAX : (*event_block.parentRateCategories)[pos-2];
           right_flank_category = (*event_block.parentRateCategories)[pos - 1];
         } else {
           // if the event is in the original part, the left flank category is the one at position pos-1 of event_block.parentRateCategories and the right flank category is the one at position pos.
@@ -586,7 +586,7 @@ public:
     size_t deleted_from_insertion = event_size - length;
 
     BlockWithRates event_block = val_[block_index];
-    std::vector<size_t> surviving_rates = event_block.getSurvivingRates(deleted_from_insertion);
+    std::vector<uint8_t> surviving_rates = event_block.getSurvivingRates(deleted_from_insertion);
 
     if (key_[block_index] == 0) { // checking if this is the first block in the blocklist
 
@@ -1325,7 +1325,7 @@ void print_block(std::stringstream &ss, const size_type node) {
     if (!block.rateCategories.empty()) {
         ss << " rates:[";
         for (size_t i = 0; i < block.rateCategories.size(); ++i) {
-            if (block.rateCategories[i] == SIZE_MAX) {
+            if (block.rateCategories[i] == UINT8_MAX) {
                 ss << "ANCHOR";
             } else {
                 ss << block.rateCategories[i];
@@ -1373,7 +1373,7 @@ bool handle_event(Event &ev, CategorySampler& sampler, RngType &rng) {
 
 
 
-bool init_tree(size_t sequence_length, const std::vector<size_t>& parentRateCategories) {
+bool init_tree(size_t sequence_length, const std::vector<uint8_t>& parentRateCategories) {
   this->clear();
 
   // BlockWithRates root_block = {sequence_length, 0, parentRateCategories};

@@ -1,11 +1,16 @@
 import pathlib
 import time
 import psutil
-from msasim import sailfish as sim
+from msasim import MODEL_CODES, ZipfDistribution
+from msasim import SimProtocol
+from msasim import Simulator
+from msasim.constants import ALPHABET_CODES, SITE_RATE_MODELS
+from msasim.substitutions import ReplacementModelSpec, SiteRateModelSpec
 
 
-length_insertions = sim.ZipfDistribution(1.7, 50)
-length_deletions = sim.ZipfDistribution(1.7, 50)
+
+length_insertions = ZipfDistribution(1.7, 50)
+length_deletions = ZipfDistribution(1.7, 50)
 
 rate_insertion = 0.03
 rate_deletion = 0.09
@@ -19,32 +24,35 @@ trees_map = {
     "10": trees_path / "normalbranches_nLeaves10.treefile",
     "100": trees_path / "normalbranches_nLeaves100.treefile",
     "1k": trees_path / "normalbranches_nLeaves1000.treefile",
-    # "5k": trees_path / "normalbranches_nLeaves5000.treefile",
-    # "10k": trees_path / "normalbranches_nLeaves10000.treefile",
-    # "30k": trees_path / "normalbranches_nLeaves30000.treefile",
+    "5k": trees_path / "normalbranches_nLeaves5000.treefile",
+    "10k": trees_path / "normalbranches_nLeaves10000.treefile",
+    "30k": trees_path / "normalbranches_nLeaves30000.treefile",
     # "100k": trees_path / "normalbranches_nLeaves100000.treefile",
     # "500k": trees_path / "normalbranches_nLeaves500000.treefile",
     # "1M": trees_path / "normalbranches_nLeaves1000000.treefile",
 }
 
-def init_protocol(number_of_species) -> sim.Simulator:
-    simulation_protocol = sim.SimProtocol(str(trees_map[number_of_species]))
+def init_protocol(number_of_species) -> Simulator:
+    simulation_protocol = SimProtocol(str(trees_map[number_of_species]))
     simulation_protocol.set_seed(100)
-
     simulation_protocol.set_insertion_length_distributions(length_insertions)
     simulation_protocol.set_deletion_length_distributions(length_deletions)
     simulation_protocol.set_insertion_rates(rate_insertion)
     simulation_protocol.set_deletion_rates(rate_deletion)
     simulation_protocol.set_max_insertion_length(50)
-    simulation_protocol.set_site_rate_model(sim.SITE_RATE_MODELS.SIMPLE)
     simulation_protocol.set_sequence_size(30000)
     # time.sleep(3)
+    rate_model = SiteRateModelSpec(gamma_alpha=1.0,
+                                   gamma_categories=8,
+                                   site_rate_correlation=0.9,
+                                   indel_awareness=SITE_RATE_MODELS.INDEL_AWARE)
 
-    simulator = sim.Simulator(simulation_protocol, simulation_type=sim.SIMULATION_TYPE.DNA)
-    simulator.set_replacement_model(model=sim.MODEL_CODES.NUCJC,
-                                    gamma_parameters_alpha=1.0,
-                                    gamma_parameters_categories=8)
-    
+    replacement_model = ReplacementModelSpec(model=MODEL_CODES.NUCJC, 
+                                             alphabet=ALPHABET_CODES.DNA,
+                                             site_rate_model=rate_model)
+    simulation_protocol._set_site_rate_model(SITE_RATE_MODELS.INDEL_AWARE)
+
+    simulator = Simulator(simulation_protocol)
 
 
     return simulator
@@ -66,7 +74,9 @@ for num_sequences in trees_map.keys():
     output_dir = pathlib.Path("test_outputs")
     output_dir.mkdir(exist_ok=True)
 
-    msa = time_me(simulator.simulate)(output_dir / f"msa_{num_sequences}.fasta")
+    # msa = time_me(simulator.simulate)(output_dir / f"msa_{num_sequences}.fasta")
+    msa = time_me(simulator.simulate)()
+
     process = psutil.Process()
     print(process.memory_info().rss / 1024**3)  # in bytes 
     # msa.write_msa(f"simulator_tests/msa_{num_sequences}.fasta") 

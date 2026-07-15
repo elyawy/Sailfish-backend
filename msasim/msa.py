@@ -40,3 +40,6 @@ class Msa:
     
     def get_sparse_msa(self) -> Dict[str, str]:
         return self._msa.get_sparse_msa()
+    
+    def set_char_len(self, char_len: int) -> None:
+        self._msa.set_char_len(char_len)

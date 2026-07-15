@@ -1,17 +1,17 @@
 
 #include "../../../src/IndelSimulator.h"
 #include "../../../src/SubstitutionSimulator.h"
-#include "../../../libs/pcg/pcg_random.hpp"
-
+// #include "../../../libs/pcg/pcg_random.hpp"
+#include "../../../libs/sfc/sfc64.h"
 // #include "../../../libs/splitmix/Splitmix64.h"
 
 int main() {
-    tree tree_("../../trees/normalbranches_nLeaves100000.treefile");
+    tree tree_("../../trees/normalbranches_nLeaves100.treefile");
 
-    std::time_t t1 = 42;//std::time(0);
+    std::time_t t1 = 1222;//std::time(0);
 
     // time general simulation setup
-    SimulationContext<pcg64_fast> simContext(&tree_, t1);
+    SimulationContext<SFC64> simContext(&tree_, t1);
     simContext.setCacheBranchProbs(true);
     
     vector<DiscreteDistribution*> insertionDists(tree_.getNodesNum() - 1);
@@ -43,12 +43,12 @@ int main() {
     protocol.setSiteRateModel(SiteRateModel::SIMPLE);
 
 
-    int rootLength = 100;
+    int rootLength = 1000;
     protocol.setSequenceSize(rootLength);
 
     std::cout << "Starting indel simulation...\n";
     // time indel simulator initialization in microseconds
-    IndelSimulator<pcg64_fast> indelSim(simContext, &protocol);
+    IndelSimulator<SFC64> indelSim(simContext, &protocol);
 
     //time event generation in microseconds
     // auto eventMap = indelSim.generateSimulation();
@@ -56,8 +56,6 @@ int main() {
     modelFactory mFac;
     // time model setup in microseconds
 
-    mFac.setReplacementModel(modelCode::WAG);
-    // mFac.setModelParameters({0.25,0.25,0.25,0.25,0.1,0.2,0.3,0.4,0.5,0.6});
     mFac.setSiteRateModel({0.01, 0.0,2.0,4.0},
                           {0.25, 0.25, 0.25, 0.25},
                           {
@@ -67,24 +65,24 @@ int main() {
                             {0.0213646 ,0.10750572,0.2688647, 0.60226497}
                           });
 
-
-    if (!mFac.isModelValid()) return 1;
-    mFac.buildReplacementModel(); // to force model building
+                      
+    mFac.buildModel(alphabetCode::CODON, modelCode::EMPIRICODON); // to force model building
     
     auto categorySampler = mFac.getRateCategorySampler(protocol.getMaxInsertionLength());
     simContext.setCategorySampler(&categorySampler);
 
 
     //time MSA construction in microseconds
-    // auto msa = MSA<pcg64_fast>(eventMap, simContext);
-    auto msa = MSA<pcg64_fast>(rootLength, simContext);
+    // auto msa = MSA<SFC64>(eventMap, simContext);
+    auto msa = MSA<SFC64>(rootLength, simContext);
 
     std::cout << "MSA built. Number of sequences: " << msa.getNumberOfSequences() 
               << ", MSA length: " << msa.getMSAlength() << "\n";
 
 
     // time substitution simulator initialization 
-    SubstitutionSimulator<pcg64_fast, 20> substitutionSim(mFac, simContext);
+    SubstitutionSimulator<SFC64, 61> substitutionSim(mFac, simContext);
+    msa.setCharLen(3); // set character length to 3 for codon sequences
     
 
     substitutionSim.setAlignedSequenceMap(msa);
@@ -93,15 +91,14 @@ int main() {
       auto rateCategories = msa.getPerSiteRateCategories();
       substitutionSim.setPerSiteRateCategories(rateCategories);
     }
-
     // substitutionSim.simulateAndWriteSubstitutions(msa.getMSAlength(), "output_newflowtest.fasta");
     // time substitution simulation in microseconds
-    for (int i = 0; i < 10; ++i) {
+    for (int i = 0; i < 1; ++i) {
       auto fullContainer = substitutionSim.simulateSubstitutions(msa.getMSAlength());
       msa.fillSubstitutions(fullContainer);
     }
 
-    // msa.writeFullMsa("test.fasta");
+    msa.writeFullMsa("test.fasta");
     
 
     return 0;
