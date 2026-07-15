@@ -34,7 +34,7 @@ private:
 
     SequenceType _sequence;
     const Sequence* _parent;
-    std::vector<size_t> _rateCategories;
+    std::vector<uint8_t> _rateCategories;
 
 public:
 
@@ -67,7 +67,8 @@ public:
             if constexpr (std::is_same_v<BlockTreeType, BlockTreeWithRates>) {
                 // Sample and assign rate category to the column
                 size_t category = _superSequence->sampleRootCategory();
-                (*superSeqIterator).rateCategory = category;
+                // (*superSeqIterator).rateCategory = category;
+                (*superSeqIterator).setRateCategory(category);
                 _rateCategories.push_back(category);
             }
 
@@ -79,7 +80,6 @@ public:
 
 
     void generateSequence (const EventSequence &eventlist,const Sequence *parentSeq) {
-        _sequence.reserve(parentSeq->_sequence.size());
 
         if constexpr (std::is_same_v<BlockTreeType, BlockTreeWithRates>) {
             _rateCategories.reserve(parentSeq->_sequence.size());
@@ -96,16 +96,18 @@ public:
         // apply events on BlockTree
         // Initialize BlockTree with parent's rate categories
         if constexpr (std::is_same_v<BlockTreeType, BlockTreeWithRates>) {
-            const std::vector<size_t>& parentRates = parentSeq->_rateCategories;
+            const std::vector<uint8_t>& parentRates = parentSeq->_rateCategories;
             _superSequence->initBlockTree(parentSeq->_sequence.size(), parentRates);
         } else {
             _superSequence->initBlockTree(parentSeq->_sequence.size());
         }
 
-
+        size_t insertionSum = 0;
         for (const auto& ev: eventlist) {
+            if (ev.type == INSERTION) insertionSum += ev.length;
             _superSequence->logEventInBlockTree(ev);
         }
+        _sequence.reserve(parentSeq->_sequence.size() + insertionSum);
 
         auto& blocks  = _superSequence->getBlockTree();
 
@@ -150,7 +152,8 @@ public:
 
                 if constexpr (std::is_same_v<BlockTreeType, BlockTreeWithRates>) {
                     size_t category = (*it).rateCategories[i];
-                    (*superSeqIterator).rateCategory = category;
+                    // (*superSeqIterator).rateCategory = category;
+                    (*superSeqIterator).setRateCategory(category);
                     _rateCategories.push_back(category);
                 }
 
@@ -186,7 +189,7 @@ public:
 
     void printSequence() {
         for(auto &item: _sequence) {
-            std::cout << (*item).position << " ";
+            std::cout << (*item).position() << " ";
         }
         std::cout << "\n";
     }
@@ -197,7 +200,7 @@ public:
         {
             size_t numberOfAppearances = 0;
             for (auto j: _sequence) {
-                if (i==(*j).position) numberOfAppearances++;
+                if (i==(*j).position()) numberOfAppearances++;
 
             }
             if (numberOfAppearances > 1) {
@@ -216,12 +219,12 @@ public:
         result.runs.reserve(_sequence.size() / 10); // Reserve space assuming average run length of 10
         if (_sequence.empty()) return result;
         
-        size_t start = (_sequence[0])->position;
+        size_t start = (_sequence[0])->position();
         size_t count = 1;
         
         for (size_t i = 1; i < _sequence.size(); ++i) {
-            size_t currentPos = (_sequence[i])->position;
-            size_t prevPos = (_sequence[i-1])->position;
+            size_t currentPos = (_sequence[i])->position();
+            size_t prevPos = (_sequence[i-1])->position();
             
             if (currentPos == prevPos + 1) {
                 // Consecutive, extend current run

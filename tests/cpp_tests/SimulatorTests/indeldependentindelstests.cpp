@@ -2,12 +2,12 @@
 
 #include "../../../src/IndelSimulator.h"
 #include "../../../src/SubstitutionSimulator.h"
-#include "../../../libs/pcg/pcg_random.hpp"
-
+// #include "../../../libs/pcg/pcg_random.hpp"
+#include "../../../libs/sfc/sfc64.h"
 
 // takes 10 minutes currently
 int main() {
-    tree tree_("../../trees/normalbranches_nLeaves300.treefile");
+    tree tree_("../../trees/normalbranches_nLeaves100.treefile");
 
     std::time_t t1 = 42;//std::time(0);
 
@@ -15,7 +15,7 @@ int main() {
     auto start_0 = std::chrono::high_resolution_clock::now();
 
     auto start = std::chrono::high_resolution_clock::now();
-    SimulationContext<pcg64_fast> simContext(&tree_, t1);
+    SimulationContext<SFC64> simContext(&tree_, t1);
     simContext.setCacheBranchProbs(true);
     
     vector<DiscreteDistribution*> insertionDists(tree_.getNodesNum() - 1);
@@ -32,8 +32,8 @@ int main() {
     vector<double> insertionRates(tree_.getNodesNum() - 1);
     vector<double> deletionRates(tree_.getNodesNum() - 1);
 
-    fill(insertionRates.begin(), insertionRates.end(), 0.007);
-    fill(deletionRates.begin(), deletionRates.end(), 0.035);
+    fill(insertionRates.begin(), insertionRates.end(), 0.5);
+    fill(deletionRates.begin(), deletionRates.end(), 0.0);
 
     SimulationProtocol protocol(simContext.getTree()->getNodesNum() - 1);
     simContext.setProtocol(&protocol);
@@ -44,10 +44,10 @@ int main() {
     protocol.setDeletionRates(deletionRates);
     protocol.setMaxInsertionLength(150);
     protocol.setMinSequenceSize(10);
-    protocol.setSiteRateModel(SiteRateModel::SIMPLE);
+    protocol.setSiteRateModel(SiteRateModel::INDEL_AWARE);
 
 
-    int rootLength = 5000;
+    int rootLength = 1000;
     protocol.setSequenceSize(rootLength);
     auto end = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
@@ -56,7 +56,7 @@ int main() {
     std::cout << "Starting indel simulation...\n";
     // time indel simulator initialization in microseconds
     start = std::chrono::high_resolution_clock::now();
-    IndelSimulator<pcg64_fast> indelSim(simContext, &protocol);
+    IndelSimulator<SFC64> indelSim(simContext, &protocol);
     end = std::chrono::high_resolution_clock::now();
     duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
     std::cout << "Indel simulator initialization took " << duration << " microseconds.\n";
@@ -94,7 +94,7 @@ int main() {
 
     //time MSA construction in microseconds
     start = std::chrono::high_resolution_clock::now();
-    auto msa = MSA<pcg64_fast>(eventMap, simContext);
+    auto msa = MSA<SFC64>(eventMap, simContext);
     end = std::chrono::high_resolution_clock::now();
     duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
     std::cout << "MSA construction took " << duration << " microseconds.\n";
@@ -103,27 +103,27 @@ int main() {
 
 
     // time substitution simulator initialization in microseconds
-    start = std::chrono::high_resolution_clock::now();
-    SubstitutionSimulator<pcg64_fast, 20> substitutionSim(mFac, simContext);
-    end = std::chrono::high_resolution_clock::now();
-    duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
-    std::cout << "Substitution simulator initialization took " << duration << " microseconds.\n";
+      start = std::chrono::high_resolution_clock::now();
+      SubstitutionSimulator<SFC64, 20> substitutionSim(mFac, simContext);
+      end = std::chrono::high_resolution_clock::now();
+      duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+      std::cout << "Substitution simulator initialization took " << duration << " microseconds.\n";
     
 
-    substitutionSim.setAlignedSequenceMap(msa);
+      substitutionSim.setAlignedSequenceMap(msa);
 
-    if (protocol.getSiteRateModel() == SiteRateModel::INDEL_AWARE) {
-      auto rateCategories = msa.getPerSiteRateCategories();
-      substitutionSim.setPerSiteRateCategories(rateCategories);
-    }
+      if (protocol.getSiteRateModel() == SiteRateModel::INDEL_AWARE) {
+        auto rateCategories = msa.getPerSiteRateCategories();
+        substitutionSim.setPerSiteRateCategories(rateCategories);
+      }
     // substitutionSim.simulateAndWriteSubstitutions(msa.getMSAlength(), "output_newflowtest.fasta");
     // time substitution simulation in microseconds
-    start = std::chrono::high_resolution_clock::now();
-    auto fullContainer = substitutionSim.simulateSubstitutions(msa.getMSAlength());
-    end = std::chrono::high_resolution_clock::now();
-    duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
-    std::cout << "Substitution simulation took " << duration << " microseconds.\n";
-    msa.fillSubstitutions(fullContainer);
+      start = std::chrono::high_resolution_clock::now();
+      auto fullContainer = substitutionSim.simulateSubstitutions(msa.getMSAlength());
+      end = std::chrono::high_resolution_clock::now();
+      duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+      std::cout << "Substitution simulation took " << duration << " microseconds.\n";
+      msa.fillSubstitutions(fullContainer);
     // auto rateCategories = substitutionSim.getPerSiteRateCategories();
 
     // Print rate categories for each sites above the characters in the MSA

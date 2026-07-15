@@ -15,10 +15,46 @@ template<typename RngType = std::mt19937_64, typename BlockTreeType = BlockTree>
 class SuperSequence {
 public:
     struct columnContainer {
-        const size_t position;
-        size_t absolutePosition;
-        bool isColumn;
-        double rateCategory;
+    // Phase 1 (build):  raw sequence position (1…N), never 0, never reaches 2^56
+    // Phase 2 (output): overwritten by setAbsolutePositions() to hold absolute MSA index
+    // High bits encode flags — safe because biological positions never approach 2^56
+    //
+    //  bit 63     : COLUMN_BIT  — this site appears in the MSA
+    //  bits 55-62 : RATE_BITS   — rate category (0-255)
+    //  bits  0-55 : position / absolutePosition
+
+        size_t _data = 0;
+
+        static constexpr size_t COLUMN_BIT = size_t(1) << 63;
+        static constexpr size_t RATE_SHIFT = 55;
+        static constexpr size_t RATE_MASK  = size_t(0xFF) << 55;
+        static constexpr size_t POS_MASK   = ~(COLUMN_BIT | RATE_MASK);
+
+        // Constructors
+        columnContainer() = default;
+        explicit columnContainer(size_t pos)
+            : _data(pos & POS_MASK) {}
+        columnContainer(size_t pos, uint8_t rate, bool isCol)
+            : _data((pos & POS_MASK)
+                | (size_t(rate) << RATE_SHIFT)
+                | (isCol ? COLUMN_BIT : 0)) {}
+
+        // Position accessors — valid meaning changes after setAbsolutePositions()
+        size_t position()         const { return _data & POS_MASK; }
+        void   setPosition(size_t pos)  { _data = (_data & ~POS_MASK) | (pos & POS_MASK); }
+
+        // absolutePosition is an alias for position() post-setAbsolutePositions()
+        size_t absolutePosition() const { return _data & POS_MASK; }
+
+        // isColumn flag
+        bool isColumn()           const { return _data & COLUMN_BIT; }
+        void setColumn()                { _data |= COLUMN_BIT; }
+
+        // Rate category (if enabled)
+        uint8_t rateCategory()    const { return (_data & RATE_MASK) >> RATE_SHIFT; }
+        void setRateCategory(uint8_t c) {
+            _data = (_data & ~RATE_MASK) | (size_t(c) << RATE_SHIFT);
+        }
     };
     
     using SequenceType = std::list<columnContainer>;
@@ -50,7 +86,7 @@ public:
         _positionToIterator.resize(sequenceSize + 1);
 
         for (size_t i = 1; i <= sequenceSize; ++i) {
-            columnContainer column = {i, std::numeric_limits<size_t>::max(), false};
+            columnContainer column(i); // = {i, std::numeric_limits<size_t>::max(), false};
             _sequence.push_back(column);
             _positionToIterator[i] = std::prev(_sequence.end());
         }
@@ -59,8 +95,8 @@ public:
 
     void referencePosition(typename SequenceType::iterator position) {
         // if (position->position == 0) return;
-        if (!(*position).isColumn) {
-            (*position).isColumn = true;
+        if (!(*position).isColumn()) {
+            (*position).setColumn();
             ++_msaSeqLength;
         }
     }
@@ -72,28 +108,30 @@ public:
         std::vector<size_t> rootPositions(_originalSequenceSize, SIZE_MAX);
         size_t i = 0;
         for (auto &column: _sequence) {
-            if (!column.isColumn) continue;
-            column.absolutePosition = i;
-            if (column.position <= _originalSequenceSize) {
-                rootPositions[column.position - 1] = i;
+            if (!column.isColumn()) continue;
+            // column.absolutePosition = i;
+            size_t currentPosition = column.position();
+            column.setPosition(i);
+            if (currentPosition <= _originalSequenceSize) {
+                rootPositions[currentPosition - 1] = i;
             }
             if constexpr (std::is_same_v<BlockTreeType, BlockTreeWithRates>) {
-               (*_msaRateCategories)[i] = column.rateCategory;
+               (*_msaRateCategories)[i] = column.rateCategory();
             }
             ++i;
 
         }
-        return rootPositions;
         return rootPositions;
     }
 
     typename SequenceType::iterator insertItemAtPosition(typename SequenceType::iterator position, size_t item, bool isToSave) {
         // std::cout << "INSERT POS: " << *position << " " << item << "\n";
         // printSequence();
-        columnContainer newColumn = {item, std::numeric_limits<size_t>::max(), false};
+        // columnContainer newColumn = {item, std::numeric_limits<size_t>::max(), false};
+        columnContainer newColumn(item);
 
         if (isToSave) {
-            newColumn.isColumn = true;
+            newColumn.setColumn();
             ++_msaSeqLength;
         }
         auto inserted_iterator = _sequence.insert(position ,newColumn);
@@ -150,7 +188,7 @@ public:
 
     void printSequence() {
         for (auto &item: _sequence) {
-            std::cout << item.position  << " ";
+            std::cout << item.position()  << " ";
         }
         std::cout << "\n";
     }
@@ -161,7 +199,7 @@ public:
         {
             size_t numberOfAppearances = 0;
             for (auto j: _sequence) {
-                if (i==j.position) numberOfAppearances++;
+                if (i==j.position()) numberOfAppearances++;
 
             }
             if (numberOfAppearances!=1) {
@@ -177,7 +215,7 @@ public:
     }
 
 
-    void initBlockTree(size_t seqLength, const std::vector<size_t> &rootRates){ 
+    void initBlockTree(size_t seqLength, const std::vector<uint8_t> &rootRates){ 
         _blocks.initTree(seqLength, rootRates);
     }
 

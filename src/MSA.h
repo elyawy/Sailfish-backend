@@ -115,14 +115,14 @@ public:
             }
             auto previousSite = *seq.begin();
             
-            lastPosition = previousSite->absolutePosition;
+            lastPosition = previousSite->absolutePosition();
             if (lastPosition > 0) {
                 currentSequence.push_back(-lastPosition);
                 totalSize += lastPosition;
             }
             
             for(auto currentSite=seq.begin() + 1; currentSite!=seq.end(); currentSite++) {
-				currentPosition = (*(currentSite))->absolutePosition;
+				currentPosition = (*(currentSite))->absolutePosition();
                 positionDifference = currentPosition - lastPosition - 1;
 
                 if (positionDifference == 0) cumulatedDifference++;
