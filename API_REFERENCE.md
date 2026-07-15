@@ -13,7 +13,7 @@ Complete reference for the msasim Python API.
 - [Distributions](#distributions)
 - [Msa](#msa)
 - [Substitution Models](#substitution-models)
-- [Advanced: Partitions and Mixtures](#advanced-partitions-and-mixtures)
+- [Advanced: Partitions, Mixtures, and Custom Models](#advanced-partitions-mixtures-and-custom-models)
 
 ---
 
@@ -78,6 +78,7 @@ protocol.set_deletion_rates(rates: List[float]) -> None
 protocol.set_insertion_length_distributions(dist: Distribution) -> None
 protocol.set_deletion_length_distributions(dist: Distribution) -> None
 protocol.set_min_sequence_size(n: int) -> None
+protocol.set_cache_branch_probs(cache: bool) -> None  # precompute branch probs; speeds up multi-replicate runs
 ```
 
 ### Example
@@ -126,7 +127,9 @@ msa = simulator()
 msas = simulator.simulate(times=100)
 
 # Low-memory mode — writes to disk, returns None
+# Files are named {stem}_replicate_1.fasta, {stem}_replicate_2.fasta, etc.
 simulator.simulate(output_path=pathlib.Path("output.fasta"))
+# → writes output_replicate_1.fasta
 ```
 
 ### Substitution model
@@ -273,13 +276,17 @@ SiteRateModelSpec(
     gamma_alpha: float = 1.0,
     gamma_categories: int = 1,
     invariant_proportion: float = 0.0,
-    site_rate_correlation: float = 0.0,  # autocorrelation; requires gamma_categories > 1
+    site_rate_correlation: float = 0.0,
     free_rates: Optional[List[float]] = None,
     free_rate_weights: Optional[List[float]] = None,
 )
 ```
 
-`free_rates` and `free_rate_weights` are mutually exclusive with the gamma model: if both are provided, free rates take precedence.
+- `gamma_alpha`: shape parameter of the discretized gamma distribution; lower values = more rate variation.
+- `gamma_categories`: number of discrete rate categories.
+- `invariant_proportion`: fraction of sites that are completely invariant (evolve at rate zero). Must be in `[0, 1)`.
+- `site_rate_correlation`: autocorrelation between adjacent sites' rate categories. Must be in `[0, 1)`; requires `gamma_categories > 1`.
+- `free_rates` / `free_rate_weights`: explicit rate values and their weights (must sum to 1.0). Mutually exclusive with the gamma model; if provided, free rates take precedence.
 
 ### Example
 
@@ -339,8 +346,7 @@ msa.print_msa() -> None
 
 `WAG`, `LG`, `JONES` (JTT), `DAYHOFF`, `MTREV24`, `CPREV45`, `HIVB`, `HIVW`, `AAJC`,
 `EX_BURIED`, `EX_EXPOSED`, `EHO_EXTENDED`, `EHO_HELIX`, `EHO_OTHER`,
-`EX_EHO_BUR_EXT`, `EX_EHO_BUR_HEL`, `EX_EHO_BUR_OTH`, `EX_EHO_EXP_EXT`, `EX_EHO_EXP_HEL`, `EX_EHO_EXP_OTH`,
-`REVERSIBLE` (requires `amino_model_file`), `NONREVERSIBLE` (requires full Q matrix in `model_parameters`)
+`EX_EHO_BUR_EXT`, `EX_EHO_BUR_HEL`, `EX_EHO_BUR_OTH`, `EX_EHO_EXP_EXT`, `EX_EHO_EXP_HEL`, `EX_EHO_EXP_OTH`
 
 ### Codon (`ALPHABET_CODES.CODON`)
 
@@ -351,9 +357,44 @@ msa.print_msa() -> None
 
 ---
 
-## Advanced: Partitions and Mixtures
+## Advanced: Partitions, Mixtures, and Custom Models
 
-### Partitions
+### Custom and Non-reversible Models
+
+`REVERSIBLE` and `NONREVERSIBLE` are available for all alphabet types (`DNA`, `PROTEIN`, `CODON`) but require special configuration.
+
+**`REVERSIBLE`** — load a custom time-reversible model from a file:
+
+```python
+rep_model = ReplacementModelSpec(
+    model=MODEL_CODES.REVERSIBLE,
+    alphabet=ALPHABET_CODES.PROTEIN,
+    amino_model_file=pathlib.Path("my_model.txt"),
+)
+```
+
+**`NONREVERSIBLE`** — provide the full instantaneous rate matrix Q and equilibrium frequencies directly in `model_parameters`. The expected length is `alphabet_size * alphabet_size + alphabet_size` (Q matrix entries row-by-row, then frequencies):
+
+```python
+# Example for DNA (alphabet_size=4): 4*4 + 4 = 20 values
+rep_model = ReplacementModelSpec(
+    model=MODEL_CODES.NONREVERSIBLE,
+    alphabet=ALPHABET_CODES.DNA,
+    model_parameters=[
+        # Q matrix (4x4, row by row)
+        0.0,  0.1,  0.2,  0.3,
+        0.4,  0.0,  0.1,  0.2,
+        0.1,  0.3,  0.0,  0.1,
+        0.2,  0.1,  0.3,  0.0,
+        # equilibrium frequencies
+        0.25, 0.25, 0.25, 0.25,
+    ],
+)
+```
+
+### Partitions and Mixtures
+
+#### Partitions
 
 Simulate multiple partitions over different taxa sets and merge into a single FASTA.
 
@@ -378,7 +419,7 @@ partitions.add_partition(partition2)
 partitions.simulate(output_path="merged.fasta")
 ```
 
-### Mixtures
+#### Mixtures
 
 Simulate a mixture of substitution models where each site is drawn from one model at random.
 

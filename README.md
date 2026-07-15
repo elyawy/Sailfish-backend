@@ -138,6 +138,7 @@ rep_model = ReplacementModelSpec(model=MODEL_CODES.NUCJC, alphabet=ALPHABET_CODE
 simulator = Simulator(protocol, replacement_model=rep_model)
 
 simulator.simulate(output_path=pathlib.Path("large_alignment.fasta"))
+# → writes large_alignment_replicate_1.fasta
 ```
 
 ## Documentation
@@ -184,4 +185,4 @@ If you use Sailfish in your research, please cite:
 
 ## License
 
-[License information to be added]
+Academic Free License v3.0. See [LICENSE](LICENSE) for details.
