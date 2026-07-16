@@ -37,3 +37,5 @@ environment = { MACOSX_DEPLOYMENT_TARGET = "10.15" }
 #   "E501",   # Line too long
 # ]
 # target-version = "py37"
+[tool.pytest.ini_options]
+testpaths = ["tests/python_tests"]

@@ -3,7 +3,6 @@ dist
 wheelhouse
 .vscode
 libs/libPhylolib.a
-libs/Eigen
 
 Sailfish/__pycache__
 Sailfish/__pycache__/*.pyc
