@@ -12,7 +12,6 @@ from .substitutions import SubstitutionModel, ReplacementModelSpec
 
 class Simulator:
     """Simulate MSAs based on SimProtocol"""
-
     def __init__(
         self,
         simProtocol: Optional[SimProtocol] = None,
@@ -21,6 +20,7 @@ class Simulator:
         if simProtocol is None:
             simProtocol = SimProtocol.default()
         self._root_seq = ""
+        self._user_rate_categories = None
 
         if simProtocol._verify_sim_protocol():
             self._simProtocol = simProtocol
@@ -93,7 +93,7 @@ class Simulator:
     
     def _apply_substitutions(self, msa: Msa) -> None:
         """Run substitution simulation and fill the MSA in-place."""
-        rate_categories = msa.get_per_site_rate_categories()
+        rate_categories = msa.get_per_site_rate_categories() if self._user_rate_categories is None else self._user_rate_categories
         self._substitution_simulator.set_per_site_rate_categories(rate_categories)
         self._substitution_simulator.set_aligned_sequence_map(msa._msa)
         substitutions = self._substitution_simulator.simulate_substitutions(msa.get_length(), self._root_seq, msa.get_root_positions_in_msa())
@@ -103,7 +103,7 @@ class Simulator:
         """Simulate substitutions and write directly to disk without holding full MSA in memory."""
         self._substitution_simulator.set_aligned_sequence_map(msa._msa)
         self._substitution_simulator.set_per_site_rate_categories(
-            msa.get_per_site_rate_categories()
+            msa.get_per_site_rate_categories() if self._user_rate_categories is None else self._user_rate_categories
         )
         self._substitution_simulator.simulate_and_write_substitutions(
             msa.get_length(), str(output_path), self._root_seq, msa.get_root_positions_in_msa()
@@ -215,6 +215,13 @@ class Simulator:
 
     def get_rate_categories(self) -> List[int]:
         return self._substitution_simulator.get_per_site_rate_categories()
+    
+    def set_per_site_rate_categories(self, rate_categories: Optional[List[int]]) -> None:
+        """Set user-defined per-site rate categories for substitution simulation.
+           The categories will persist across all simulation unless changed again or set to None. 
+           If not set, the categories will be generated automatically based on the substitution model.
+        """
+        self._user_rate_categories = None if rate_categories is None else _Sailfish.Uint8Vector(rate_categories)    
     
     def set_root_sequence(self, sequence: str):
         if self._simProtocol.get_sequence_size() != len(sequence):
