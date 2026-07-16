@@ -7,7 +7,7 @@ from typing import Dict, List
 class Msa:
     """MSA result from simulation"""
     
-    def __init__(self, events: list[_Sailfish.IndelEvent], simContext: _Sailfish.SimulationContext):
+    def __init__(self, events: List[_Sailfish.IndelEvent], simContext: _Sailfish.SimulationContext):
         self._simContext = simContext
         self._msa = _Sailfish.Msa(events, simContext)
 

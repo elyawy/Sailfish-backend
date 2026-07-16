@@ -11,7 +11,7 @@ build-backend = "setuptools.build_meta"
 skip =  ["pp*", "*-win32", "*-manylinux_i686", "*-musllinux_i686"]
 
 build-verbosity = 1
-test-requires = ["pytest"]
+test-requires = ["pytest", "numpy"]
 test-command = "pytest {project}/tests/python_tests"
 
 [tool.cibuildwheel.linux]
