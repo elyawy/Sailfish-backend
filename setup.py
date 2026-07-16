@@ -49,7 +49,7 @@ setup(
     extras_require={"test": "pytest", "correlation": ["scipy>=1.0.0"]},
     cmdclass={"build_ext": build_ext},
     zip_safe=False,
-    python_requires=">=3.6",
+    python_requires=">=3.7",
     packages=find_packages(include=['msasim','tests']) + ['_Sailfish'],
     package_data={
         "_Sailfish":["py.typed","__init__.pyi"],

@@ -10,7 +10,7 @@
 #include "../libs/Phylolib/includes/pijAccelerator.h"
 #include "../libs/Phylolib/includes/definitions.h"
 
-#include "../libs/Eigen/Eigenvalues"
+#include "../libs/Eigen/Eigen/Eigenvalues"
 
 // Non-reversible P(t) accelerator using Eigen decomposition.
 //

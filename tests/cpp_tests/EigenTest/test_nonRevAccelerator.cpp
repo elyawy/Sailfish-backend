@@ -4,7 +4,7 @@
 #include <cassert>
 
 #include "../../../src/nonRevAccelerator.h"
-#include "../../../libs/Eigen/Eigenvalues"
+#include "../../../libs/Eigen/Eigen/Eigenvalues"
 
 // 4-state cycle Q matrix:
 //   A->C, C->G, G->T, T->A, all rate 1
