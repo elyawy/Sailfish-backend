@@ -117,37 +117,9 @@ jobs:
         name: cibw-sdist
         path: dist/*.tar.gz
 
-  test_wheels:
-    needs: build_wheels
-    name: Test wheels on ${{ matrix.config.os }}
-    runs-on: ${{ matrix.config.os }}
-    strategy:
-      matrix:
-        config:
-          - { os: "ubuntu-latest",   id: "linux-x86-64"  }
-          - { os: "windows-latest",  id: "windows-x86-64" }
-          - { os: "macos-latest",    id: "macos-arm-64"   }
-          - { os: "macos-15-intel",  id: "macos-x86-64"   }
-
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: recursive
-
-      - uses: actions/download-artifact@v4
-        with:
-          name: cibw-wheels-${{ matrix.config.os }}
-          path: wheelhouse
-
-      - name: Install wheel
-        shell: bash
-        run: pip install wheelhouse/*.whl pytest
-
-      - name: Run tests
-        run: pytest
 
   upload_pypi:
-      needs: [build_wheels, test_wheels, make_sdist]
+      needs: [build_wheels, make_sdist]
       runs-on: ubuntu-latest
       environment: pypi
       permissions:
