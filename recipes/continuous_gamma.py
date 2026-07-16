@@ -21,7 +21,7 @@ from msasim import MODEL_CODES, ALPHABET_CODES
 # ---------------------------------------------------------------------------
 
 TREE = "(A:0.1,(B:0.05,C:0.05):0.05);"
-ROOT_SEQ_SIZE = 100       # total alignment length
+ROOT_SEQ_SIZE = 1000       # total alignment length
 GAMMA_ALPHA = 0.5          # shape parameter of the continuous gamma
 MODEL = MODEL_CODES.JONES
 ALPHABET = ALPHABET_CODES.PROTEIN
