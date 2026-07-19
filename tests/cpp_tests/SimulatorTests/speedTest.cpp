@@ -6,13 +6,13 @@
 // #include "../../../libs/splitmix/Splitmix64.h"
 
 int main() {
-    tree tree_("../../trees/normalbranches_nLeaves100.treefile");
+    tree tree_("../../trees/normalbranches_nLeaves100000.treefile");
 
     std::time_t t1 = 1222;//std::time(0);
 
     // time general simulation setup
     SimulationContext<SFC64> simContext(&tree_, t1);
-    simContext.setCacheBranchProbs(true);
+    // simContext.setCacheBranchProbs(true);
     
     vector<DiscreteDistribution*> insertionDists(tree_.getNodesNum() - 1);
     vector<DiscreteDistribution*> deletionDists(tree_.getNodesNum() - 1);
@@ -43,7 +43,7 @@ int main() {
     protocol.setSiteRateModel(SiteRateModel::SIMPLE);
 
 
-    int rootLength = 1000;
+    int rootLength = 10;
     protocol.setSequenceSize(rootLength);
 
     std::cout << "Starting indel simulation...\n";
@@ -66,7 +66,7 @@ int main() {
                           });
 
                       
-    mFac.buildModel(alphabetCode::CODON, modelCode::EMPIRICODON); // to force model building
+    mFac.buildModel(alphabetCode::AMINOACID, modelCode::WAG); // to force model building
     
     auto categorySampler = mFac.getRateCategorySampler(protocol.getMaxInsertionLength());
     simContext.setCategorySampler(&categorySampler);
@@ -81,8 +81,8 @@ int main() {
 
 
     // time substitution simulator initialization 
-    SubstitutionSimulator<SFC64, 61> substitutionSim(mFac, simContext);
-    msa.setCharLen(3); // set character length to 3 for codon sequences
+    SubstitutionSimulator<SFC64, 20> substitutionSim(mFac, simContext);
+    // msa.setCharLen(3); // set character length to 3 for codon sequences
     
 
     substitutionSim.setAlignedSequenceMap(msa);
@@ -98,7 +98,7 @@ int main() {
       msa.fillSubstitutions(fullContainer);
     }
 
-    msa.writeFullMsa("test.fasta");
+    // msa.writeFullMsa("test.fasta");
     
 
     return 0;

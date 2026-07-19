@@ -1,3 +1,15 @@
+"""
+Recipe: Hypermutability
+=========================
+This recipe demonstrates how to simulate a sequence alignment 
+with a mixture of standard and hypermutable substitution models.
+The model here is designed to mimic viral hypermutability, where certain sites
+are prone to rapid mutation (e.g., G -> T transitions).
+The simulation uses a mixture of two models:
+1. A standard GTR model for the majority of sites.
+
+"""
+
 import pathlib
 from msasim import (
     SimProtocol, 
@@ -44,13 +56,13 @@ background_gtr = ReplacementModelSpec(
 
 Q_matrix = [
     # Row A: (A->A is auto-calculated, A->C, A->G, A->T)
-    0.0,  0.1,  0.2,  0.1,  
+    -0.4,   0.1,   0.2,   0.1, 
     # Row C: (C->A, C->C, C->G, C->T)
-    0.1,  0.0,  0.1,  0.2,  
+    0.1,  -0.4,   0.1,   0.2,
     # Row G: (G->A, G->C, G->G, G->T is HYPERMUTABLE)
-    0.1,  0.1,  0.0,  20.0, # Massive boost to G -> T
+    0.1,  0.1,  -20.2,  20.0, # Massive boost to G -> T
     # Row T: (T->A, T->C, T->G, T->T)
-    0.1,  0.2,  0.1,  0.0,  
+    0.1,  0.2,  0.1,  -0.4,  
 ]
 eq_freqs = [0.25, 0.25, 0.25, 0.25]
 

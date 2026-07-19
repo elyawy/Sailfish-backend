@@ -42,44 +42,47 @@ private:
 
 public:
     DiscreteNDistribution<N>(const std::array<double, N> &probabilities, double normalizingFactor=1.0) {
-        assert(probabilities.size() == N);
-
-        std::pair<int, double> small_buf[N];
-        std::pair<int, double> large_buf[N];
-        int small_top = 0, large_top = 0;
-
-        for(int i = 0; i < N; i++) {
+        uint8_t small_buf[N];
+        uint8_t large_buf[N];
+        uint8_t small_end = 0, large_end = 0;
+ 
+        // Pre-copy all scaled probabilities and classify indices into small/large.
+        // Storing indices only (not values) is safe because the values are already
+        // in probabilities_ and can be read back directly during the pairing loop.
+        for (uint8_t i = 0; i < N; i++) {
             double scaled_prob = N * probabilities[i] * normalizingFactor;
+            probabilities_[i] = scaled_prob;
             if (scaled_prob < 1.0) {
-                small_buf[small_top++] = {i, scaled_prob};
+                small_buf[small_end++] = i;
             } else {
-                large_buf[large_top++] = {i, scaled_prob};
+                large_buf[large_end++] = i;
             }
         }
-
-        while (small_top > 0 && large_top > 0) {
-            auto s = small_buf[--small_top];
-            auto l = large_buf[--large_top];
-
-            probabilities_[s.first] = s.second;
-            alias_[s.first] = static_cast<uint8_t>(l.first);
-
-            l.second = (l.second + s.second) - 1.0;
-            if (l.second < 1.0) {
-                small_buf[small_top++] = l;
-            } else {
-                large_buf[large_top++] = l;
+ 
+        // Pair each small with a large using forward pointers.
+        // large_head only advances when the current large is fully consumed;
+        // until then, successive smalls pair with the same large entry.
+        // Demoted larges are appended to the end of small_buf and visited
+        // later in order — every index is touched exactly once.
+        uint8_t small_head = 0, large_head = 0;
+        while (small_head < small_end && large_head < large_end) {
+            uint8_t s = small_buf[small_head++];
+            uint8_t l = large_buf[large_head];
+ 
+            alias_[s] = l;
+            probabilities_[l] += probabilities_[s] - 1.0;
+ 
+            if (probabilities_[l] < 1.0) {
+                small_buf[small_end++] = l; // demote: append to small list
+                large_head++;               // done with this large
             }
+            // else large_head stays — next small pairs with the same large
         }
-
-        while (large_top > 0) {
-            auto l = large_buf[--large_top];
-            probabilities_[l.first] = 1.0;
-        }
-        while (small_top > 0) {
-            auto s = small_buf[--small_top];
-            probabilities_[s.first] = 1.0;
-        }
+ 
+        // Any remaining entries are already fully probable; clamp to 1.0
+        // to correct for floating point drift.
+        while (large_head < large_end) probabilities_[large_buf[large_head++]] = 1.0;
+        while (small_head < small_end) probabilities_[small_buf[small_head++]] = 1.0;
     }
 
     template<typename RngType = std::mt19937_64>
