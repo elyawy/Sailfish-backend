@@ -111,6 +111,9 @@ class SimProtocol:
     def set_cache_branch_probs(self, cache_branch_probs: bool) -> None:
         self._sim_context.set_cache_branch_probs(cache_branch_probs)
     
+    def set_use_vose_alias(self, use_vose_alias: bool) -> None:
+        self._sim_context.set_use_vose_alias(use_vose_alias)
+
     def set_sequence_size(self, sequence_size: int) -> None:
         self._sim_protocol.set_sequence_size(sequence_size)
         self._root_seq_size = sequence_size
