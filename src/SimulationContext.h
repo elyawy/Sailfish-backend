@@ -104,6 +104,9 @@ public:
     bool getCacheBranchProbs() const { return _cacheBranchProbs; }
     void setCacheBranchProbs(bool cache) { _cacheBranchProbs = cache; }
 
+    bool getUseVoseAlias() const { return _useVoseAlias; }
+    void setUseVoseAlias(bool useVoseAlias) { _useVoseAlias = useVoseAlias; }
+
 private:
     void setSaveLeavesRecursive(tree::nodeP node) {
         if (node->isLeaf()) {
@@ -146,5 +149,6 @@ private:
     SimulationProtocol* _protocol;  // Can be nullptr
     CategorySampler* _categorySampler; // Can be nullptr
     bool _cacheBranchProbs = false; 
+    bool _useVoseAlias = true;
 };
 #endif

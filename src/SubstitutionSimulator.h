@@ -40,7 +40,7 @@ public:
 		_saveRates(false),
 		_rateCategorySampler(mFac.getEffectiveTransitionMatrix(), mFac.getRateCategoryProbs()),
 		_rng(simContext.getRng()),
-		_finalMsaPath(""), _cacheBranchProbs(simContext.getCacheBranchProbs()),
+		_finalMsaPath(""), _cacheBranchProbs(simContext.getCacheBranchProbs()), _useVoseAlias(simContext.getUseVoseAlias()),
 		_branchtoCacheIndex{}, _nextCacheIndex(0) {
 
 		// init filled with 0.0
@@ -263,10 +263,18 @@ private:
 		const int nodeId = currentSequence.id();
 		auto& rateCategories = (*_rateCategories);
 		
-		size_t branchID = _branchtoCacheIndex[branchLength];
+
 		std::optional<BranchTransitionProbabilities<AlphabetSize>> localPijt;
-		if (!_cacheBranchProbs) localPijt.emplace(branchLength, *_stochasticProcess);
-		const BranchTransitionProbabilities<AlphabetSize>& cachedPijt = _cacheBranchProbs ? _branchCache[branchID].value() : *localPijt;		
+		const BranchTransitionProbabilities<AlphabetSize>* pijtPtr;
+		if (_cacheBranchProbs) {
+			size_t branchID = _branchtoCacheIndex.at(branchLength);
+			pijtPtr = &_branchCache[branchID].value();
+		} else{
+			localPijt.emplace(branchLength, *_stochasticProcess, _useVoseAlias);
+			pijtPtr = &*localPijt;
+		}
+    	const BranchTransitionProbabilities<AlphabetSize>& cachedPijt = *pijtPtr;
+		
 		
 		size_t actualRowInMSA = _idToRowInMSA[nodeId];
 		// Check if this is a leaf we're saving (low memory mode)
@@ -284,8 +292,9 @@ private:
 				// Non-gap block - mutate these sites
 				for (int i = 0; i < blockSize; ++i, ++site) {
 					ALPHACHAR parentChar = currentSequence[site];
-					auto &Pijt = cachedPijt.getDistribution(rateCategories[site], parentChar);
-					ALPHACHAR nextChar = Pijt.drawSample(_rng) - 1;
+					// auto &Pijt = cachedPijt.getDistribution(rateCategories[site], parentChar);
+					// ALPHACHAR nextChar = Pijt.drawSample(_rng) - 1;
+					ALPHACHAR nextChar = cachedPijt.drawSample(rateCategories[site], parentChar, _rng) - 1;
 					currentSequence[site] = nextChar;
 				}
 				_lengthOfCurrentSequence += (blockSize);
@@ -295,8 +304,9 @@ private:
 			_lengthOfCurrentSequence = currentSequence.seqLen();
 			for (size_t site = 0; site < currentSequence.seqLen(); ++site) {
 				ALPHACHAR parentChar = currentSequence[site];
-				auto &Pijt = cachedPijt.getDistribution(rateCategories[site], parentChar);
-				ALPHACHAR nextChar = Pijt.drawSample(_rng) - 1;
+				// auto &Pijt = cachedPijt.getDistribution(rateCategories[site], parentChar);
+				// ALPHACHAR nextChar = Pijt.drawSample(_rng) - 1;
+				ALPHACHAR nextChar = cachedPijt.drawSample(rateCategories[site], parentChar, _rng) - 1;
 				currentSequence[site] = nextChar;
 			}
 		}
@@ -390,7 +400,7 @@ private:
 			// So we make the key the branch length times 10^6.
 			double branchLength = child->dis2father();
 			if (_branchtoCacheIndex.find(branchLength) == _branchtoCacheIndex.end()) {
-				BranchTransitionProbabilities<AlphabetSize> newProbs(branchLength, *_stochasticProcess);
+				BranchTransitionProbabilities<AlphabetSize> newProbs(branchLength, *_stochasticProcess, _useVoseAlias);
 				_branchCache.push_back(newProbs);
 				_branchtoCacheIndex[branchLength] = _nextCacheIndex++;
 			}
@@ -427,6 +437,7 @@ private:
 
 	size_t _lengthOfCurrentSequence = 0;
 	bool _cacheBranchProbs;
+	bool _useVoseAlias;
 	std::vector<std::optional<BranchTransitionProbabilities<AlphabetSize>>> _branchCache;
 	std::unordered_map<double, size_t> _branchtoCacheIndex;
 	size_t _nextCacheIndex = 0;

@@ -6,13 +6,14 @@
 // #include "../../../libs/splitmix/Splitmix64.h"
 
 int main() {
-    tree tree_("../../trees/normalbranches_nLeaves100000.treefile");
+    tree tree_("../../trees/tree_100000.treefile");
 
     std::time_t t1 = 1222;//std::time(0);
 
     // time general simulation setup
     SimulationContext<SFC64> simContext(&tree_, t1);
-    // simContext.setCacheBranchProbs(true);
+    simContext.setCacheBranchProbs(false);
+    simContext.setUseVoseAlias(false);
     
     vector<DiscreteDistribution*> insertionDists(tree_.getNodesNum() - 1);
     vector<DiscreteDistribution*> deletionDists(tree_.getNodesNum() - 1);
@@ -43,7 +44,7 @@ int main() {
     protocol.setSiteRateModel(SiteRateModel::SIMPLE);
 
 
-    int rootLength = 10;
+    int rootLength = 100;
     protocol.setSequenceSize(rootLength);
 
     std::cout << "Starting indel simulation...\n";
