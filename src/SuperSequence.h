@@ -23,28 +23,28 @@ public:
     //  bits 55-62 : RATE_BITS   — rate category (0-255)
     //  bits  0-55 : position / absolutePosition
 
-        size_t _data = 0;
+        uint64_t _data = 0;
 
-        static constexpr size_t COLUMN_BIT = size_t(1) << 63;
-        static constexpr size_t RATE_SHIFT = 55;
-        static constexpr size_t RATE_MASK  = size_t(0xFF) << 55;
-        static constexpr size_t POS_MASK   = ~(COLUMN_BIT | RATE_MASK);
+        static constexpr uint64_t COLUMN_BIT = uint64_t(1) << 63;
+        static constexpr uint64_t RATE_SHIFT = 55;
+        static constexpr uint64_t RATE_MASK  = uint64_t(0xFF) << 55;
+        static constexpr uint64_t POS_MASK   = ~(COLUMN_BIT | RATE_MASK);
 
         // Constructors
         columnContainer() = default;
-        explicit columnContainer(size_t pos)
+        explicit columnContainer(uint64_t pos)
             : _data(pos & POS_MASK) {}
-        columnContainer(size_t pos, uint8_t rate, bool isCol)
+        columnContainer(uint64_t pos, uint8_t rate, bool isCol)
             : _data((pos & POS_MASK)
-                | (size_t(rate) << RATE_SHIFT)
+                | (uint64_t(rate) << RATE_SHIFT)
                 | (isCol ? COLUMN_BIT : 0)) {}
 
         // Position accessors — valid meaning changes after setAbsolutePositions()
-        size_t position()         const { return _data & POS_MASK; }
-        void   setPosition(size_t pos)  { _data = (_data & ~POS_MASK) | (pos & POS_MASK); }
+        uint64_t position()         const { return _data & POS_MASK; }
+        void   setPosition(uint64_t pos)  { _data = (_data & ~POS_MASK) | (pos & POS_MASK); }
 
         // absolutePosition is an alias for position() post-setAbsolutePositions()
-        size_t absolutePosition() const { return _data & POS_MASK; }
+        uint64_t absolutePosition() const { return _data & POS_MASK; }
 
         // isColumn flag
         bool isColumn()           const { return _data & COLUMN_BIT; }
@@ -53,7 +53,7 @@ public:
         // Rate category (if enabled)
         uint8_t rateCategory()    const { return (_data & RATE_MASK) >> RATE_SHIFT; }
         void setRateCategory(uint8_t c) {
-            _data = (_data & ~RATE_MASK) | (size_t(c) << RATE_SHIFT);
+            _data = (_data & ~RATE_MASK) | (uint64_t(c) << RATE_SHIFT);
         }
     };
     
