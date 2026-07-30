@@ -206,6 +206,7 @@ public:
                 dummyRootPositionsInMSA[i] = i;
             }
             simulateAndWriteSubstitutions(sequenceLength, filePath, rootString, dummyRootPositionsInMSA);
+			return;
         }
 
         setWriteFolder(filePath);
@@ -263,10 +264,16 @@ private:
 		const int nodeId = currentSequence.id();
 		auto& rateCategories = (*_rateCategories);
 		
-		size_t branchID = _branchtoCacheIndex[branchLength];
 		std::optional<BranchTransitionProbabilities<AlphabetSize>> localPijt;
-		if (!_cacheBranchProbs) localPijt.emplace(branchLength, *_stochasticProcess);
-		const BranchTransitionProbabilities<AlphabetSize>& cachedPijt = _cacheBranchProbs ? _branchCache[branchID].value() : *localPijt;		
+		const BranchTransitionProbabilities<AlphabetSize>* pijtPtr;
+		if (_cacheBranchProbs) {
+			size_t branchID = _branchtoCacheIndex.at(branchLength);
+			pijtPtr = &_branchCache[branchID].value();
+		} else {
+			localPijt.emplace(branchLength, *_stochasticProcess);
+			pijtPtr = &(*localPijt);
+		}
+		const BranchTransitionProbabilities<AlphabetSize>& cachedPijt = *pijtPtr;		
 		
 		size_t actualRowInMSA = _idToRowInMSA[nodeId];
 		// Check if this is a leaf we're saving (low memory mode)
@@ -361,6 +368,7 @@ private:
 				if (blockSize < 0) {
 					// Gap block - write gaps
 					outputString += std::string(-blockSize, '-');
+					site += (-blockSize);
 				} else {
 					// Non-gap block - write sequence characters
 					for (int i = 0; i < blockSize; ++i) {
