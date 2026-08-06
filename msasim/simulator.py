@@ -199,7 +199,7 @@ class Simulator:
         self._simProtocol.get_sim_context().set_save_root()
 
     def save_all_nodes_sequences(self):
-        self._simProtocol.get_sim_context().set_save_all_nodes()
+        self._simProtocol.get_sim_context().set_save_all()
 
     def save_leaves_sequences(self):
         self._simProtocol.get_sim_context().set_save_leaves()

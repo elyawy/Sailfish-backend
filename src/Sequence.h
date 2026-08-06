@@ -5,7 +5,7 @@
 #include <stddef.h>
 #include <iostream>
 #include <vector>
-#include <list>
+// #include <list>
 #include <numeric>
 #include <iterator>
 
@@ -25,7 +25,8 @@ template<typename RngType = std::mt19937_64, typename BlockTreeType = BlockTree>
 class Sequence
 {
     using SuperSeqType = SuperSequence<RngType, BlockTreeType>;
-    using iteratorType = typename std::list<typename SuperSeqType::columnContainer>::iterator;
+    // using iteratorType = typename std::list<typename SuperSeqType::columnContainer>::iterator;
+    using iteratorType = typename plf::list<typename SuperSeqType::columnContainer>::iterator;
     using SequenceType = std::vector<iteratorType>;
 
 private:
@@ -216,9 +217,17 @@ public:
     CompressedSequence compress() const {
         CompressedSequence result;
         result.uncompressedSize = _sequence.size();
-        result.runs.reserve(_sequence.size() / 10); // Reserve space assuming average run length of 10
         if (_sequence.empty()) return result;
-        
+        // Pass 1: count exact number of runs (no allocation)
+        size_t runCount = 1;
+        for (size_t i = 1; i < _sequence.size(); ++i) {
+            if ((_sequence[i])->position() != (_sequence[i-1])->position() + 1) {
+                runCount++;
+            }
+        }
+        result.runs.reserve(runCount); // exactly reserve space for the number of runs
+
+        // result.runs.reserve(_sequence.size() / 10); // Reserve space assuming average run length of 10
         size_t start = (_sequence[0])->position();
         size_t count = 1;
         

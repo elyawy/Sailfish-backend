@@ -25,7 +25,8 @@ template<typename RngType = std::mt19937_64>
 class MSA
 {
 public:
-	using iteratorType = typename std::list<typename SuperSequence<RngType, BlockTree>::columnContainer>::iterator;
+	// using iteratorType = typename std::list<typename SuperSequence<RngType, BlockTree>::columnContainer>::iterator;
+	using iteratorType = typename plf::list<typename SuperSequence<RngType, BlockTree>::columnContainer>::iterator;
 
 
     MSA<RngType>(EventMap &eventmap, SimulationContext<RngType> &simContext): 

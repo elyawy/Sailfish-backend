@@ -7,7 +7,7 @@
 
 // takes 10 minutes currently
 int main() {
-    tree tree_("../../trees/normalbranches_nLeaves100.treefile");
+    tree tree_("../../trees/normalbranches_nLeaves1000.treefile");
 
     std::time_t t1 = 42;//std::time(0);
 
@@ -17,7 +17,7 @@ int main() {
     auto start = std::chrono::high_resolution_clock::now();
     SimulationContext<SFC64> simContext(&tree_, t1);
     simContext.setCacheBranchProbs(true);
-    
+    simContext.setSaveAll();
     vector<DiscreteDistribution*> insertionDists(tree_.getNodesNum() - 1);
     vector<DiscreteDistribution*> deletionDists(tree_.getNodesNum() - 1);
 
@@ -32,8 +32,8 @@ int main() {
     vector<double> insertionRates(tree_.getNodesNum() - 1);
     vector<double> deletionRates(tree_.getNodesNum() - 1);
 
-    fill(insertionRates.begin(), insertionRates.end(), 0.5);
-    fill(deletionRates.begin(), deletionRates.end(), 0.0);
+    fill(insertionRates.begin(), insertionRates.end(), 0.03);
+    fill(deletionRates.begin(), deletionRates.end(), 0.09);
 
     SimulationProtocol protocol(simContext.getTree()->getNodesNum() - 1);
     simContext.setProtocol(&protocol);
@@ -44,10 +44,10 @@ int main() {
     protocol.setDeletionRates(deletionRates);
     protocol.setMaxInsertionLength(150);
     protocol.setMinSequenceSize(10);
-    protocol.setSiteRateModel(SiteRateModel::INDEL_AWARE);
+    protocol.setSiteRateModel(SiteRateModel::SIMPLE);
 
 
-    int rootLength = 1000;
+    int rootLength = 100000;
     protocol.setSequenceSize(rootLength);
     auto end = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();

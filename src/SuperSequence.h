@@ -1,5 +1,6 @@
 #include <cstdio>
-#include <list>
+// #include <list>
+#include "../libs/plf_list/plf_list.h"
 #include <iterator> 
 #include <cstddef> 
 #include <limits>
@@ -57,8 +58,8 @@ public:
         }
     };
     
-    using SequenceType = std::list<columnContainer>;
-
+    // using SequenceType = std::list<columnContainer>;
+    using SequenceType = plf::list<columnContainer>;
 private:
     SequenceType _sequence;
     std::vector<typename SequenceType::iterator> _positionToIterator;
