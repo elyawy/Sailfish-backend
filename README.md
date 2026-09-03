@@ -23,6 +23,11 @@ pip install msasim
 
 Requirements: Python >= 3.7
 
+## Web app
+
+[Try Sailfish without installing anything](https://elyawy.github.io/SailfishWeb/) — runs entirely in your browser via WASM.
+
+
 ## Quick Start
 
 ### Full simulation (indels + substitutions)
