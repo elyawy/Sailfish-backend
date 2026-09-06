@@ -1,0 +1,19 @@
+Change order of examples (add simple one at first)
+
+Add link to web application
+
+Add tags, add title
+
+Add icon to the webpage
+
+Add link from web to git repo / download + https://pypi.org/project/msasim/ + later paper
+
+Add credit to pupko lab, “CC”
+
+in the paragraph:
+"Because Sailfish is a Python package, users can skip the sometimes time-consuming step of writing every simulated MSA to disk."
+
+- Change to examples 
+- Maybe remove the name
+-Add more examples
+-Add the following types of examples: “simple”, “parameters inference” (as Tal suggested), “simulation”, and “complex”.
