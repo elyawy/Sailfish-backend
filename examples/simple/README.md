@@ -1,4 +1,3 @@
-
 We provide additional usage examples here. The following examples demonstrate how to use the `msasim` package for different simple simulation scenarios.
 
 ## Substitutions only (no indels)
@@ -22,7 +21,6 @@ simulator = Simulator(protocol, replacement_model=rep_model)
 msa = simulator()
 ```
 
-
 ## Indels only (no substitutions)
 
 Omit the `replacement_model` argument:
@@ -45,7 +43,6 @@ simulator = Simulator(protocol)
 msa = simulator()
 ```
 
-
 ## Gamma rate heterogeneity
 
 Set the `site_rate_model` argument in the `ReplacementModelSpec` to a `SiteRateModelSpec` instance:
@@ -65,7 +62,6 @@ rep_model = ReplacementModelSpec(
 simulator = Simulator(protocol, replacement_model=rep_model)
 msa = simulator()
 ```
-
 
 ## Batch simulations
 
@@ -99,5 +95,4 @@ rep_model = ReplacementModelSpec(model=MODEL_CODES.NUCJC, alphabet=ALPHABET_CODE
 simulator = Simulator(protocol, replacement_model=rep_model)
 
 simulator.simulate(output_path=pathlib.Path("large_alignment.fasta")) # → writes large_alignment_replicate_1.fasta
-
 ```
